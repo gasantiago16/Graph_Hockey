@@ -52,8 +52,8 @@ function runScripted(seed: number) {
     ac.vel = { x: 0, y: 0 };
     ac.heading = 0;
   }
-  world.puck.pos = { x: 89.5, y: 0 };
-  world.puck.vel = { x: 1, y: 0 };
+  world.puck.pos = { x: 88.4, y: 0 };
+  world.puck.vel = { x: 20, y: 0 };
   world.puck.possessor = null;
   world.lastPuckContact = { kind: "stick-puck", playerId: "h-C", stickHeight: 3 };
 

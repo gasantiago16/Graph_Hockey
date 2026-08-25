@@ -4,6 +4,7 @@ import { DEFAULT_PLAY_ID } from "../types/play.ts";
 import {
   applyLiveRules,
   captureSnapshot,
+  crossedIntoNet,
   FACEOFF_PUCK_OFFSET,
   faceoffSpotFor,
   faceoffWinProbability,
@@ -202,6 +203,30 @@ describe("icing", () => {
     expect(world.phase).toBe("live");
   });
 
+  it("waives icing when the goalie plays the puck during the race", () => {
+    const world = createWorld({
+      phase: "live",
+      onIce: { home: ["h-LD"], away: ["a-LW", "a-G"] },
+      bodies: {
+        "h-LD": { pos: { x: -70, y: -30 }, vel: { x: 0, y: 0 }, heading: 0 },
+        "a-LW": { pos: { x: -70, y: 30 }, vel: { x: 0, y: 0 }, heading: 0 },
+        "a-G": { pos: { x: 90, y: 22 }, vel: { x: 0, y: 0 }, heading: 0 },
+      },
+      puck: { pos: { x: 94, y: 22 }, vel: { x: 0, y: 0 }, possessor: null },
+      icingRace: {
+        sideDumping: "home",
+        dot: { x: END_ZONE_FACEOFF_X, y: HASH_OFFSET_Y },
+        defenderId: "h-LD",
+        attackerId: "a-LW",
+        startedLiveTick: 0,
+      },
+    });
+    advanceWorld(world, dirs, createRng(1));
+    expect(world.icingRace).toBeNull();
+    expect(world.whistle).not.toBe("icing");
+    expect(world.phase).toBe("live");
+  });
+
   it("waives icing when the goalie plays the puck before the goal line", () => {
     const world = createWorld({
       phase: "live",
@@ -253,6 +278,44 @@ describe("offside", () => {
     expect(world.whistle).toBeNull();
   });
 
+  it("does not whistle after tag-up when an attacker then plays the puck", () => {
+    const world = createWorld({
+      phase: "delayed_offside",
+      delayedOffside: { attacking: "home" },
+      puck: { pos: { x: 24, y: 0 }, vel: { x: 0, y: 0 }, possessor: null },
+      bodies: {
+        ...farBodies(),
+        "h-C": { pos: { x: 20, y: 0 }, vel: { x: 0, y: 0 }, heading: 0 },
+      },
+    });
+    advanceWorld(world, dirs, createRng(1));
+    expect(world.delayedOffside).toBeNull();
+    expect(world.whistle).toBeNull();
+    expect(world.phase).toBe("live");
+  });
+
+  it("whistles offside when an offside attacker shoots (possession release)", () => {
+    const world = createWorld({
+      phase: "delayed_offside",
+      delayedOffside: { attacking: "home" },
+      puck: { pos: { x: 40, y: 0 }, vel: { x: 80, y: 0 }, possessor: null },
+      bodies: {
+        ...farBodies(),
+        "h-LW": { pos: { x: 40, y: 10 }, vel: { x: 0, y: 0 }, heading: Math.PI },
+        "h-C": { pos: { x: 30, y: 0 }, vel: { x: 0, y: 0 }, heading: 0 },
+      },
+    });
+    const prev = captureSnapshot(world);
+    prev.possessor = "h-C";
+    const events: { type?: string }[] = [];
+    applyLiveRules(world, createRng(1), prev, (partial) => {
+      events.push(partial);
+      return { id: "m:0", seq: 0, liveTick: world.liveTick, stoppageSeq: 0, period: 1, type: String(partial.type) };
+    }, 0.1, []);
+    expect(events.some((e) => e.type === "Offside")).toBe(true);
+    expect(world.whistle).toBe("offside");
+  });
+
   it("whistles offside if the attacking team plays the puck while delayed", () => {
     const world = createWorld({
       phase: "delayed_offside",
@@ -274,11 +337,12 @@ describe("offside", () => {
 describe("goals", () => {
   it("awards a stick-puck goal fully across the goal line in the net", () => {
     expect(puckInNet({ x: 89.5, y: 0 }, GOAL_LINE_X)).toBe(true);
+    expect(crossedIntoNet({ x: 88.4, y: 0 }, { x: 89.5, y: 0 }, GOAL_LINE_X)).toBe(true);
     const world = createWorld({
       phase: "live",
       onIce: { home: ["h-C"], away: ["a-C"] },
       bodies: farBodies(),
-      puck: { pos: { x: 89.5, y: 0 }, vel: { x: 2, y: 0 }, possessor: null },
+      puck: { pos: { x: 88.4, y: 0 }, vel: { x: 20, y: 0 }, possessor: null },
       lastPuckContact: { kind: "stick-puck", playerId: "h-C", stickHeight: 3 },
     });
     advanceWorld(world, dirs, createRng(1));
@@ -293,7 +357,7 @@ describe("goals", () => {
       phase: "live",
       onIce: { home: ["h-C"], away: ["a-C"] },
       bodies: farBodies(),
-      puck: { pos: { x: 89.5, y: 0 }, vel: { x: 10, y: 0 }, possessor: null },
+      puck: { pos: { x: 88.4, y: 0 }, vel: { x: 20, y: 0 }, possessor: null },
       lastPuckContact: { kind: "skate-puck", playerId: "h-C", stickHeight: 3 },
     });
     advanceWorld(world, dirs, createRng(1));
@@ -303,12 +367,28 @@ describe("goals", () => {
     expect(world.phase).toBe("live");
   });
 
+  it("does not award a later stick-puck while the puck remains in the net after a kick", () => {
+    const world = createWorld({
+      phase: "live",
+      onIce: { home: ["h-C"], away: ["a-C"] },
+      bodies: farBodies(),
+      puck: { pos: { x: 89.6, y: 0 }, vel: { x: 0, y: 0 }, possessor: null },
+      lastPuckContact: { kind: "stick-puck", playerId: "h-C", stickHeight: 3 },
+    });
+    const prev = captureSnapshot(world);
+    applyLiveRules(world, createRng(1), prev, () => {
+      return { id: "m:0", seq: 0, liveTick: 0, stoppageSeq: 0, period: 1, type: "Goal" };
+    }, 0.1, []);
+    expect(world.score.home).toBe(0);
+    expect(world.whistle).toBeNull();
+  });
+
   it("waves off a high-stick goal (stickHeight > 4)", () => {
     const world = createWorld({
       phase: "live",
       onIce: { home: ["h-C"], away: ["a-C"] },
       bodies: farBodies(),
-      puck: { pos: { x: 89.5, y: 0 }, vel: { x: 2, y: 0 }, possessor: null },
+      puck: { pos: { x: 88.4, y: 0 }, vel: { x: 20, y: 0 }, possessor: null },
       lastPuckContact: { kind: "stick-puck", playerId: "h-C", stickHeight: 4.2 },
     });
     advanceWorld(world, dirs, createRng(1));

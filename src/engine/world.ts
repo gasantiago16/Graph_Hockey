@@ -95,6 +95,9 @@ export type WorldState = {
   /** Armed when a dump/shot leaves the stick from the dumping team's side of center. */
   icingTrack: IcingTrack | null;
   lastPuckContact: LastPuckContact | null;
+  /** liveTick of the last Save. lastEvents is a 32-cap ring and Rebound always follows Save. */
+  lastSaveLiveTick: number | null;
+  lastZoneEntryBySide: { home: number | null; away: number | null };
   whistle: WhistleKind | null;
   faceoffSpot: Vec2 | null;
   netStatus: { home: "on" | "off"; away: "on" | "off" };
@@ -128,6 +131,8 @@ export type CreateWorldInput = {
   icingRace?: IcingRace | null;
   icingTrack?: IcingTrack | null;
   lastPuckContact?: LastPuckContact | null;
+  lastSaveLiveTick?: number | null;
+  lastZoneEntryBySide?: { home: number | null; away: number | null };
   whistle?: WhistleKind | null;
   faceoffSpot?: Vec2 | null;
   netStatus?: { home: "on" | "off"; away: "on" | "off" };
@@ -297,6 +302,10 @@ export function createWorld(input: CreateWorldInput = {}): WorldState {
     icingRace: input.icingRace ?? null,
     icingTrack: input.icingTrack ? { ...input.icingTrack } : null,
     lastPuckContact: input.lastPuckContact ? { ...input.lastPuckContact } : null,
+    lastSaveLiveTick: input.lastSaveLiveTick ?? null,
+    lastZoneEntryBySide: input.lastZoneEntryBySide
+      ? { ...input.lastZoneEntryBySide }
+      : { home: null, away: null },
     whistle: input.whistle ?? null,
     faceoffSpot:
       input.faceoffSpot === undefined

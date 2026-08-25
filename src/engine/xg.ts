@@ -1,7 +1,7 @@
 import type { Side, Vec2 } from "../types/hockey.ts";
 import { dist, dot, hypotVec, sub } from "./physics.ts";
 import { GOAL_LINE_X } from "./rink.ts";
-import { onIceBodies, type Body, type WorldState } from "./world.ts";
+import { isGoalie, onIceBodies, type Body, type WorldState } from "./world.ts";
 
 export type XgFeatures = {
   distanceFt: number;
@@ -82,26 +82,23 @@ export function shotFeatures(
   let nearest = Infinity;
   let traffic: 0 | 1 = 0;
   for (const b of onIceBodies(world)) {
-    if (b.side === shooter.side || b.id === shooter.id) continue;
+    if (b.side === shooter.side || b.id === shooter.id || isGoalie(b)) continue;
     const d = dist(b.pos, shooter.pos);
     if (d < nearest) nearest = d;
     if (distToSegment(b.pos, shooter.pos, net) <= CORRIDOR_HALF) traffic = 1;
   }
   const pressure = nearest === Infinity ? 0 : clamp(1 - nearest / 8, 0, 1);
 
-  const rebound: 0 | 1 = world.lastEvents.some(
-    (e) => e.type === "Save" && e.liveTick < world.liveTick && world.liveTick - e.liveTick <= REBOUND_TICKS,
-  )
-    ? 1
-    : 0;
-  const rush: 0 | 1 = world.lastEvents.some((e) => {
-    if (e.type !== "ZoneEntry") return false;
-    if (world.liveTick - e.liveTick > RUSH_TICKS) return false;
-    const side = (e.payload as { side?: Side } | undefined)?.side;
-    return side === shooter.side;
-  })
-    ? 1
-    : 0;
+  // Rebound-after-Save means lastEvents[-1] is never Save; lastEvents is also a 32-cap ring.
+  const rebound: 0 | 1 =
+    world.lastSaveLiveTick !== null &&
+    world.lastSaveLiveTick < world.liveTick &&
+    world.liveTick - world.lastSaveLiveTick <= REBOUND_TICKS
+      ? 1
+      : 0;
+  const entryTick = world.lastZoneEntryBySide[shooter.side];
+  const rush: 0 | 1 =
+    entryTick !== null && world.liveTick - entryTick <= RUSH_TICKS ? 1 : 0;
 
   const counts = skaterCounts(world.strength);
   const us = shooter.side === "home" ? counts.home : counts.away;

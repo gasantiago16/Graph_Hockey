@@ -92,6 +92,7 @@ function emitGoalieSaves(world: WorldState, collected: MatchEvent[], contacts: C
     if (!body || !isGoalie(body)) continue;
     if (saved) continue;
     saved = true;
+    world.lastSaveLiveTick = world.liveTick;
     const lastShot = [...world.lastEvents].reverse().find((e) => e.type === "Shot");
     pushEvent(world, collected, {
       type: "Save",

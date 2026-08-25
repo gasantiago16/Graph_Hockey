@@ -233,9 +233,19 @@ function playerIdFromContact(c: ContactEvent): PlayerId | null {
   return id === "puck" ? null : id;
 }
 
-function sidePlayedPuck(world: WorldState, side: Side, puckContacts: ContactEvent[]): boolean {
+function sidePlayedPuck(
+  world: WorldState,
+  side: Side,
+  puckContacts: ContactEvent[],
+  prevPossessor: PlayerId | null,
+): boolean {
   if (world.puck.possessor) {
     const b = world.bodies[world.puck.possessor];
+    if (b && b.side === side) return true;
+  }
+  // Possession at tick start counts: updatePossession already cleared a dump/shot.
+  if (prevPossessor) {
+    const b = world.bodies[prevPossessor];
     if (b && b.side === side) return true;
   }
   for (const c of puckContacts) {
@@ -375,14 +385,18 @@ function updateSmother(world: WorldState, emit: RuleEmit, dt: number): boolean {
   return false;
 }
 
-function maybeGoal(world: WorldState, emit: RuleEmit): boolean {
+export function crossedIntoNet(prev: Vec2, now: Vec2, netX: number): boolean {
+  return !puckInNet(prev, netX) && puckInNet(now, netX);
+}
+
+function maybeGoal(world: WorldState, prev: LiveSnapshot, emit: RuleEmit): boolean {
   if (world.whistle !== null) return false;
   if (world.phase !== "live" && world.phase !== "delayed_offside" && world.phase !== "delayed_penalty") {
     return false;
   }
   for (const scoring of ["home", "away"] as const) {
     const netX = attackingNetX(world, scoring);
-    if (!puckInNet(world.puck.pos, netX)) continue;
+    if (!crossedIntoNet(prev.puckPos, world.puck.pos, netX)) continue;
     const defending = otherSide(scoring);
     if (world.netStatus[defending] !== "on") continue;
 
@@ -453,14 +467,19 @@ function maybeOffside(
     if (world.puck.pos.x * dir <= BLUE_LINE_X) {
       world.delayedOffside = null;
       if (world.phase === "delayed_offside") world.phase = "live";
-    } else if (sidePlayedPuck(world, atk, puckContacts)) {
+    } else if (allAttackersTaggedUp(world, atk)) {
+      world.delayedOffside = null;
+      if (world.phase === "delayed_offside") world.phase = "live";
+    } else if (puckInNet(world.puck.pos, attackingNetX(world, atk))) {
       blowWhistle(world, emit, "offside", "Offside", faceoffSpotFor("offside", world, { attacking: atk }), {
         payload: { attacking: atk },
       });
       return true;
-    } else if (allAttackersTaggedUp(world, atk)) {
-      world.delayedOffside = null;
-      if (world.phase === "delayed_offside") world.phase = "live";
+    } else if (sidePlayedPuck(world, atk, puckContacts, prev.possessor)) {
+      blowWhistle(world, emit, "offside", "Offside", faceoffSpotFor("offside", world, { attacking: atk }), {
+        payload: { attacking: atk },
+      });
+      return true;
     }
   }
 
@@ -477,7 +496,7 @@ function maybeOffside(
     }
   }
   if (offside) {
-    if (sidePlayedPuck(world, entering, puckContacts)) {
+    if (sidePlayedPuck(world, entering, puckContacts, prev.possessor)) {
       blowWhistle(world, emit, "offside", "Offside", faceoffSpotFor("offside", world, { attacking: entering }), {
         payload: { attacking: entering },
       });
@@ -489,6 +508,7 @@ function maybeOffside(
   }
   const poss = world.puck.possessor ? world.bodies[world.puck.possessor] : undefined;
   if (poss && poss.side === entering) {
+    world.lastZoneEntryBySide[entering] = world.liveTick;
     emit({ type: "ZoneEntry", actor: poss.id, payload: { side: entering } });
   }
   return false;
@@ -550,6 +570,11 @@ function maybeIcing(
   emit: RuleEmit,
   puckContacts: ContactEvent[],
 ): boolean {
+  if (world.icingRace && goalieTouched(world, puckContacts)) {
+    world.icingRace = null;
+    world.icingTrack = null;
+    return false;
+  }
   if (resolveIcingRace(world, rng, emit)) return world.whistle === "icing";
 
   if (world.icingTrack) {
@@ -624,7 +649,7 @@ export function applyLiveRules(
 ): void {
   if (updateSmother(world, emit, dt)) return;
   maybeShot(world, prev, emit);
-  if (maybeGoal(world, emit)) return;
+  if (maybeGoal(world, prev, emit)) return;
   if (maybeNetOff(world, emit)) return;
   if (maybeOffside(world, prev, emit, puckContacts)) return;
   if (maybeIcing(world, rng, prev, emit, puckContacts)) return;
