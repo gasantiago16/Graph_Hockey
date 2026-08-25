@@ -2,8 +2,10 @@ import { describe, expect, it } from "vitest";
 import {
   BODY_RESTITUTION,
   collideBodies,
+  collidePuckPlayers,
   collideRink,
   PUCK_BOARD_RESTITUTION,
+  PUCK_GOALIE_RESTITUTION,
   PUCK_RADIUS,
   STICK_REACH,
   updatePossession,
@@ -112,6 +114,21 @@ describe("stick possession", () => {
     updatePossession(second, { next: () => 0.99 });
     expect(first.puck.possessor).not.toBe(second.puck.possessor);
     expect(new Set([first.puck.possessor, second.puck.possessor])).toEqual(new Set(["a-C", "h-C"]));
+  });
+});
+
+describe("puck-goalie rebounds", () => {
+  it("reflects with restitution 0.35", () => {
+    expect(PUCK_GOALIE_RESTITUTION).toBe(0.35);
+    const world = createWorld({
+      onIce: { home: ["h-G"], away: [] },
+      bodies: {
+        "h-G": { pos: { x: 0, y: 0 }, vel: { x: 0, y: 0 }, heading: 0 },
+      },
+      puck: { pos: { x: 1.5, y: 0 }, vel: { x: -24, y: 0 }, possessor: null },
+    });
+    collidePuckPlayers(world);
+    expect(world.puck.vel.x).toBeGreaterThan(0);
   });
 });
 

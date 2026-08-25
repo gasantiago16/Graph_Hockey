@@ -11,3 +11,5 @@ export * from "./engine/rng.ts";
 export * from "./engine/world.ts";
 export * from "./engine/physics.ts";
 export * from "./engine/step.ts";
+export * from "./engine/rules.ts";
+export * from "./engine/xg.ts";

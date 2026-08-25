@@ -1,7 +1,7 @@
 import type { ContactKind, Vec2 } from "../types/hockey.ts";
 import type { PlayerId } from "../types/ids.ts";
 import type { Rng } from "./rng.ts";
-import { DT, GOAL_LINE_X, projectInsideRink } from "./rink.ts";
+import { DT, GOAL_LINE_X, RINK_HALF_LENGTH, RINK_HALF_WIDTH, projectInsideRink } from "./rink.ts";
 import {
   DEFAULT_SLOTS,
   isGoalie,
@@ -22,6 +22,7 @@ export const GOALIE_TURN_RATE = 5.0;
 export const PUCK_FRICTION_TAU = 1.35;
 export const BODY_RESTITUTION = 0.15;
 export const PUCK_BOARD_RESTITUTION = 0.55;
+export const PUCK_GOALIE_RESTITUTION = 0.35;
 export const STICK_REACH = 6.5;
 export const FACING_DEG = 70;
 export const FACING_RAD = (FACING_DEG * Math.PI) / 180;
@@ -203,10 +204,33 @@ export function collidePuckPlayers(world: WorldState): ContactEvent[] {
     const before = dist(body.pos, world.puck.pos);
     if (before >= body.radius + PUCK_RADIUS) continue;
     const kind = classifyPuckPlayer(body, world.puck.pos);
-    separateAndImpulse(body, puck, BODY_RESTITUTION);
+    const rest = isGoalie(body) ? PUCK_GOALIE_RESTITUTION : BODY_RESTITUTION;
+    separateAndImpulse(body, puck, rest);
+    if (isGoalie(body)) applyReboundControl(body, puck);
     contacts.push({ kind, a: body.id, b: "puck" });
   }
   return contacts;
+}
+
+/** Pull the rebound toward the nearest corner in proportion to reboundControl (0–100). */
+function applyReboundControl(goalie: Body, puck: { pos: Vec2; vel: Vec2 }): void {
+  const rc = goalie.attributes?.reboundControl;
+  if (rc === undefined || rc <= 0) return;
+  const speed = hypotVec(puck.vel);
+  if (speed < 1e-6) return;
+  const ySign = puck.pos.y < 0 ? -1 : 1;
+  const xSign = goalie.pos.x >= 0 ? 1 : -1;
+  const corner = { x: xSign * RINK_HALF_LENGTH, y: ySign * RINK_HALF_WIDTH };
+  const toCorner = sub(corner, puck.pos);
+  const mag = hypotVec(toCorner);
+  if (mag < 1e-6) return;
+  const blend = Math.min(1, rc / 100);
+  const mx = puck.vel.x / speed * (1 - blend) + (toCorner.x / mag) * blend;
+  const my = puck.vel.y / speed * (1 - blend) + (toCorner.y / mag) * blend;
+  const mm = Math.hypot(mx, my);
+  if (mm < 1e-6) return;
+  puck.vel.x = (mx / mm) * speed;
+  puck.vel.y = (my / mm) * speed;
 }
 
 export function stickBodyContacts(world: WorldState): ContactEvent[] {
@@ -232,6 +256,14 @@ export function stickBodyContacts(world: WorldState): ContactEvent[] {
 }
 
 export function desiredVelocity(world: WorldState, body: Body): Vec2 {
+  const race = world.icingRace;
+  if (race && (body.id === race.defenderId || body.id === race.attackerId)) {
+    const delta = sub(race.dot, body.pos);
+    const d = hypotVec(delta);
+    if (d < 0.5) return { x: 0, y: 0 };
+    const speed = maxSpeedOf(body);
+    return { x: (delta.x / d) * speed, y: (delta.y / d) * speed };
+  }
   const dir = world.attackingDir[body.side];
   const possessor = world.puck.possessor === body.id;
   let target: Vec2;

@@ -1,0 +1,5 @@
+{
+  "seed": 42,
+  "hash": "400c758bd8e3e8abbe2fe22263858f27f44c3bcabf1b2df537c02edf417caabf",
+  "types": ["FaceoffWin", "Goal", "Whistle", "FaceoffWin"]
+}

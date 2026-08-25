@@ -4,9 +4,11 @@ import type { MatchEvent } from "../types/events.ts";
 import type { PlayerId } from "../types/ids.ts";
 import type {
   AttackingDir,
+  ContactKind,
   PenaltyClock,
   Period,
   Phase,
+  PlayerAttributes,
   Position,
   Side,
   Strength,
@@ -43,6 +45,20 @@ export type Body = {
   heading: number;
   radius: number;
   mass: number;
+  /** Default 3.0 ft when unset. >4.0 waves off a subsequent goal. */
+  stickHeight?: number;
+  attributes?: PlayerAttributes;
+};
+
+export type LastPuckContact = {
+  kind: ContactKind;
+  playerId: PlayerId;
+  stickHeight: number;
+};
+
+export type IcingTrack = {
+  sideDumping: Side;
+  shooterId: PlayerId;
 };
 
 export type IcingRace = {
@@ -76,6 +92,9 @@ export type WorldState = {
   delayedPenalty: { against: Side; playerId: PlayerId } | null;
   delayedOffside: { attacking: Side } | null;
   icingRace: IcingRace | null;
+  /** Armed when a dump/shot leaves the stick from the dumping team's side of center. */
+  icingTrack: IcingTrack | null;
+  lastPuckContact: LastPuckContact | null;
   whistle: WhistleKind | null;
   faceoffSpot: Vec2 | null;
   netStatus: { home: "on" | "off"; away: "on" | "off" };
@@ -107,6 +126,8 @@ export type CreateWorldInput = {
   delayedPenalty?: WorldState["delayedPenalty"];
   delayedOffside?: WorldState["delayedOffside"];
   icingRace?: IcingRace | null;
+  icingTrack?: IcingTrack | null;
+  lastPuckContact?: LastPuckContact | null;
   whistle?: WhistleKind | null;
   faceoffSpot?: Vec2 | null;
   netStatus?: { home: "on" | "off"; away: "on" | "off" };
@@ -191,6 +212,8 @@ function overlayBody(base: Body, patch: Partial<Body>): Body {
     heading: patch.heading ?? base.heading,
     radius: patch.radius ?? base.radius,
     mass: patch.mass ?? base.mass,
+    stickHeight: patch.stickHeight ?? base.stickHeight,
+    attributes: patch.attributes ?? base.attributes,
   };
 }
 
@@ -272,6 +295,8 @@ export function createWorld(input: CreateWorldInput = {}): WorldState {
     delayedPenalty: input.delayedPenalty ?? null,
     delayedOffside: input.delayedOffside ?? null,
     icingRace: input.icingRace ?? null,
+    icingTrack: input.icingTrack ? { ...input.icingTrack } : null,
+    lastPuckContact: input.lastPuckContact ? { ...input.lastPuckContact } : null,
     whistle: input.whistle ?? null,
     faceoffSpot:
       input.faceoffSpot === undefined

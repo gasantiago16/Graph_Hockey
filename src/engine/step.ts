@@ -1,7 +1,7 @@
 import { makeEventId } from "../types/ids.ts";
 import type { TeamDirective } from "../types/directive.ts";
 import type { MatchEvent } from "../types/events.ts";
-import type { Phase, Vec2, Zone } from "../types/hockey.ts";
+import type { Phase, Zone } from "../types/hockey.ts";
 import { BLUE_LINE_X, CENTER_ICE, DT, OT_SECONDS, PERIOD_SECONDS, attackingDir } from "./rink.ts";
 import type { Rng } from "./rng.ts";
 import {
@@ -19,11 +19,15 @@ import {
   type ContactEvent,
 } from "./physics.ts";
 import {
-  findBySlot,
-  LAST_EVENTS_CAP,
-  onIceBodies,
-  type WorldState,
-} from "./world.ts";
+  applyLiveRules,
+  captureSnapshot,
+  completeFaceoff,
+  notePuckContact,
+  prepareFaceoff,
+  STICK_HEIGHT_DEFAULT,
+  stickHeightOf,
+} from "./rules.ts";
+import { isGoalie, LAST_EVENTS_CAP, onIceBodies, type WorldState } from "./world.ts";
 
 export function clockRuns(
   phase: Phase,
@@ -65,17 +69,47 @@ function pushEvent(
 function emitContacts(world: WorldState, collected: MatchEvent[], contacts: ContactEvent[]): void {
   for (const c of contacts) {
     const actor = c.a === "puck" ? (c.b === "puck" ? undefined : c.b) : c.a;
+    const body = actor ? world.bodies[actor] : undefined;
+    const stickHeight = body ? stickHeightOf(body) : STICK_HEIGHT_DEFAULT;
     pushEvent(world, collected, {
       type: "Contact",
       actor,
       possessor: world.puck.possessor,
-      payload: { kind: c.kind, a: c.a, b: c.b },
+      payload: { kind: c.kind, a: c.a, b: c.b, stickHeight },
+    });
+    if (actor && (c.kind === "stick-puck" || c.kind === "skate-puck" || c.kind === "body-puck")) {
+      notePuckContact(world, c.kind, actor, stickHeight);
+    }
+  }
+}
+
+function emitGoalieSaves(world: WorldState, collected: MatchEvent[], contacts: ContactEvent[]): void {
+  let saved = false;
+  for (const c of contacts) {
+    const actor = c.a === "puck" ? (c.b === "puck" ? undefined : c.b) : c.a;
+    if (!actor) continue;
+    const body = world.bodies[actor];
+    if (!body || !isGoalie(body)) continue;
+    if (saved) continue;
+    saved = true;
+    const lastShot = [...world.lastEvents].reverse().find((e) => e.type === "Shot");
+    pushEvent(world, collected, {
+      type: "Save",
+      actor,
+      xG: lastShot?.xG,
+      payload: { side: body.side },
+    });
+    pushEvent(world, collected, {
+      type: "Rebound",
+      actor,
+      payload: { side: body.side },
     });
   }
 }
 
 export function stepLive(world: WorldState, dt: number, rng: Rng): MatchEvent[] {
   const events: MatchEvent[] = [];
+  const prev = captureSnapshot(world);
   world.clockRemaining = Math.max(0, world.clockRemaining - dt);
   world.liveTick += 1;
 
@@ -91,7 +125,9 @@ export function stepLive(world: WorldState, dt: number, rng: Rng): MatchEvent[] 
   }
 
   emitContacts(world, events, collideBodies(bodies));
-  emitContacts(world, events, collidePuckPlayers(world));
+  const puckContacts = collidePuckPlayers(world);
+  emitContacts(world, events, puckContacts);
+  emitGoalieSaves(world, events, puckContacts);
 
   for (const body of bodies) {
     collideRink(body.pos, body.vel, body.radius, BODY_RESTITUTION);
@@ -121,52 +157,23 @@ export function stepLive(world: WorldState, dt: number, rng: Rng): MatchEvent[] 
   }
 
   emitContacts(world, events, stickBodyContacts(world));
+
+  const emit: (partial: Omit<MatchEvent, "id" | "seq" | "liveTick" | "stoppageSeq" | "period">) => MatchEvent = (
+    partial,
+  ) => pushEvent(world, events, partial);
+  applyLiveRules(world, rng, prev, emit, dt, puckContacts);
   return events;
 }
 
-/** Stub: park at the current/center spot and go to faceoff_drop. Full spots are PR4. */
 export function setupFaceoff(world: WorldState): MatchEvent[] {
   const events: MatchEvent[] = [];
-  if (!world.faceoffSpot) {
-    world.faceoffSpot = { x: CENTER_ICE.x, y: CENTER_ICE.y };
-  }
-  if (world.whistle) {
-    pushEvent(world, events, { type: "Whistle", payload: { kind: world.whistle } });
-  }
-  world.phase = "faceoff_drop";
-  for (const body of onIceBodies(world)) {
-    body.vel.x = 0;
-    body.vel.y = 0;
-  }
-  world.puck.vel.x = 0;
-  world.puck.vel.y = 0;
+  prepareFaceoff(world, (partial) => pushEvent(world, events, partial));
   return events;
 }
 
-/** Stub: home center wins, phase live. Full FO attributes/spots are PR4. */
-export function resolveFaceoff(world: WorldState, _rng: Rng): MatchEvent[] {
+export function resolveFaceoff(world: WorldState, rng: Rng): MatchEvent[] {
   const events: MatchEvent[] = [];
-  world.stoppageSeq += 1;
-  const spot: Vec2 = world.faceoffSpot ?? CENTER_ICE;
-  world.puck.pos.x = spot.x;
-  world.puck.pos.y = spot.y;
-  world.puck.vel.x = 0;
-  world.puck.vel.y = 0;
-
-  const center = findBySlot(world, "home", "C") ?? onIceBodies(world).find((b) => b.side === "home");
-  world.puck.possessor = center?.id ?? null;
-  world.puck.lastStick = center?.id ?? null;
-  world.whistle = null;
-  world.phase = "live";
-  world.icingRace = null;
-  world.delayedOffside = null;
-
-  pushEvent(world, events, {
-    type: "FaceoffWin",
-    actor: center?.id,
-    possessor: world.puck.possessor,
-    pos: { x: spot.x, y: spot.y },
-  });
+  completeFaceoff(world, rng, (partial) => pushEvent(world, events, partial));
   return events;
 }
 
@@ -192,6 +199,7 @@ export function startNextPeriod(world: WorldState): MatchEvent[] {
   world.puck.vel.y = 0;
   world.puck.possessor = null;
   world.icingRace = null;
+  world.icingTrack = null;
   world.delayedOffside = null;
   world.delayedPenalty = null;
   return events;
