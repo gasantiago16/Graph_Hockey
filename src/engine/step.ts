@@ -18,14 +18,18 @@ import {
   updatePossession,
   type ContactEvent,
 } from "./physics.ts";
+import { tickFatigue } from "./fatigue.ts";
 import {
   applyLiveRules,
+  applyOtRoster,
+  applyPersonnel,
   captureSnapshot,
   completeFaceoff,
   notePuckContact,
   prepareFaceoff,
   STICK_HEIGHT_DEFAULT,
   stickHeightOf,
+  tickPenaltyClocks,
 } from "./rules.ts";
 import { isGoalie, LAST_EVENTS_CAP, onIceBodies, type WorldState } from "./world.ts";
 
@@ -114,6 +118,14 @@ export function stepLive(world: WorldState, dt: number, rng: Rng): MatchEvent[] 
   world.clockRemaining = Math.max(0, world.clockRemaining - dt);
   world.liveTick += 1;
 
+  const emit: (partial: Omit<MatchEvent, "id" | "seq" | "liveTick" | "stoppageSeq" | "period">) => MatchEvent = (
+    partial,
+  ) => pushEvent(world, events, partial);
+
+  tickFatigue(world, dt);
+  tickPenaltyClocks(world, dt);
+  applyPersonnel(world, emit);
+
   const bodies = onIceBodies(world);
   for (const body of bodies) {
     integrateBody(world, body, dt);
@@ -125,7 +137,8 @@ export function stepLive(world: WorldState, dt: number, rng: Rng): MatchEvent[] 
     integratePuck(world, dt);
   }
 
-  emitContacts(world, events, collideBodies(bodies));
+  const bodyContacts = collideBodies(bodies);
+  emitContacts(world, events, bodyContacts);
   const puckContacts = collidePuckPlayers(world);
   emitContacts(world, events, puckContacts);
   emitGoalieSaves(world, events, puckContacts);
@@ -157,12 +170,10 @@ export function stepLive(world: WorldState, dt: number, rng: Rng): MatchEvent[] 
     attachPuckToStick(world);
   }
 
-  emitContacts(world, events, stickBodyContacts(world));
+  const stickContacts = stickBodyContacts(world);
+  emitContacts(world, events, stickContacts);
 
-  const emit: (partial: Omit<MatchEvent, "id" | "seq" | "liveTick" | "stoppageSeq" | "period">) => MatchEvent = (
-    partial,
-  ) => pushEvent(world, events, partial);
-  applyLiveRules(world, rng, prev, emit, dt, puckContacts);
+  applyLiveRules(world, rng, prev, emit, dt, puckContacts, [...bodyContacts, ...stickContacts]);
   return events;
 }
 
@@ -178,7 +189,6 @@ export function resolveFaceoff(world: WorldState, rng: Rng): MatchEvent[] {
   return events;
 }
 
-/** Stub period switch. OT 3v3 roster swap is later. */
 export function startNextPeriod(world: WorldState): MatchEvent[] {
   const events: MatchEvent[] = [];
   if (world.period === "OT") {
@@ -203,6 +213,7 @@ export function startNextPeriod(world: WorldState): MatchEvent[] {
   world.icingTrack = null;
   world.delayedOffside = null;
   world.delayedPenalty = null;
+  if (next === "OT") applyOtRoster(world);
   return events;
 }
 

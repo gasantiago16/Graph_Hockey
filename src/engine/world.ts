@@ -5,6 +5,8 @@ import type { PlayerId } from "../types/ids.ts";
 import type {
   AttackingDir,
   ContactKind,
+  DPair,
+  FwdLine,
   PenaltyClock,
   Period,
   Phase,
@@ -36,6 +38,8 @@ export const DEFAULT_SLOTS: { [K in Position]: Vec2 } = {
   G: { x: -GOAL_LINE_X, y: 0 },
 };
 
+export type LineTag = FwdLine | DPair | "F4" | "G1" | "G2";
+
 export type Body = {
   id: PlayerId;
   side: Side;
@@ -45,6 +49,8 @@ export type Body = {
   heading: number;
   radius: number;
   mass: number;
+  /** F1/D1/G1 on the default 5v5 six; F4 is the extra attacker. */
+  line?: LineTag;
   /** Default 3.0 ft when unset. >4.0 waves off a subsequent goal. */
   stickHeight?: number;
   attributes?: PlayerAttributes;
@@ -88,6 +94,8 @@ export type WorldState = {
   onIce: { home: PlayerId[]; away: PlayerId[] };
   bench: { home: PlayerId[]; away: PlayerId[] };
   fatigue: Record<PlayerId, number>;
+  /** Seconds of the current shift; reset on bench. */
+  shiftTime: Record<PlayerId, number>;
   penalties: { home: PenaltyClock[]; away: PenaltyClock[] };
   delayedPenalty: { against: Side; playerId: PlayerId } | null;
   delayedOffside: { attacking: Side } | null;
@@ -125,6 +133,7 @@ export type CreateWorldInput = {
   onIce?: { home: PlayerId[]; away: PlayerId[] };
   bench?: { home: PlayerId[]; away: PlayerId[] };
   fatigue?: Record<PlayerId, number>;
+  shiftTime?: Record<PlayerId, number>;
   penalties?: { home: PenaltyClock[]; away: PenaltyClock[] };
   delayedPenalty?: WorldState["delayedPenalty"];
   delayedOffside?: WorldState["delayedOffside"];
@@ -160,6 +169,22 @@ export function defaultPlayerId(side: Side, position: Position): PlayerId {
   return `${side === "home" ? "h" : "a"}-${position}`;
 }
 
+export function extraAttackerId(side: Side): PlayerId {
+  return `${side === "home" ? "h" : "a"}-F4`;
+}
+
+export function defaultLineFor(position: Position): LineTag {
+  if (position === "G") return "G1";
+  if (position === "LD" || position === "RD") return "D1";
+  return "F1";
+}
+
+export function linePlayerId(side: Side, line: LineTag, position: Position): PlayerId {
+  if (line === "F4") return extraAttackerId(side);
+  if (line === "F1" || line === "D1" || line === "G1") return defaultPlayerId(side, position);
+  return `${side === "home" ? "h" : "a"}-${line}-${position}`;
+}
+
 export function isGoalie(body: Body): boolean {
   return body.position === "G";
 }
@@ -191,18 +216,29 @@ function slotWorldPos(position: Position, dir: AttackingDir): Vec2 {
   return vec(slot.x * dir, slot.y);
 }
 
-function makeBody(side: Side, position: Position, dir: AttackingDir): Body {
+export function makePlayerBody(
+  side: Side,
+  position: Position,
+  dir: AttackingDir,
+  opts: { id?: PlayerId; line?: LineTag } = {},
+): Body {
   const goalie = position === "G";
+  const line = opts.line ?? defaultLineFor(position);
   return {
-    id: defaultPlayerId(side, position),
+    id: opts.id ?? linePlayerId(side, line, position),
     side,
     position,
+    line,
     pos: slotWorldPos(position, dir),
     vel: vec(0, 0),
     heading: dir === 1 ? 0 : Math.PI,
     radius: goalie ? GOALIE_RADIUS : SKATER_RADIUS,
     mass: goalie ? GOALIE_MASS : SKATER_MASS,
   };
+}
+
+function makeBody(side: Side, position: Position, dir: AttackingDir): Body {
+  return makePlayerBody(side, position, dir);
 }
 
 function overlayBody(base: Body, patch: Partial<Body>): Body {
@@ -217,6 +253,7 @@ function overlayBody(base: Body, patch: Partial<Body>): Body {
     heading: patch.heading ?? base.heading,
     radius: patch.radius ?? base.radius,
     mass: patch.mass ?? base.mass,
+    line: patch.line ?? base.line,
     stickHeight: patch.stickHeight ?? base.stickHeight,
     attributes: patch.attributes ?? base.attributes,
   };
@@ -228,6 +265,7 @@ export function createWorld(input: CreateWorldInput = {}): WorldState {
   const dirs = input.attackingDir ?? attackingDir(period);
   const bodies: Record<PlayerId, Body> = {};
   const fatigue: Record<PlayerId, number> = {};
+  const shiftTime: Record<PlayerId, number> = {};
   const homeOnIce: PlayerId[] = [];
   const awayOnIce: PlayerId[] = [];
 
@@ -238,6 +276,7 @@ export function createWorld(input: CreateWorldInput = {}): WorldState {
       const b = makeBody(side, position, dir);
       bodies[b.id] = b;
       fatigue[b.id] = 0;
+      shiftTime[b.id] = 0;
       ids.push(b.id);
     }
   }
@@ -254,6 +293,7 @@ export function createWorld(input: CreateWorldInput = {}): WorldState {
         const dir = dirs[side];
         bodies[id] = overlayBody(makeBody(side, position, dir), { ...patch, id });
         fatigue[id] ??= 0;
+        shiftTime[id] ??= 0;
       }
     }
   }
@@ -262,6 +302,15 @@ export function createWorld(input: CreateWorldInput = {}): WorldState {
     for (const [id, f] of Object.entries(input.fatigue)) {
       fatigue[id] = f ?? 0;
     }
+  }
+  if (input.shiftTime) {
+    for (const [id, s] of Object.entries(input.shiftTime)) {
+      shiftTime[id] = s ?? 0;
+    }
+  }
+  for (const id of Object.keys(bodies)) {
+    fatigue[id] ??= 0;
+    shiftTime[id] ??= 0;
   }
 
   const playId = input.playId ?? { home: DEFAULT_PLAY_ID, away: DEFAULT_PLAY_ID };
@@ -294,6 +343,7 @@ export function createWorld(input: CreateWorldInput = {}): WorldState {
       : { home: homeOnIce, away: awayOnIce },
     bench: input.bench ? { home: [...input.bench.home], away: [...input.bench.away] } : { home: [], away: [] },
     fatigue,
+    shiftTime,
     penalties: input.penalties
       ? { home: [...input.penalties.home], away: [...input.penalties.away] }
       : { home: [], away: [] },
@@ -321,4 +371,26 @@ export function createWorld(input: CreateWorldInput = {}): WorldState {
     directives: { home: directives.home, away: directives.away },
     lastEvents: input.lastEvents ? [...input.lastEvents] : [],
   };
+}
+
+const FWD_POSITIONS: readonly Position[] = ["C", "LW", "RW"];
+const D_POSITIONS: readonly Position[] = ["LD", "RD"];
+
+/** Create a bench unit for tests / EN / line changes. Does not put them on ice. */
+export function addBenchLine(world: WorldState, side: Side, line: FwdLine | DPair): PlayerId[] {
+  const positions = line.startsWith("F") ? FWD_POSITIONS : D_POSITIONS;
+  const ids: PlayerId[] = [];
+  for (const position of positions) {
+    const id = linePlayerId(side, line, position);
+    if (!world.bodies[id]) {
+      world.bodies[id] = makePlayerBody(side, position, world.attackingDir[side], { id, line });
+    }
+    world.fatigue[id] ??= 0;
+    world.shiftTime[id] ??= 0;
+    if (!world.onIce[side].includes(id) && !world.bench[side].includes(id)) {
+      world.bench[side].push(id);
+    }
+    ids.push(id);
+  }
+  return ids;
 }

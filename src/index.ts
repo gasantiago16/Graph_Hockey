@@ -13,3 +13,4 @@ export * from "./engine/physics.ts";
 export * from "./engine/step.ts";
 export * from "./engine/rules.ts";
 export * from "./engine/xg.ts";
+export * from "./engine/fatigue.ts";

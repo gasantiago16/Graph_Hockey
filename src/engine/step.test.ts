@@ -106,6 +106,23 @@ describe("advanceWorld stop-time", () => {
     expect(inter.period).toBe(2);
     expect(inter.phase).toBe("faceoff_drop");
   });
+
+  it("starts OT as 3v3 with 2F + 1D + G", () => {
+    const world = createWorld({ phase: "intermission", period: 3, clockRemaining: 0, liveTick: 99 });
+    advanceWorld(world, dirs, createRng(1));
+    expect(world.period).toBe("OT");
+    expect(world.clockRemaining).toBe(300);
+    expect(world.strength).toBe("3v3");
+    expect(world.phase).toBe("faceoff_drop");
+    for (const side of ["home", "away"] as const) {
+      const skaters = world.onIce[side].map((id) => world.bodies[id]).filter((b) => b && b.position !== "G");
+      const g = world.onIce[side].map((id) => world.bodies[id]).filter((b) => b && b.position === "G");
+      expect(skaters).toHaveLength(3);
+      expect(g).toHaveLength(1);
+      const positions = skaters.map((b) => b!.position).sort();
+      expect(positions).toEqual(["C", "LD", "LW"]);
+    }
+  });
 });
 
 describe("advanceWorld kinematics", () => {
