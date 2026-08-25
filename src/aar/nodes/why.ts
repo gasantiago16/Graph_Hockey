@@ -2,10 +2,10 @@ import { AarWhyOutputSchema } from "../../llm/schemas.ts";
 import { EventIdSchema } from "../../types/ids.ts";
 import type { AarCause } from "../../types/aar.ts";
 import type { AarGraphNode } from "../state.ts";
-import { invokeAarStructured } from "../llm.ts";
+import { invokeAarStructured, type AarLlmOpts } from "../llm.ts";
 import { knownIdSet } from "./citeCheck.ts";
 
-export type WhyOpts = { noLlm?: boolean };
+export type WhyOpts = AarLlmOpts;
 
 const SYSTEM =
   "You are the post-game Head Coach. Answer: why did the result happen? " +
@@ -66,7 +66,7 @@ export function makeWhy(opts: WhyOpts = {}): AarGraphNode {
   return async (state) => {
     const fallback = codeCauses(state);
     if (opts.noLlm) return { causes: fallback };
-    const out = await invokeAarStructured(AarWhyOutputSchema, SYSTEM, prompt(state));
+    const out = await invokeAarStructured(AarWhyOutputSchema, SYSTEM, prompt(state), opts.profile);
     const known = knownIdSet(state.knownEventIds);
     const grounded = groundCauses(out?.causes ?? [], known);
     return { causes: grounded.length > 0 ? grounded : fallback };

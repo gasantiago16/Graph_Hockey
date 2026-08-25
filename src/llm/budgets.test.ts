@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { AIMessage } from "@langchain/core/messages";
 import { FakeListChatModel } from "@langchain/core/utils/testing";
 import type { ChatGeneration, LLMResult } from "@langchain/core/outputs";
@@ -162,6 +162,21 @@ describe("usage from callbacks", () => {
   it("prices grok-4.5 vs grok-4.3 per 1M tokens", () => {
     expect(estimateUsd("grok-4.5", 1_000_000, 1_000_000)).toBeCloseTo(8, 10);
     expect(estimateUsd("grok-4.3", 1_000_000, 1_000_000)).toBeCloseTo(3.75, 10);
+  });
+
+  it("prices default lab slugs and bills unknown as $0", () => {
+    expect(estimateUsd("gpt-5.6-sol", 1_000_000, 1_000_000)).toBeCloseTo(35, 10);
+    expect(estimateUsd("gpt-5.6-luna", 1_000_000, 1_000_000)).toBeCloseTo(1.4, 10);
+    expect(estimateUsd("muse-spark-1.2", 1_000_000, 1_000_000)).toBeCloseTo(5.5, 10);
+    expect(estimateUsd("gemini-3.1-pro-preview", 1_000_000, 1_000_000)).toBeCloseTo(14, 10);
+    expect(estimateUsd("gemini-3.7-flash", 1_000_000, 1_000_000)).toBeCloseTo(4.5, 10);
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    try {
+      expect(estimateUsd("totally-unknown-slug", 1_000_000, 1_000_000)).toBe(0);
+      expect(warn).toHaveBeenCalledWith(expect.stringMatching(/unknown slug/));
+    } finally {
+      warn.mockRestore();
+    }
   });
 
   it("UsageTap records FakeListChatModel handleLLMEnd into MatchBudget, not graph state", async () => {

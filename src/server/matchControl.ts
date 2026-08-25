@@ -6,6 +6,8 @@ import { DT } from "../engine/rink.ts";
 import type { WorldState } from "../engine/world.ts";
 import type { MatchBudget } from "../llm/budgets.ts";
 import { hasInjectedChatModel } from "../llm/client.ts";
+import { configHasProviderKey, profileFromConfig } from "../llm/profiles.ts";
+import type { ProviderId } from "../types/provider.ts";
 import { MatchAborted, runMatch } from "../orchestrator/match.ts";
 import type { Db } from "../persist/db.ts";
 import { defaultSnapshotDir } from "../persist/playbookSnapshots.ts";
@@ -16,9 +18,15 @@ import type { MatchEvent } from "../types/events.ts";
 import type { Roster } from "../types/hockey.ts";
 import type { StartMatchBody, StartSeriesBody } from "../types/ws.ts";
 
-/** Live LLM start: server key or test inject (FakeListChatModel). Never reads the key into WS. */
-export function llmMatchAllowed(config: Pick<AppConfig, "xaiApiKey">): boolean {
-  return Boolean(config.xaiApiKey) || hasInjectedChatModel();
+/** Live LLM start: keys for the chosen pair, or test inject. Never reads keys into WS. */
+export function llmMatchAllowed(
+  config: Pick<AppConfig, "xaiApiKey" | "museApiKey" | "openaiApiKey" | "geminiApiKey">,
+  providers: { home?: ProviderId; away?: ProviderId } = {},
+): boolean {
+  if (hasInjectedChatModel()) return true;
+  const home = providers.home ?? "xai";
+  const away = providers.away ?? "xai";
+  return configHasProviderKey(config, home) && configHasProviderKey(config, away);
 }
 
 export class MatchBusyError extends Error {
@@ -44,6 +52,10 @@ export type MatchControlEvent =
       seed: number;
       periodSeconds: number;
       noLlm: boolean;
+      homeProvider?: ProviderId;
+      awayProvider?: ProviderId;
+      homeCoach?: string;
+      awayCoach?: string;
       rosters: { home: Roster; away: Roster };
       seriesId?: string;
       gameIndex?: number;
@@ -154,8 +166,12 @@ export function createMatchControl(opts: CreateMatchControlOpts): MatchControl {
   function start(body: StartMatchBody) {
     if (live) throw new MatchBusyError(live.matchId);
     const noLlm = body.noLlm !== false;
-    if (!noLlm && !llmMatchAllowed(config)) {
-      throw new MatchStartError("LLM matches need XAI_API_KEY (or an injected chat model); send noLlm: true");
+    const homeProfile = noLlm ? undefined : profileFromConfig(config, body.homeProvider, body.homeCoach);
+    const awayProfile = noLlm ? undefined : profileFromConfig(config, body.awayProvider, body.awayCoach);
+    if (!noLlm && !llmMatchAllowed(config, { home: homeProfile!.provider, away: awayProfile!.provider })) {
+      throw new MatchStartError(
+        `LLM matches need API keys for ${homeProfile!.provider},${awayProfile!.provider} (or an injected chat model); send noLlm: true`,
+      );
     }
     const home = body.home;
     const away = body.away;
@@ -190,6 +206,10 @@ export function createMatchControl(opts: CreateMatchControlOpts): MatchControl {
       seed,
       periodSeconds,
       noLlm,
+      homeProvider: homeProfile?.provider,
+      awayProvider: awayProfile?.provider,
+      homeCoach: homeProfile?.coach,
+      awayCoach: awayProfile?.coach,
       rosters: { home: homeRoster, away: awayRoster },
     });
 
@@ -202,12 +222,14 @@ export function createMatchControl(opts: CreateMatchControlOpts): MatchControl {
           playbook: homePlaybook,
           checkpointer: new MemorySaver(),
           noLlm,
+          profile: homeProfile,
         });
         const awayGraph = compileTeamGraph({
           side: "away",
           playbook: awayPlaybook,
           checkpointer: new MemorySaver(),
           noLlm,
+          profile: awayProfile,
         });
         const result = await runMatch({
           matchId,
@@ -229,7 +251,9 @@ export function createMatchControl(opts: CreateMatchControlOpts): MatchControl {
           awayPlaybookVersion: awayRow?.version ?? 1,
           models: noLlm
             ? { home: "none", away: "none" }
-            : { home: config.coachModel, away: config.coachModel },
+            : { home: homeProfile!.coach, away: awayProfile!.coach },
+          homeProfile,
+          awayProfile,
           onTick: (next, events, budget) => {
             liveWorld.current = next;
             lastScore = { home: next.score.home, away: next.score.away };
@@ -258,14 +282,22 @@ export function createMatchControl(opts: CreateMatchControlOpts): MatchControl {
       seed,
       noLlm,
       periodSeconds,
+      homeProvider: homeProfile?.provider,
+      awayProvider: awayProfile?.provider,
+      homeCoach: homeProfile?.coach,
+      awayCoach: awayProfile?.coach,
     };
   }
 
   function startSeries(body: StartSeriesBody) {
     if (live) throw new MatchBusyError(live.matchId);
     const noLlm = body.noLlm !== false;
-    if (!noLlm && !llmMatchAllowed(config)) {
-      throw new MatchStartError("LLM matches need XAI_API_KEY (or an injected chat model); send noLlm: true");
+    const homeProfile = noLlm ? undefined : profileFromConfig(config, body.homeProvider, body.homeCoach);
+    const awayProfile = noLlm ? undefined : profileFromConfig(config, body.awayProvider, body.awayCoach);
+    if (!noLlm && !llmMatchAllowed(config, { home: homeProfile!.provider, away: awayProfile!.provider })) {
+      throw new MatchStartError(
+        `LLM matches need API keys for ${homeProfile!.provider},${awayProfile!.provider} (or an injected chat model); send noLlm: true`,
+      );
     }
     const home = body.home;
     const away = body.away;
@@ -322,7 +354,9 @@ export function createMatchControl(opts: CreateMatchControlOpts): MatchControl {
           signal: controller.signal,
           models: noLlm
             ? { home: "none", away: "none" }
-            : { home: config.coachModel, away: config.coachModel },
+            : { home: homeProfile!.coach, away: awayProfile!.coach },
+          homeProfile,
+          awayProfile,
           onGameStart: (info) => {
             live = {
               matchId: info.matchId,
@@ -344,6 +378,10 @@ export function createMatchControl(opts: CreateMatchControlOpts): MatchControl {
               seed: info.seed,
               periodSeconds,
               noLlm,
+              homeProvider: homeProfile?.provider,
+              awayProvider: awayProfile?.provider,
+              homeCoach: homeProfile?.coach,
+              awayCoach: awayProfile?.coach,
               rosters: { home: homeRoster, away: awayRoster },
               seriesId,
               gameIndex: info.gameIndex,
@@ -399,6 +437,10 @@ export function createMatchControl(opts: CreateMatchControlOpts): MatchControl {
       noLlm,
       periodSeconds,
       games,
+      homeProvider: homeProfile?.provider,
+      awayProvider: awayProfile?.provider,
+      homeCoach: homeProfile?.coach,
+      awayCoach: awayProfile?.coach,
     };
   }
 

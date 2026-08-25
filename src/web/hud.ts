@@ -1,4 +1,5 @@
-import type { CostTick } from "../types/ws.ts";
+import { formatBenchHud as formatProfileBenches } from "../llm/profiles.ts";
+import type { CostTick, MatchStart } from "../types/ws.ts";
 
 export type CostHudTick = Pick<
   CostTick,
@@ -20,4 +21,12 @@ export function formatHudUsd(usd: number): string {
 export function formatCostHud(tick: CostHudTick, noLlm = true): string {
   const line = `${formatHudUsd(tick.usd)} · ${tick.promptTokens}/${tick.outputTokens} tok · home ${tick.homeCalls} · away ${tick.awayCalls} calls`;
   return noLlm ? `no-llm · ${line}` : line;
+}
+
+/** Names only — never keys. `home: xai/grok-4.5 vs away: muse/muse-spark-1.2` */
+export function formatBenchHud(start: Pick<MatchStart, "noLlm" | "homeProvider" | "awayProvider" | "homeCoach" | "awayCoach">): string {
+  if (start.noLlm !== false) return "benches: no-llm";
+  const home = { provider: start.homeProvider ?? "xai", coach: start.homeCoach ?? "grok-4.5" };
+  const away = { provider: start.awayProvider ?? "xai", coach: start.awayCoach ?? "grok-4.5" };
+  return formatProfileBenches(home, away);
 }

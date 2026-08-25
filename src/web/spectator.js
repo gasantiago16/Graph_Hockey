@@ -9,10 +9,13 @@ const playEl = document.getElementById("playName");
 const connEl = document.getElementById("conn");
 const errEl = document.getElementById("err");
 const costEl = document.getElementById("cost");
+const benchesEl = document.getElementById("benches");
 const btnStart = document.getElementById("btnStart");
 const btnSeries = document.getElementById("btnSeries");
 const btnStop = document.getElementById("btnStop");
 const useLlmEl = document.getElementById("useLlm");
+const homeProviderEl = document.getElementById("homeProvider");
+const awayProviderEl = document.getElementById("awayProvider");
 
 const PLAY_NAME_HIDDEN = "Play name hidden";
 const ZERO_COST = { usd: 0, promptTokens: 0, outputTokens: 0, homeCalls: 0, awayCalls: 0 };
@@ -27,6 +30,13 @@ function formatHudUsd(usd) {
 function formatCostHud(tick, noLlm) {
   const line = `${formatHudUsd(tick.usd)} · ${tick.promptTokens}/${tick.outputTokens} tok · home ${tick.homeCalls} · away ${tick.awayCalls} calls`;
   return noLlm ? `no-llm · ${line}` : line;
+}
+
+function formatBenchHud(msg) {
+  if (msg.noLlm !== false) return "benches: no-llm";
+  const home = msg.homeProvider && msg.homeCoach ? `${msg.homeProvider}/${msg.homeCoach}` : "xai/grok-4.5";
+  const away = msg.awayProvider && msg.awayCoach ? `${msg.awayProvider}/${msg.awayCoach}` : "xai/grok-4.5";
+  return `home: ${home} vs away: ${away}`;
 }
 
 function formatInspectHud(inspectSide, inspect) {
@@ -99,6 +109,7 @@ function onMessage(msg) {
     state.noLlm = msg.noLlm !== false;
     setRunning(true);
     costEl.textContent = formatCostHud(ZERO_COST, state.noLlm);
+    if (benchesEl) benchesEl.textContent = formatBenchHud(msg);
     const series =
       msg.seriesId && msg.games != null && msg.gameIndex != null
         ? `Series ${msg.seriesId} game ${msg.gameIndex + 1}/${msg.games} · `
@@ -166,7 +177,10 @@ async function refreshLlmGate() {
   try {
     const res = await fetch("/api/health");
     const json = await res.json().catch(() => ({}));
-    const on = Boolean(json.llmConfigured);
+    const providers = json.providers ?? { xai: Boolean(json.llmConfigured), muse: false, openai: false, gemini: false };
+    const home = homeProviderEl?.value ?? "xai";
+    const away = awayProviderEl?.value ?? "xai";
+    const on = Boolean(providers[home]) && Boolean(providers[away]);
     useLlmEl.disabled = !on;
     if (!on) useLlmEl.checked = false;
   } catch {
@@ -187,6 +201,8 @@ async function startMatch() {
     seed: Number(document.getElementById("seed").value),
     noLlm: !wantLlm(),
     periodSeconds: Number(document.getElementById("periodSeconds").value),
+    homeProvider: homeProviderEl?.value ?? "xai",
+    awayProvider: awayProviderEl?.value ?? "xai",
   };
   const res = await fetch("/api/match/start", {
     method: "POST",
@@ -210,6 +226,8 @@ async function startSeries() {
     noLlm: !wantLlm(),
     periodSeconds: Number(document.getElementById("periodSeconds").value),
     games: 7,
+    homeProvider: homeProviderEl?.value ?? "xai",
+    awayProvider: awayProviderEl?.value ?? "xai",
   };
   const res = await fetch("/api/series/start", {
     method: "POST",
@@ -271,5 +289,7 @@ document.querySelectorAll("[data-aar-side]").forEach((el) => {
 window.addEventListener("resize", paint);
 applyInspectUi();
 paint();
+if (homeProviderEl) homeProviderEl.addEventListener("change", () => void refreshLlmGate());
+if (awayProviderEl) awayProviderEl.addEventListener("change", () => void refreshLlmGate());
 void refreshLlmGate();
 connect();

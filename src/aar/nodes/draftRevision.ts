@@ -2,10 +2,10 @@ import { PlaybookRevisionSchema } from "../../llm/schemas.ts";
 import { TIE_BOOST_XG_SHARE } from "../../types/aar.ts";
 import type { PlayMutation, PlaybookRevision } from "../../types/play.ts";
 import type { AarGraphNode, AarGraphStateType } from "../state.ts";
-import { invokeAarStructured } from "../llm.ts";
+import { invokeAarStructured, type AarLlmOpts } from "../llm.ts";
 import { playWithXgShare, topPlay, type PlayUsage } from "./actual.ts";
 
-export type DraftOpts = { noLlm?: boolean };
+export type DraftOpts = AarLlmOpts;
 
 const SYSTEM =
   "Draft a PlaybookRevision. Max 3 ops. Every op MUST include eventIds copied from the digest " +
@@ -83,7 +83,7 @@ export function makeDraftRevision(opts: DraftOpts = {}): AarGraphNode {
     if (opts.noLlm) {
       return { revision: codeDraft(state) };
     }
-    const out = await invokeAarStructured(PlaybookRevisionSchema, SYSTEM, prompt(state));
+    const out = await invokeAarStructured(PlaybookRevisionSchema, SYSTEM, prompt(state), opts.profile);
     const base = out ?? emptyRevision(state.lensNotes ?? state.actualSummary ?? "draft fallback");
     return { revision: ensureMandatoryBoost(state, stripWinnerRetires(state, base)) };
   };

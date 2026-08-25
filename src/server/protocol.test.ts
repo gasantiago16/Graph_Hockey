@@ -11,8 +11,12 @@ import {
   StartMatchBodySchema,
   StartSeriesBodySchema,
 } from "../types/ws.ts";
+import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import {
   corsOrigins,
+  DENYLIST_KEYS,
   denylistHits,
   opponentPlayLeak,
   originAllowed,
@@ -51,7 +55,28 @@ function worldWithPlays() {
   });
 }
 
+const webRoot = join(dirname(fileURLToPath(import.meta.url)), "../web");
+
 describe("WS protocol denylist", () => {
+  it("lists every vendor key name", () => {
+    expect(DENYLIST_KEYS).toEqual(
+      expect.arrayContaining([
+        "XAI_API_KEY",
+        "OPENAI_API_KEY",
+        "GEMINI_API_KEY",
+        "GOOGLE_API_KEY",
+        "MODEL_API_KEY",
+        "MUSE_API_KEY",
+      ]),
+    );
+    const html = readFileSync(join(webRoot, "index.html"), "utf8");
+    const js = readFileSync(join(webRoot, "spectator.js"), "utf8");
+    for (const key of ["XAI_API_KEY", "OPENAI_API_KEY", "GEMINI_API_KEY", "GOOGLE_API_KEY", "MODEL_API_KEY", "MUSE_API_KEY"]) {
+      expect(html).not.toContain(key);
+      expect(js).not.toContain(key);
+    }
+  });
+
   it("snapshot is world-frame public geometry without playId or opponent state", () => {
     const world = worldWithPlays();
     const frame = spectatorFrame(world, {
@@ -65,6 +90,8 @@ describe("WS protocol denylist", () => {
     expect(json).not.toContain(HOME_PLAY);
     expect(json).not.toContain(AWAY_PLAY);
     expect(json).not.toContain("XAI_API_KEY");
+    expect(json).not.toContain("OPENAI_API_KEY");
+    expect(json).not.toContain("MODEL_API_KEY");
     expect(json).not.toContain("must-not-leak");
     expect(json).not.toContain("playbooks");
     expect(denylistHits(frame)).toEqual([]);
@@ -175,6 +202,16 @@ describe("WS protocol denylist", () => {
     expect(body.periodSeconds).toBeUndefined();
     expect(() => StartMatchBodySchema.parse({ noLlm: true, periodSeconds: 5 })).not.toThrow();
     expect(StartMatchBodySchema.parse({ noLlm: false }).noLlm).toBe(false);
+    const lab = StartMatchBodySchema.parse({
+      noLlm: false,
+      homeProvider: "xai",
+      awayProvider: "muse",
+      homeCoach: "grok-4.5",
+      awayCoach: "muse-spark-1.2",
+    });
+    expect(lab.homeProvider).toBe("xai");
+    expect(lab.awayProvider).toBe("muse");
+    expect(() => StartMatchBodySchema.parse({ homeProvider: "anthropic" })).toThrow();
     const series = StartSeriesBodySchema.parse({});
     expect(series.games).toBe(7);
     expect(series.noLlm).toBe(true);

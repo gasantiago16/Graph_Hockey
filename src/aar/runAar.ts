@@ -6,6 +6,7 @@ import type { MatchResultLabel } from "../persist/matches.ts";
 import type { AarReport, AarResult } from "../types/aar.ts";
 import type { MatchEvent } from "../types/events.ts";
 import type { Side } from "../types/hockey.ts";
+import type { TeamLlmProfile } from "../llm/profiles.ts";
 import type { Playbook, PlaybookRevision } from "../types/play.ts";
 import { AAR_RECURSION_LIMIT, aarThreadId, compileAarGraph, type CompiledAarGraph } from "./aarGraph.ts";
 import { applyAarRevision, persistAarReport, shouldApplyRevision, type AarMode } from "./apply.ts";
@@ -92,6 +93,10 @@ export type PostMatchAarOpts = {
   aarMode?: AarMode;
   budget?: MatchBudget;
   graph?: CompiledAarGraph;
+  homeGraph?: CompiledAarGraph;
+  awayGraph?: CompiledAarGraph;
+  homeProfile?: TeamLlmProfile;
+  awayProfile?: TeamLlmProfile;
   signal?: AbortSignal;
 };
 
@@ -177,9 +182,16 @@ export async function runPostMatchAar(opts: PostMatchAarOpts): Promise<{ home: A
     return { home, away };
   }
 
-  const graph = opts.graph ?? compileAarGraph({ db: opts.db, checkpointer: new MemorySaver(), noLlm: false });
-  const home = await runAarForSide({ ...opts, side: "home", playbook: opts.homePlaybook, graph, events });
-  const away = await runAarForSide({ ...opts, side: "away", playbook: opts.awayPlaybook, graph, events });
+  const homeGraph =
+    opts.homeGraph ??
+    opts.graph ??
+    compileAarGraph({ db: opts.db, checkpointer: new MemorySaver(), noLlm: false, profile: opts.homeProfile });
+  const awayGraph =
+    opts.awayGraph ??
+    opts.graph ??
+    compileAarGraph({ db: opts.db, checkpointer: new MemorySaver(), noLlm: false, profile: opts.awayProfile });
+  const home = await runAarForSide({ ...opts, side: "home", playbook: opts.homePlaybook, graph: homeGraph, events });
+  const away = await runAarForSide({ ...opts, side: "away", playbook: opts.awayPlaybook, graph: awayGraph, events });
   return {
     home: finalizeSide(opts, opts.homePlaybook, home, events),
     away: finalizeSide(opts, opts.awayPlaybook, away, events),

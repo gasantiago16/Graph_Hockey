@@ -121,3 +121,18 @@ Same seed playbooks (`original-six` vs `expansion`) so the company is the variab
 5. Browser never sees `*_API_KEY`.  
 
 Engine, Film Room, and `--no-llm` goldens must not move.
+
+## How to run a lab match
+
+1. Copy `.env.example` → `.env` and set **only** the keys for the companies on the ice. CI never gets these.
+2. Same books: `--home original-six --away expansion`.
+3. Pick benches. Omit providers → both xAI.
+
+```bash
+npm run gh -- simulate --home-provider xai --away-provider muse
+npm run gh -- simulate --home-provider openai --away-provider gemini \
+  --home-model gpt-5.6-sol --away-model gemini-3.1-pro-preview
+```
+
+4. Browser: `npm run web`, pick **Home bench** / **Away bench**, check **Use LLM** (enabled only when `/api/health.providers` is true for that pair). HUD shows `home: xai/grok-4.5 vs away: muse/muse-spark-1.2` — names only.
+5. `--no-llm` still skips every vendor. Never default `muse-spark-1.2-contributor`.

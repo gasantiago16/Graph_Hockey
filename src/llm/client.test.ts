@@ -117,10 +117,13 @@ describe("ChatXAI two-arg Completions factories", () => {
   });
 
   it("source uses two-arg ChatXAI + modelKwargs, not withConfig({ reasoning_effort })", () => {
-    const src = readFileSync(join(root, "src/llm/client.ts"), "utf8");
-    expect(src).toMatch(/new ChatXAI\(spec\.model,/);
-    expect(src).toMatch(/modelKwargs:\s*\{\s*reasoning_effort:/);
-    expect(src).not.toMatch(/\.withConfig\(\s*\{\s*reasoning_effort/);
+    const xaiSrc = readFileSync(join(root, "src/llm/providers/xai.ts"), "utf8");
+    const clientSrc = readFileSync(join(root, "src/llm/client.ts"), "utf8");
+    expect(xaiSrc).toMatch(/new ChatXAI\(spec\.model,/);
+    expect(xaiSrc).toMatch(/modelKwargs:\s*\{\s*reasoning_effort:/);
+    expect(xaiSrc).not.toMatch(/\.withConfig\(\s*\{\s*reasoning_effort/);
+    expect(clientSrc).not.toMatch(/new ChatXAI\(/);
+    expect(clientSrc).not.toMatch(/\.withConfig\(\s*\{\s*reasoning_effort/);
   });
 });
 

@@ -1,9 +1,9 @@
 import { AarIntentOutputSchema } from "../../llm/schemas.ts";
 import type { CoachIntent } from "../../types/directive.ts";
 import type { AarGraphNode, AarGraphStateType } from "../state.ts";
-import { invokeAarStructured } from "../llm.ts";
+import { invokeAarStructured, type AarLlmOpts } from "../llm.ts";
 
-export type IntentOpts = { noLlm?: boolean };
+export type IntentOpts = AarLlmOpts;
 
 function parseStoredIntent(raw: string | null | undefined): string | undefined {
   if (!raw) return undefined;
@@ -61,7 +61,7 @@ export function makeIntent(opts: IntentOpts = {}): AarGraphNode {
   return async (state) => {
     const fallback = codeIntentSummary(state);
     if (opts.noLlm) return { intentSummary: fallback };
-    const out = await invokeAarStructured(AarIntentOutputSchema, SYSTEM, prompt(state));
+    const out = await invokeAarStructured(AarIntentOutputSchema, SYSTEM, prompt(state), opts.profile);
     return { intentSummary: out?.summary ?? fallback };
   };
 }

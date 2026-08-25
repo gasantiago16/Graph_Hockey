@@ -1,8 +1,8 @@
 import { AarLensOutputSchema } from "../../llm/schemas.ts";
 import type { AarGraphNode } from "../state.ts";
-import { invokeAarStructured } from "../llm.ts";
+import { invokeAarStructured, type AarLlmOpts } from "../llm.ts";
 
-export type LensOpts = { noLlm?: boolean };
+export type LensOpts = AarLlmOpts;
 
 const SYSTEM =
   "Loser lens (also used for ties). Close specific gaps. " +
@@ -38,7 +38,7 @@ export function makeLoserLens(opts: LensOpts = {}): AarGraphNode {
   return async (state) => {
     const fallback = codeLoserNotes(state);
     if (opts.noLlm) return { lensNotes: fallback };
-    const out = await invokeAarStructured(AarLensOutputSchema, SYSTEM, prompt(state));
+    const out = await invokeAarStructured(AarLensOutputSchema, SYSTEM, prompt(state), opts.profile);
     return { lensNotes: out?.notes ?? fallback };
   };
 }

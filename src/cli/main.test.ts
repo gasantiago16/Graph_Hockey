@@ -31,7 +31,11 @@ describe("gh CLI", () => {
       expect(printed).toContain("--reset-playbook");
       expect(printed).toContain("GRAPH_HOCKEY_PERIOD_SECONDS");
       expect(printed).toContain("playbook-snapshots");
-      expect(USAGE).toContain("xAI only");
+      expect(USAGE).toContain("Default LLM provider is xAI");
+      expect(USAGE).toContain("--home-provider");
+      expect(USAGE).toContain("muse");
+      expect(USAGE).toContain("openai");
+      expect(USAGE).toContain("gemini");
     } finally {
       log.mockRestore();
     }
@@ -42,8 +46,43 @@ describe("gh CLI", () => {
     try {
       expect(await main(["simulate", "--seed", "1"], {})).toBe(1);
       expect(String(err.mock.calls[0]?.[0])).toContain("--no-llm");
+      err.mockClear();
+      expect(await main(["simulate", "--seed", "1", "--home-provider", "muse", "--away-provider", "openai"], {})).toBe(1);
+      expect(String(err.mock.calls[0]?.[0])).toMatch(/muse,openai/);
     } finally {
       err.mockRestore();
+    }
+  });
+
+  it("simulate --no-llm ignores provider flags", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "gh-pr-provider-"));
+    const dbPath = join(dir, "graph-hockey.sqlite");
+    const log = vi.spyOn(console, "log").mockImplementation(() => {});
+    try {
+      expect(
+        await main(
+          [
+            "simulate",
+            "--no-llm",
+            "--home-provider",
+            "muse",
+            "--away-provider",
+            "gemini",
+            "--seed",
+            "7",
+            "--db",
+            dbPath,
+            "--match",
+            "cli-no-llm-providers",
+            "--json",
+          ],
+          { GRAPH_HOCKEY_PERIOD_SECONDS: "5" },
+        ),
+      ).toBe(0);
+      const out = JSON.parse(String(log.mock.calls.at(-1)?.[0])) as { noLlm: boolean };
+      expect(out.noLlm).toBe(true);
+    } finally {
+      log.mockRestore();
     }
   });
 
@@ -57,6 +96,55 @@ describe("gh CLI", () => {
       expect(String(err.mock.calls[0]?.[0])).toMatch(/games/);
     } finally {
       err.mockRestore();
+    }
+  });
+
+  it("simulate --home-provider openai --away-provider gemini with inject compiles both benches", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "gh-pr-ab-"));
+    const dbPath = join(dir, "graph-hockey.sqlite");
+    const log = vi.spyOn(console, "log").mockImplementation(() => {});
+    const seen = new Set<string>();
+    const coach = {
+      supposedToHappen: "win the draw",
+      playId: "5v5-122-forecheck",
+      pressure: "neutral",
+    };
+    const fast = { memo: "hold structure", playIdSuggestion: "5v5-122-forecheck" };
+    const aar = { summary: "hold", notes: "ok", causes: [], ops: [] as unknown[] };
+    setCreateChatModel((kind, profile) => {
+      if (profile?.provider) seen.add(profile.provider);
+      const payload = kind === "coach" ? coach : kind === "aar" ? aar : fast;
+      return new FakeListChatModel({
+        responses: Array.from({ length: 80 }, () => JSON.stringify(payload)),
+      });
+    });
+    try {
+      const code = await main(
+        [
+          "simulate",
+          "--seed",
+          "3",
+          "--home-provider",
+          "openai",
+          "--away-provider",
+          "gemini",
+          "--home-model",
+          "gpt-5.6-sol",
+          "--away-model",
+          "gemini-3.1-pro-preview",
+          "--db",
+          dbPath,
+          "--match",
+          "cli-openai-gemini",
+          "--json",
+        ],
+        { GRAPH_HOCKEY_PERIOD_SECONDS: "5" },
+      );
+      expect(code).toBe(0);
+      expect(seen.has("openai")).toBe(true);
+      expect(seen.has("gemini")).toBe(true);
+    } finally {
+      log.mockRestore();
     }
   });
 

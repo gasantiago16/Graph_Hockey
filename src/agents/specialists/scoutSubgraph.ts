@@ -4,9 +4,10 @@ const SCOUT_SYSTEM =
   "You are the Scout. Summarize public opponent tendencies from lastEvents and scoutNotes. " +
   "Output structured advice only. Do not invent private playbook facts.";
 
-export function compileScoutSubgraph(opts: Pick<CompileSpecialistOpts, "noLlm"> = {}) {
+export function compileScoutSubgraph(opts: Pick<CompileSpecialistOpts, "noLlm" | "profile"> = {}) {
   return compileSpecialistGraph("scout", {
     noLlm: opts.noLlm,
+    profile: opts.profile,
     system: SCOUT_SYSTEM,
     privateKey: "tendency",
   });

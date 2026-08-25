@@ -1,11 +1,12 @@
 #!/usr/bin/env node
 import { join } from "node:path";
 import { MemorySaver } from "@langchain/langgraph";
-import { compileAarGraph, parseAarMode, runPostMatchAar, sideResult } from "../aar/index.ts";
+import { parseAarMode, runPostMatchAar, sideResult } from "../aar/index.ts";
 import { compileTeamGraph } from "../agents/teamGraph.ts";
 import { loadConfig, scaledOtSeconds, type EnvMap } from "../config.ts";
 import { formatCostSummary } from "../llm/budgets.ts";
-import { hasInjectedChatModel, hasXaiApiKey } from "../llm/client.ts";
+import { hasInjectedChatModel } from "../llm/client.ts";
+import { missingProviderKeys, resolveTeamProfile, type TeamLlmProfile } from "../llm/profiles.ts";
 import { formatDelta, loadSeriesImprovement } from "../film/improvement.ts";
 import { pairClipsForGames } from "../film/pairClips.ts";
 import { getFootage } from "../persist/clips.ts";
@@ -25,16 +26,18 @@ export const USAGE = `graph-hockey — competing LangGraph teams on a hockey rin
 Usage:
   gh --help
   gh simulate [--home ID] [--away ID] [--seed N] [--no-llm] [--no-record] [--aar-mode auto|propose] [--db PATH] [--match ID]
+              [--home-provider xai|muse|openai|gemini] [--away-provider ...] [--home-model SLUG] [--away-model SLUG]
   gh replay --match ID [--to-tick N] [--db PATH]
   gh aar --match ID [--side home|away] [--aar-mode auto|propose|hitl]
   gh playbook --team ID [--diff] [--version N] [--reset-playbook]
   gh series --games 7 [--home ID] [--away ID] [--seed N] [--no-llm] [--no-record] [--aar-mode auto|propose] [--db PATH] [--snapshot-dir PATH]
+            [--home-provider xai|muse|openai|gemini] [--away-provider ...] [--home-model SLUG] [--away-model SLUG]
   gh footage --match ID
   gh footage --series ID [--compare i,j] [--json]
   gh engine-selftest
 
 simulate --no-llm skips grok-4.5 / grok-4.3 and writes events to SQLite.
-Without --no-llm, live epochs call xAI (needs XAI_API_KEY) and print a cost summary.
+Without --no-llm, live epochs call the home/away providers (keys in .env) and print a cost summary.
 AAR runs after every result; default --aar-mode auto applies capped playbook patches.
 --aar-mode propose writes the AAR JSON and does not bump playbook versions.
 --no-llm skips AAR LLM, stores a code-only digest, and never mutates playbooks.
@@ -52,9 +55,13 @@ CI / tests may set GRAPH_HOCKEY_PERIOD_SECONDS=5 so a match is not 36,000 ticks
 (default regulation is 3×1200s). GRAPH_HOCKEY_OT_SECONDS is optional; when the
 period is shortened, OT scales as 5:00/20:00.
 
-LLM provider is xAI only (XAI_API_KEY, https://api.x.ai/v1).
-The browser never receives API keys and never calls xAI.
-Engine tests and --no-llm do not require XAI_API_KEY.
+Default LLM provider is xAI both sides (XAI_API_KEY, https://api.x.ai/v1).
+Per-side benches: --home-provider / --away-provider xai|muse|openai|gemini
+  muse = Meta Muse Spark (MODEL_API_KEY or MUSE_API_KEY, never muse-spark-*-contributor)
+  openai = GPT-5.6 (OPENAI_API_KEY; gpt-5.6 aliases gpt-5.6-sol)
+  gemini = Gemini 3 (GEMINI_API_KEY or GOOGLE_API_KEY)
+--no-llm ignores profiles. The browser never receives API keys.
+Engine tests and --no-llm do not require vendor keys.
 `;
 
 const KNOWN_COMMANDS = new Set([
@@ -103,6 +110,21 @@ function parseGames(argv: string[]): number {
   return parseSeriesGames(Number.parseInt(raw, 10));
 }
 
+function parseSideProfile(argv: string[], side: "home" | "away", env: EnvMap): TeamLlmProfile {
+  return resolveTeamProfile({
+    provider: opt(argv, `${side}-provider`),
+    coach: opt(argv, `${side}-model`),
+    env,
+  });
+}
+
+function requireLiveKeys(cmd: string, home: TeamLlmProfile, away: TeamLlmProfile, env: EnvMap): string | undefined {
+  if (hasInjectedChatModel()) return undefined;
+  const missing = missingProviderKeys(home.provider, away.provider, env);
+  if (missing.length === 0) return undefined;
+  return `gh ${cmd}: live LLM needs keys for ${missing.join(",")} (or pass --no-llm)`;
+}
+
 function parseCompare(raw: string | undefined): { early: number; late: number } | undefined {
   if (raw === undefined) return undefined;
   const m = /^(\d+)\s*,\s*(\d+)$/.exec(raw.trim());
@@ -134,9 +156,14 @@ async function withDb<T>(path: string, fn: (db: Db) => Promise<T>): Promise<T> {
 
 async function cmdSimulate(argv: string[], env: EnvMap): Promise<number> {
   const noLlm = flag(argv, "no-llm");
-  if (!noLlm && !hasXaiApiKey(env) && !hasInjectedChatModel()) {
-    console.error("gh simulate: live LLM needs XAI_API_KEY (or pass --no-llm)");
-    return 1;
+  const homeProfile = parseSideProfile(argv, "home", env);
+  const awayProfile = parseSideProfile(argv, "away", env);
+  if (!noLlm) {
+    const missing = requireLiveKeys("simulate", homeProfile, awayProfile, env);
+    if (missing) {
+      console.error(missing);
+      return 1;
+    }
   }
   const cfg = loadConfig(env);
   const seed = parseSeed(argv);
@@ -158,12 +185,14 @@ async function cmdSimulate(argv: string[], env: EnvMap): Promise<number> {
       playbook: homePlaybook,
       checkpointer: new MemorySaver(),
       noLlm,
+      profile: noLlm ? undefined : homeProfile,
     });
     const awayGraph = compileTeamGraph({
       side: "away",
       playbook: awayPlaybook,
       checkpointer: new MemorySaver(),
       noLlm,
+      profile: noLlm ? undefined : awayProfile,
     });
     return runMatch({
       matchId,
@@ -182,7 +211,9 @@ async function cmdSimulate(argv: string[], env: EnvMap): Promise<number> {
       aarMode,
       homePlaybookVersion: homeRow?.version ?? 1,
       awayPlaybookVersion: awayRow?.version ?? 1,
-      models: noLlm ? { home: "none", away: "none" } : { home: cfg.coachModel, away: cfg.coachModel },
+      models: noLlm ? { home: "none", away: "none" } : { home: homeProfile.coach, away: awayProfile.coach },
+      homeProfile: noLlm ? undefined : homeProfile,
+      awayProfile: noLlm ? undefined : awayProfile,
       record,
     });
   });
@@ -401,9 +432,14 @@ async function cmdAar(argv: string[], env: EnvMap): Promise<number> {
   const noLlm = flag(argv, "no-llm");
   const dump = flag(argv, "dump");
   const aarMode = parseAarMode(opt(argv, "aar-mode"));
-  if (!noLlm && !dump && !hasXaiApiKey(env) && !hasInjectedChatModel()) {
-    console.error("gh aar: live AAR needs XAI_API_KEY (or pass --no-llm / --dump)");
-    return 1;
+  const homeProfile = parseSideProfile(argv, "home", env);
+  const awayProfile = parseSideProfile(argv, "away", env);
+  if (!noLlm && !dump) {
+    const missing = requireLiveKeys("aar", homeProfile, awayProfile, env);
+    if (missing) {
+      console.error(missing.replace("--no-llm", "--no-llm / --dump"));
+      return 1;
+    }
   }
   const dbPath = opt(argv, "db") ?? defaultDbPath();
   return withDb(dbPath, async (db) => {
@@ -435,7 +471,8 @@ async function cmdAar(argv: string[], env: EnvMap): Promise<number> {
       awayPlaybook,
       noLlm,
       aarMode,
-      graph: noLlm ? undefined : compileAarGraph({ db, checkpointer: new MemorySaver(), noLlm: false }),
+      homeProfile: noLlm ? undefined : homeProfile,
+      awayProfile: noLlm ? undefined : awayProfile,
     });
     const picked = sides.map((side) => ({ side, result: sideResult(asMatchResultLabel(row.result), side), report: both[side] }));
     if (flag(argv, "json")) {
@@ -529,9 +566,14 @@ async function cmdPlaybook(argv: string[], env: EnvMap): Promise<number> {
 
 async function cmdSeries(argv: string[], env: EnvMap): Promise<number> {
   const noLlm = flag(argv, "no-llm");
-  if (!noLlm && !hasXaiApiKey(env) && !hasInjectedChatModel()) {
-    console.error("gh series: live LLM needs XAI_API_KEY (or pass --no-llm)");
-    return 1;
+  const homeProfile = parseSideProfile(argv, "home", env);
+  const awayProfile = parseSideProfile(argv, "away", env);
+  if (!noLlm) {
+    const missing = requireLiveKeys("series", homeProfile, awayProfile, env);
+    if (missing) {
+      console.error(missing);
+      return 1;
+    }
   }
   const cfg = loadConfig(env);
   const seed = parseSeed(argv);
@@ -567,7 +609,9 @@ async function cmdSeries(argv: string[], env: EnvMap): Promise<number> {
       timeoutMs: cfg.epochTimeoutMs,
       record,
       snapshotDir,
-      models: noLlm ? { home: "none", away: "none" } : { home: cfg.coachModel, away: cfg.coachModel },
+      models: noLlm ? { home: "none", away: "none" } : { home: homeProfile.coach, away: awayProfile.coach },
+      homeProfile: noLlm ? undefined : homeProfile,
+      awayProfile: noLlm ? undefined : awayProfile,
     });
   });
 

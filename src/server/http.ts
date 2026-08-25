@@ -3,6 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { loadConfig, type AppConfig, type EnvMap } from "../config.ts";
+import { presenceFromConfig } from "../llm/profiles.ts";
 import { DT } from "../engine/rink.ts";
 import {
   framesToJsonl,
@@ -154,10 +155,12 @@ export async function handleHockeyRequest(
   }
 
   if (method === "GET" && url.pathname === "/api/health") {
+    const providers = presenceFromConfig(ctx.config);
     sendJson(res, 200, {
       ok: true,
-      llmConfigured: Boolean(ctx.config.xaiApiKey),
+      llmConfigured: providers.xai,
       langsmith: ctx.config.langsmithTracing,
+      providers,
     });
     return;
   }
@@ -473,6 +476,10 @@ export async function listenAndServe(opts: ListenOpts = {}): Promise<Server> {
         seed: event.seed,
         periodSeconds: event.periodSeconds,
         noLlm: event.noLlm,
+        homeProvider: event.homeProvider,
+        awayProvider: event.awayProvider,
+        homeCoach: event.homeCoach,
+        awayCoach: event.awayCoach,
         seriesId: event.seriesId,
         gameIndex: event.gameIndex,
         games: event.games,

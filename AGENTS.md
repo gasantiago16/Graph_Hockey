@@ -11,16 +11,16 @@ Single TypeScript package. The learning goal is to make LangGraph concepts visib
 | `src/aar/` | Post-game After-Action Review graph (runs after every result). | A **third** compiled `StateGraph`. Conditional edges (`winner_lens` / `loser_lens`), `cite_check`. |
 | `src/playbook/` | Structured plays (data, not prompts). AAR emits capped patches. | Long-term store vs short-term checkpointer threads. |
 | `src/orchestrator/` | Match host: ticks world, hides private state, collects directives. | Not an LLM. Invokes each team graph with a per-epoch `thread_id`. |
-| `src/llm/` | xAI-only `ChatXAI` factories, Zod schemas, circuit breaker. | Structured output; `createChatModel` inject so tests use `FakeListChatModel`. |
+| `src/llm/` | Provider factory (`xai` / `muse` / `openai` / `gemini`) + Zod schemas + circuit breaker. | Structured output; `createChatModel` inject so tests use `FakeListChatModel`. |
 | `src/persist/` | SQLite matches/events (`sql.js` WASM adapter; native `better-sqlite3` needs VS Build Tools). Checkpointer is a separate file. | `MemorySaver` (tests) vs `SqliteSaver` (CLI). |
 | `src/film/` | Auto-clips, pairing, series improvement ledger. | Downstream of the event log — resimulation, not video. |
-| `src/web/` | Canvas 2D spectator + Film Room. **Never** calls xAI, **never** gets `XAI_API_KEY`. | Renderer of server snapshots. |
+| `src/web/` | Canvas 2D spectator + Film Room. **Never** calls providers, **never** gets `*_API_KEY`. | Renderer of server snapshots. |
 | `src/cli/` | Headless `gh` for CI (`simulate --no-llm`, replay, aar, playbook, series, footage). | Invokes graphs without a browser. |
 | `src/config.ts` | Env defaults. LangSmith ON iff a key is present. | No secrets required to boot. |
 
 ## Rules of the road
 
-- Provider is **xAI only** (`XAI_API_KEY`, `https://api.x.ai/v1`). Do not add OpenAI/Anthropic clients.
-- Tests and CI must pass **without** `XAI_API_KEY`. LLM calls must stay mockable.
+- Default provider is **xAI** (`XAI_API_KEY`, `https://api.x.ai/v1`). Optional per-side benches: Muse Spark, OpenAI, Gemini. Never default `muse-spark-*-contributor`.
+- Tests and CI must pass **without** vendor keys. LLM calls must stay mockable (`setCreateChatModel`).
 - Browser binds `127.0.0.1` only. Do not put keys in `src/web/` or WS payloads.
 - Never commit `.env` or keys.

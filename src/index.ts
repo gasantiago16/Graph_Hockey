@@ -57,3 +57,9 @@ export {
   fastLlm,
   setCreateChatModel,
 } from "./llm/client.ts";
+export {
+  DEFAULT_PROFILES,
+  formatBenchHud,
+  resolveTeamProfile,
+} from "./llm/profiles.ts";
+export type { ProviderId, TeamLlmProfile } from "./llm/profiles.ts";

@@ -27,11 +27,21 @@ export type MatchBudget = {
 
 export type ModelPrice = { inputPerMTok: number; outputPerMTok: number };
 
-/** DESIGN §11 / xAI pricing < 200k prompt (per 1M tokens). */
+const ZERO_PRICE: ModelPrice = { inputPerMTok: 0, outputPerMTok: 0 };
+const unknownPriceWarned = new Set<string>();
+
+/** DESIGN §11 / vendor list prices per 1M tokens (fetched 2026-08-25). */
 export const MODEL_PRICES = {
   "grok-4.6": { inputPerMTok: 2.0, outputPerMTok: 6.0 },
   "grok-4.5": { inputPerMTok: 2.0, outputPerMTok: 6.0 },
   "grok-4.3": { inputPerMTok: 1.25, outputPerMTok: 2.5 },
+  "muse-spark-1.2": { inputPerMTok: 1.25, outputPerMTok: 4.25 },
+  "muse-spark-1.1": { inputPerMTok: 1.25, outputPerMTok: 4.25 },
+  "gpt-5.6-sol": { inputPerMTok: 5.0, outputPerMTok: 30.0 },
+  "gpt-5.6-terra": { inputPerMTok: 2.0, outputPerMTok: 12.0 },
+  "gpt-5.6-luna": { inputPerMTok: 0.2, outputPerMTok: 1.2 },
+  "gemini-3.1-pro-preview": { inputPerMTok: 2.0, outputPerMTok: 12.0 },
+  "gemini-3.7-flash": { inputPerMTok: 0.75, outputPerMTok: 3.75 },
 } as const satisfies Record<string, ModelPrice>;
 
 function zeros(): TokenUsage {
@@ -106,7 +116,20 @@ export function recordLlmUsage(b: MatchBudget, side: Side, u: TokenUsage): void 
 export function priceForModel(model: string): ModelPrice {
   if (model.startsWith("grok-4.6")) return MODEL_PRICES["grok-4.6"];
   if (model.startsWith("grok-4.3")) return MODEL_PRICES["grok-4.3"];
-  return MODEL_PRICES["grok-4.5"];
+  if (model.startsWith("grok-4.5") || model.startsWith("grok-")) return MODEL_PRICES["grok-4.5"];
+  if (model === "gpt-5.6" || model.startsWith("gpt-5.6-sol")) return MODEL_PRICES["gpt-5.6-sol"];
+  if (model.startsWith("gpt-5.6-terra")) return MODEL_PRICES["gpt-5.6-terra"];
+  if (model.startsWith("gpt-5.6-luna")) return MODEL_PRICES["gpt-5.6-luna"];
+  const exact = (MODEL_PRICES as Record<string, ModelPrice>)[model];
+  if (exact) return exact;
+  for (const [slug, price] of Object.entries(MODEL_PRICES)) {
+    if (model.startsWith(slug)) return price;
+  }
+  if (!unknownPriceWarned.has(model)) {
+    unknownPriceWarned.add(model);
+    console.warn(`priceForModel: unknown slug "${model}"; USD billed as 0 (call circuit still applies)`);
+  }
+  return ZERO_PRICE;
 }
 
 /** Billed output already includes reasoning — do not add reasoningTokens again. */

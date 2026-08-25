@@ -1,6 +1,9 @@
 import { HumanMessage, SystemMessage } from "@langchain/core/messages";
 import type { z } from "zod";
 import { aarLlm } from "../llm/client.ts";
+import type { TeamLlmProfile } from "../llm/profiles.ts";
+
+export type AarLlmOpts = { noLlm?: boolean; profile?: TeamLlmProfile };
 
 function contentText(content: unknown): string {
   if (typeof content === "string") return content;
@@ -15,10 +18,11 @@ export async function invokeAarStructured<T>(
   schema: z.ZodType<T>,
   system: string,
   user: string,
+  profile?: TeamLlmProfile,
 ): Promise<T | undefined> {
   const messages = [new SystemMessage(system), new HumanMessage(user)];
   for (let attempt = 0; attempt < 2; attempt++) {
-    const llm = aarLlm();
+    const llm = aarLlm(process.env, profile);
     try {
       const raw: unknown = await llm.withStructuredOutput(schema).invoke(messages);
       const parsed = schema.safeParse(raw);

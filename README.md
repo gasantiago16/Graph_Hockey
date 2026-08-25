@@ -2,7 +2,7 @@
 
 Two **LangGraph.js** teams compete in a realistic hockey game. After every win, loss, or tie, each team runs an **After-Action Review** and patches a structured playbook so the next game is not the same.
 
-This is a **localhost Node.js browser game**. The server owns physics, rules, both team graphs, and xAI calls. The browser is a Canvas 2D spectator — it never scores a goal, never sees the opponent's playbook, and **never receives `XAI_API_KEY`**.
+This is a **localhost Node.js browser game**. The server owns physics, rules, both team graphs, and LLM calls. The browser is a Canvas 2D spectator — it never scores a goal, never sees the opponent's playbook, and **never receives `*_API_KEY`**.
 
 **Status:** private repo + approved design + **watchable `--no-llm` rink** + Film Room demo. Implementation follows the PR plan in [`docs/DESIGN.md`](docs/DESIGN.md).
 
@@ -23,7 +23,8 @@ LLMs do **not** run every physics tick. Coaches act at decision epochs (faceoff,
 
 - Node.js ≥ 20.11, TypeScript (strict), **npm** (`package-lock.json`)
 - LangGraph.js (`@langchain/langgraph`)
-- xAI only: `XAI_API_KEY`, `https://api.x.ai/v1`, `grok-4.5` (coach/AAR) + `grok-4.3` (specialists)
+- Default LLM: xAI `XAI_API_KEY`, `https://api.x.ai/v1`, `grok-4.5` (coach/AAR) + `grok-4.3` (specialists)
+- Optional per-side benches: **Muse Spark** (`MODEL_API_KEY` / `MUSE_API_KEY`, `muse-spark-1.2`), **OpenAI** (`OPENAI_API_KEY`, `gpt-5.6-sol` / `gpt-5.6-luna`), **Gemini** (`GEMINI_API_KEY` / `GOOGLE_API_KEY`, `gemini-3.1-pro-preview` / `gemini-3.7-flash`)
 - Node HTTP + WebSocket + Canvas 2D on `127.0.0.1:8787` (v1 is localhost only)
 - SQLite for matches, events, playbooks (`sql.js` WASM adapter — see Persistence)
 
@@ -54,7 +55,7 @@ Contributor map (folders → LangGraph concepts): [`AGENTS.md`](AGENTS.md).
 
 ```bash
 npm install
-cp .env.example .env   # set XAI_API_KEY for live LLM matches only
+cp .env.example .env   # set vendor keys only for live LLM matches
 npm test               # no API key required
 npm run typecheck
 npm run web            # live rink — open http://127.0.0.1:8787/
@@ -62,7 +63,7 @@ npm run film           # same server; Film Room at /film
 npm run gh -- --help
 ```
 
-`XAI_API_KEY` lives in `.env` on the Node process. **Never** put it in `src/web/`, client JS, or WebSocket payloads. The browser never calls xAI.
+Vendor keys live in `.env` on the Node process. **Never** put them in `src/web/`, client JS, or WebSocket payloads. The browser never calls xAI / Muse / OpenAI / Gemini.
 
 If port **8787** is already taken:
 
@@ -89,7 +90,20 @@ npm run gh -- replay --match <id>
 npm run gh -- series --games 7 --no-llm --seed 100
 ```
 
-Stub graphs use the seed-book default 5v5 play (`5v5-122-forecheck` vs `5v5-212-forecheck`) and do not call xAI.
+## Company vs company (lab matches)
+
+Same seed playbooks (`original-six` vs `expansion`). The company is the variable, not the book. Default both sides xAI. See [`docs/PROVIDER-PLAN.md`](docs/PROVIDER-PLAN.md).
+
+```bash
+npm run gh -- simulate --home-provider xai --away-provider muse
+npm run gh -- simulate --home-provider xai --away-provider openai
+npm run gh -- simulate --home-provider openai --away-provider gemini \
+  --home-model gpt-5.6-sol --away-model gemini-3.1-pro-preview
+```
+
+`--no-llm` ignores provider flags. Never use `muse-spark-1.2-contributor` (prompts used for training).
+
+Stub graphs use the seed-book default 5v5 play (`5v5-122-forecheck` vs `5v5-212-forecheck`) and do not call any vendor.
 
 **Short periods for tests/CI:** a full game is 3×20:00 at 10 Hz (36,000 live ticks). Set `GRAPH_HOCKEY_PERIOD_SECONDS=5` so unit tests and CI finish quickly. OT scales as 5:00/20:00 unless `GRAPH_HOCKEY_OT_SECONDS` is set. Golden hash fixtures in this repo were captured with a 5-second period.
 
@@ -100,17 +114,18 @@ $env:GRAPH_HOCKEY_PERIOD_SECONDS=5; npm test
 
 ## Watch a match (available now)
 
-`npm run web` serves the Canvas 2D rink. **Start stays `--no-llm`** (stub graphs, zero xAI) unless you check **Use LLM**.
+`npm run web` serves the Canvas 2D rink. **Start stays `--no-llm`** (stub graphs, zero vendor calls) unless you check **Use LLM**.
 
-- `POST /api/match/start` `{ home, away, seed, noLlm, periodSeconds? }` starts `runMatch` in the background (`noLlm` defaults **true**)
-- `noLlm: false` is allowed only when `XAI_API_KEY` is set on the server (or tests inject `FakeListChatModel`)
-- Optional **Use LLM** checkbox is enabled only when `GET /api/health` reports `llmConfigured`
+- `POST /api/match/start` `{ home, away, seed, noLlm, periodSeconds?, homeProvider?, awayProvider?, homeCoach?, awayCoach? }` starts `runMatch` in the background (`noLlm` defaults **true**; omit providers → both xAI)
+- `noLlm: false` is allowed only when **both** chosen providers have keys (or tests inject `FakeListChatModel`)
+- Optional **Use LLM** checkbox is enabled only when `GET /api/health.providers` is true for the selected pair
 - HUD: live `$` / prompt+output tokens / calls per side (`CostTick`)
 - `POST /api/match/stop` aborts the in-flight match
 - `POST /api/series/start` `{ games: 7, home, away, seed, noLlm, periodSeconds? }` runs a self-play series (`gameSeed = seed + gameIndex`)
 - `POST /api/series/stop` aborts the in-flight series (same as match stop)
 - `GET /api/series` live series/match status
-- `GET /api/health` `{ ok, llmConfigured, langsmith }`
+- `GET /api/health` `{ ok, llmConfigured, langsmith, providers: { xai, muse, openai, gemini } }` (booleans, never secrets)
+- HUD benches: `home: xai/grok-4.5 vs away: muse/muse-spark-1.2` (names only)
 - `WS /ws` streams 10 Hz `SpectatorFrame` snapshots plus `cost` and inspect-side `inspect`
 - Inspect toggle **none / home / away** — the play **name** is sent only for the inspected side (never the opponent `playId`)
 - After `match_over`, **AAR / playbook** opens `/aar?match=` (supposed / actual / why / ops). **Watch** on `eventIds` jumps to `/film?match=&event=`

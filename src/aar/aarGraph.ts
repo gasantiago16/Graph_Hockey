@@ -8,6 +8,7 @@ import {
 import type { AarResult } from "../types/aar.ts";
 import type { Playbook } from "../types/play.ts";
 import type { MatchEvent } from "../types/events.ts";
+import type { TeamLlmProfile } from "../llm/profiles.ts";
 import type { Side } from "../types/hockey.ts";
 import type { Db } from "../persist/db.ts";
 import type { EpochInvocationRow } from "../persist/events.ts";
@@ -39,6 +40,8 @@ export type CompileAarGraphOpts = {
   checkpointer?: BaseCheckpointSaver;
   /** Skip grok-4.5-high; still runs load/actual/cite_check in code. */
   noLlm?: boolean;
+  /** That side's company. Ignored when noLlm. */
+  profile?: TeamLlmProfile;
 };
 
 export type AarGraphInvokeInput = {
@@ -83,7 +86,7 @@ export function lensRouter(state: { result?: unknown }): "winner_lens" | "loser_
 export function compileAarGraph(opts: CompileAarGraphOpts = {}): CompiledAarGraph {
   const checkpointer = opts.checkpointer ?? new MemorySaver();
   const noLlm = opts.noLlm === true;
-  const llm = { noLlm };
+  const llm = { noLlm, profile: noLlm ? undefined : opts.profile };
   const compiled = new StateGraph({
     state: AarGraphState,
     input: AarGraphInput,

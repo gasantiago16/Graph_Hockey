@@ -3,6 +3,7 @@ import { HumanMessage, SystemMessage } from "@langchain/core/messages";
 import { z } from "zod/v4";
 import { z as z3 } from "zod";
 import { fastLlm } from "../../llm/client.ts";
+import type { TeamLlmProfile } from "../../llm/profiles.ts";
 import { SpecialistParamsSchema } from "../../llm/schemas.ts";
 import type { PlayDigest } from "../../types/play.ts";
 import type { SpecialistId } from "../nodes/situation.ts";
@@ -23,10 +24,13 @@ export const SpecialistAdviceSchema = z3.object({
 
 export type CompileSpecialistOpts = {
   noLlm?: boolean;
+  profile?: TeamLlmProfile;
   system: string;
   /** Private subgraph key — not a parent TeamGraphState channel. */
   privateKey: string;
 };
+
+export type SpecialistLlmOpts = Pick<CompileSpecialistOpts, "noLlm" | "profile">;
 
 export function fallbackAdvice(role: SpecialistId): SpecialistAdvice {
   return { memo: `${role} holds last structure` };
@@ -73,11 +77,16 @@ function userPrompt(role: SpecialistId, state: SpecialistInput): string {
   });
 }
 
-async function invokeAdvice(role: SpecialistId, system: string, state: SpecialistInput): Promise<SpecialistAdvice> {
+async function invokeAdvice(
+  role: SpecialistId,
+  system: string,
+  state: SpecialistInput,
+  profile?: TeamLlmProfile,
+): Promise<SpecialistAdvice> {
   const fallback = fallbackAdvice(role);
   for (let attempt = 0; attempt < 2; attempt++) {
     try {
-      const raw: unknown = await fastLlm().withStructuredOutput(SpecialistAdviceSchema).invoke([
+      const raw: unknown = await fastLlm(process.env, profile).withStructuredOutput(SpecialistAdviceSchema).invoke([
         new SystemMessage(system),
         new HumanMessage(userPrompt(role, state)),
       ]);
@@ -105,7 +114,7 @@ export function compileSpecialistGraph(role: SpecialistId, opts: CompileSpeciali
   };
   const state = new StateSchema(fields as never) as StateSchema<any>;
   const advise = async (s: SpecialistInput) => {
-    const advice = opts.noLlm ? fallbackAdvice(role) : await invokeAdvice(role, opts.system, s);
+    const advice = opts.noLlm ? fallbackAdvice(role) : await invokeAdvice(role, opts.system, s, opts.profile);
     return {
       memo: advice.memo,
       playIdSuggestion: advice.playIdSuggestion,

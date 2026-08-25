@@ -7,6 +7,7 @@ import {
 } from "@langchain/langgraph";
 import type { TeamDirective } from "../types/directive.ts";
 import type { Side } from "../types/hockey.ts";
+import type { TeamLlmProfile } from "../llm/profiles.ts";
 import type { Playbook } from "../types/play.ts";
 import type { TeamObservation } from "../types/observation.ts";
 import { ingest } from "./nodes/ingest.ts";
@@ -51,6 +52,8 @@ export type CompileTeamGraphOpts = {
   checkpointer?: BaseCheckpointSaver;
   /** Skip grok-4.5 and grok-4.3. Stub assemble still uses the seed default play. */
   noLlm?: boolean;
+  /** Per-side company. Ignored when noLlm. Default xAI when omitted. */
+  profile?: TeamLlmProfile;
 };
 
 export type TeamGraphInvokeInput = {
@@ -91,7 +94,8 @@ export function compileTeamGraph(opts: CompileTeamGraphOpts): CompiledTeamGraph 
   void opts.side;
   const checkpointer = opts.checkpointer ?? new MemorySaver();
   const noLlm = opts.noLlm === true;
-  const specOpts = { noLlm };
+  const profile = noLlm ? undefined : opts.profile;
+  const specOpts = { noLlm, profile };
   const compiled = new StateGraph({
     state: TeamGraphState,
     input: TeamGraphInput,
@@ -101,7 +105,7 @@ export function compileTeamGraph(opts: CompileTeamGraphOpts): CompiledTeamGraph 
     // Node `situation`; state channel is classifiedSituation (JS forbids same names).
     .addNode("situation", situation)
     .addNode("retrieve_plays", makeRetrievePlays(opts.playbook))
-    .addNode("head_coach", makeHeadCoach({ noLlm }) as never, { ends: [...HEAD_COACH_ENDS] })
+    .addNode("head_coach", makeHeadCoach({ noLlm, profile }) as never, { ends: [...HEAD_COACH_ENDS] })
     .addNode("oc", wrapSpecialist("oc", compileOcSubgraph(specOpts)) as never, {
       input: SpecialistInputSchema,
     })

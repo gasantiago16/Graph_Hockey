@@ -99,7 +99,23 @@
       </label>
       <label>Seed <input id="seed" type="number" value="42" step="1" style="width:7rem" /></label>
       <label>Period s <input id="periodSeconds" type="number" value="5" min="1" max="1200" step="1" style="width:5rem" /></label>
-      <label title="Enabled when /api/health.llmConfigured is true. Start stays --no-llm unless checked.">
+      <label>Home bench
+        <select id="homeProvider">
+          <option value="xai" selected>xAI</option>
+          <option value="muse">Muse</option>
+          <option value="openai">OpenAI</option>
+          <option value="gemini">Gemini</option>
+        </select>
+      </label>
+      <label>Away bench
+        <select id="awayProvider">
+          <option value="xai" selected>xAI</option>
+          <option value="muse">Muse</option>
+          <option value="openai">OpenAI</option>
+          <option value="gemini">Gemini</option>
+        </select>
+      </label>
+      <label title="Enabled when both chosen benches have keys in /api/health.providers. Start stays --no-llm unless checked.">
         <input id="useLlm" type="checkbox" disabled />
         Use LLM
       </label>
@@ -125,6 +141,7 @@
     <div class="hud">
       <div class="score" id="scoreboard">P1  0:00.0    <span class="home">HOME 0</span> – <span class="away">0 AWAY</span></div>
       <div class="ticker" id="ticker">Public event ticker. Start defaults to --no-llm.</div>
+      <div class="sub" id="benches">benches: no-llm</div>
       <div class="sub" id="cost">no-llm · $0.00 · 0/0 tok · home 0 · away 0 calls</div>
     </div>
     <section id="postMatch" class="post-match" hidden>

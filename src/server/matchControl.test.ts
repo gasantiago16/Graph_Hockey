@@ -31,6 +31,8 @@ describe("matchControl LLM gate", () => {
   it("allows LLM when XAI_API_KEY is set or FakeListChatModel is injected", () => {
     expect(llmMatchAllowed(loadConfig({}))).toBe(false);
     expect(llmMatchAllowed(loadConfig({ XAI_API_KEY: "test-not-live" }))).toBe(true);
+    expect(llmMatchAllowed(loadConfig({ OPENAI_API_KEY: "sk" }), { home: "openai", away: "openai" })).toBe(true);
+    expect(llmMatchAllowed(loadConfig({ OPENAI_API_KEY: "sk" }), { home: "xai", away: "openai" })).toBe(false);
     injectFakeListChatModel();
     expect(llmMatchAllowed(loadConfig({}))).toBe(true);
   });

@@ -44,6 +44,34 @@ async function serve(db: Awaited<ReturnType<typeof openMemoryDb>>, extra: { pace
   return { port: addr.port, base: `http://127.0.0.1:${addr.port}`, close };
 }
 
+describe("GET /api/health", () => {
+  it("exposes provider booleans and never secrets", async () => {
+    const db = await openMemoryDb();
+    try {
+      const { base, close } = await serve(db);
+      try {
+        const res = await fetch(`${base}/api/health`);
+        expect(res.status).toBe(200);
+        const json = (await res.json()) as {
+          ok: boolean;
+          llmConfigured: boolean;
+          providers: { xai: boolean; muse: boolean; openai: boolean; gemini: boolean };
+        };
+        expect(json.ok).toBe(true);
+        expect(json.llmConfigured).toBe(false);
+        expect(json.providers).toEqual({ xai: false, muse: false, openai: false, gemini: false });
+        const raw = JSON.stringify(json);
+        expect(raw).not.toContain("API_KEY");
+        expect(raw).not.toMatch(/sk-/);
+      } finally {
+        await close();
+      }
+    } finally {
+      db.close();
+    }
+  });
+});
+
 describe("static AAR + Film Room routes", () => {
   it("serves /aar and still serves /film", () => {
     expect(resolveStatic("/aar", ROOT)?.replace(/\\/g, "/")).toMatch(/src\/web\/aar.html$/);

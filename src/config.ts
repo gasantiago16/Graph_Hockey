@@ -3,6 +3,8 @@ import { DT, OT_SECONDS, PERIOD_SECONDS } from "./engine/rink.ts";
 export type EnvMap = Record<string, string | undefined>;
 
 export const DEFAULT_XAI_BASE_URL = "https://api.x.ai/v1";
+export const DEFAULT_OPENAI_BASE_URL = "https://api.openai.com/v1";
+export const DEFAULT_MUSE_BASE_URL = "https://api.meta.ai/v1";
 export const DEFAULT_COACH_MODEL = "grok-4.5";
 export const DEFAULT_FAST_MODEL = "grok-4.3";
 export const DEFAULT_AAR_MODEL = "grok-4.5";
@@ -13,6 +15,11 @@ export const LANGSMITH_PROJECT = "graph-hockey";
 export type AppConfig = {
   xaiApiKey: string | undefined;
   xaiBaseUrl: string;
+  openaiApiKey: string | undefined;
+  openaiBaseUrl: string;
+  museApiKey: string | undefined;
+  museBaseUrl: string;
+  geminiApiKey: string | undefined;
   coachModel: string;
   fastModel: string;
   aarModel: string;
@@ -81,7 +88,7 @@ export function applyLangsmithFromEnv(env: EnvMap = process.env): boolean {
   return true;
 }
 
-/** Reads env with defaults. Missing XAI_API_KEY is fine (CI / --no-llm). */
+/** Reads env with defaults. Missing vendor keys is fine (CI / --no-llm). */
 export function loadConfig(env: EnvMap = process.env): AppConfig {
   const langsmithTracing = applyLangsmithFromEnv(env);
   const periodSeconds = readPositiveFloat(env, "GRAPH_HOCKEY_PERIOD_SECONDS", PERIOD_SECONDS);
@@ -94,6 +101,11 @@ export function loadConfig(env: EnvMap = process.env): AppConfig {
   return {
     xaiApiKey: readString(env, "XAI_API_KEY"),
     xaiBaseUrl: readStringOr(env, "XAI_BASE_URL", DEFAULT_XAI_BASE_URL),
+    openaiApiKey: readString(env, "OPENAI_API_KEY"),
+    openaiBaseUrl: readStringOr(env, "OPENAI_BASE_URL", DEFAULT_OPENAI_BASE_URL),
+    museApiKey: readString(env, "MODEL_API_KEY") ?? readString(env, "MUSE_API_KEY"),
+    museBaseUrl: readStringOr(env, "MUSE_BASE_URL", DEFAULT_MUSE_BASE_URL),
+    geminiApiKey: readString(env, "GEMINI_API_KEY") ?? readString(env, "GOOGLE_API_KEY"),
     coachModel: readStringOr(env, "GRAPH_HOCKEY_COACH_MODEL", DEFAULT_COACH_MODEL),
     fastModel: readStringOr(env, "GRAPH_HOCKEY_FAST_MODEL", DEFAULT_FAST_MODEL),
     aarModel: readStringOr(env, "GRAPH_HOCKEY_AAR_MODEL", DEFAULT_AAR_MODEL),

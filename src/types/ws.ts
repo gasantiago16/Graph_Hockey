@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { PeriodSchema, PositionSchema, PressureSchema } from "./hockey.ts";
+import { ProviderIdSchema } from "./provider.ts";
 
 /** Operator inspect toggle. `none` = public geometry only. */
 export const InspectSideSchema = z.enum(["home", "away", "none"]);
@@ -83,6 +84,10 @@ export const MatchStartSchema = z.object({
   seed: z.number(),
   periodSeconds: z.number(),
   noLlm: z.boolean(),
+  homeProvider: ProviderIdSchema.optional(),
+  awayProvider: ProviderIdSchema.optional(),
+  homeCoach: z.string().min(1).optional(),
+  awayCoach: z.string().min(1).optional(),
   seriesId: z.string().optional(),
   gameIndex: z.number().int().nonnegative().optional(),
   games: z.number().int().positive().optional(),
@@ -118,6 +123,10 @@ export const StartMatchBodySchema = z.object({
   noLlm: z.boolean().default(true),
   /** UI demo often sends 5. Omitted → `loadConfig().periodSeconds` (1200 unless env). */
   periodSeconds: z.number().positive().max(1200).optional(),
+  homeProvider: ProviderIdSchema.optional(),
+  awayProvider: ProviderIdSchema.optional(),
+  homeCoach: z.string().min(1).optional(),
+  awayCoach: z.string().min(1).optional(),
 });
 export type StartMatchBody = z.infer<typeof StartMatchBodySchema>;
 

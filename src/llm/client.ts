@@ -1,4 +1,3 @@
-import { ChatXAI, type ChatXAIInput } from "@langchain/xai";
 import type { BaseChatModel } from "@langchain/core/language_models/chat_models";
 import {
   DEFAULT_AAR_MODEL,
@@ -7,10 +6,19 @@ import {
   loadConfig,
   type EnvMap,
 } from "../config.ts";
+import { defaultProfile, type TeamLlmProfile } from "./profiles.ts";
+import {
+  createGeminiChatModel,
+  createMuseChatModel,
+  createOpenAiChatModel,
+  createXaiChatModel,
+  type AdapterSpec,
+  type ReasoningEffort,
+} from "./providers/index.ts";
 
-export type ReasoningEffort = "none" | "low" | "medium" | "high";
+export type { ReasoningEffort };
 export type ChatModelKind = "coach" | "fast" | "aar";
-export type CreateChatModel = (kind: ChatModelKind) => BaseChatModel;
+export type CreateChatModel = (kind: ChatModelKind, profile?: TeamLlmProfile) => BaseChatModel;
 
 export const COACH_TIMEOUT_MS = 5_000;
 export const FAST_TIMEOUT_MS = 2_500;
@@ -20,12 +28,6 @@ export const FAST_MAX_TOKENS = 500;
 export const AAR_MAX_TOKENS = 3_000;
 export const LLM_TEMPERATURE = 0.2;
 export const LLM_MAX_RETRIES = 2;
-
-type ChatXaiFields = Omit<ChatXAIInput, "model"> & {
-  timeout?: number;
-  maxRetries?: number;
-  modelKwargs?: { reasoning_effort?: ReasoningEffort };
-};
 
 let injected: CreateChatModel | undefined;
 let fastEffort: ReasoningEffort = "none";
@@ -80,12 +82,27 @@ export type ChatModelSpec = {
   maxRetries: number;
 };
 
-export function chatModelSpec(kind: ChatModelKind, env: EnvMap = process.env): ChatModelSpec {
+export function chatModelSpec(
+  kind: ChatModelKind,
+  env: EnvMap = process.env,
+  profile?: TeamLlmProfile,
+): ChatModelSpec {
   const cfg = loadConfig(env);
+  const model = profile
+    ? kind === "coach"
+      ? profile.coach
+      : kind === "aar"
+        ? profile.aar
+        : profile.fast
+    : kind === "coach"
+      ? cfg.coachModel
+      : kind === "aar"
+        ? cfg.aarModel
+        : cfg.fastModel;
   if (kind === "coach") {
     return {
       kind,
-      model: cfg.coachModel,
+      model,
       effort: "low",
       maxTokens: COACH_MAX_TOKENS,
       timeoutMs: COACH_TIMEOUT_MS,
@@ -96,7 +113,7 @@ export function chatModelSpec(kind: ChatModelKind, env: EnvMap = process.env): C
   if (kind === "aar") {
     return {
       kind,
-      model: cfg.aarModel,
+      model,
       effort: "high",
       maxTokens: AAR_MAX_TOKENS,
       timeoutMs: AAR_TIMEOUT_MS,
@@ -106,7 +123,7 @@ export function chatModelSpec(kind: ChatModelKind, env: EnvMap = process.env): C
   }
   return {
     kind,
-    model: cfg.fastModel,
+    model,
     effort: fastEffort,
     maxTokens: FAST_MAX_TOKENS,
     timeoutMs: FAST_TIMEOUT_MS,
@@ -115,40 +132,67 @@ export function chatModelSpec(kind: ChatModelKind, env: EnvMap = process.env): C
   };
 }
 
-function xai(kind: ChatModelKind, env: EnvMap): ChatXAI {
-  const cfg = loadConfig(env);
-  if (!cfg.xaiApiKey) {
-    throw new Error("XAI_API_KEY is required for live ChatXAI (tests must setCreateChatModel)");
-  }
-  const spec = chatModelSpec(kind, env);
-  // Two-arg Completions constructor. Completions body field is modelKwargs.reasoning_effort.
-  // Do not pass reasoning_effort via withConfig — it is not a ChatXAICallOptions key.
-  return new ChatXAI(spec.model, {
-    apiKey: cfg.xaiApiKey,
-    baseURL: cfg.xaiBaseUrl,
+function toAdapterSpec(spec: ChatModelSpec): AdapterSpec {
+  return {
+    model: spec.model,
+    effort: spec.effort,
+    maxTokens: spec.maxTokens,
+    timeoutMs: spec.timeoutMs,
     temperature: spec.temperature,
     maxRetries: spec.maxRetries,
-    maxTokens: spec.maxTokens,
-    timeout: spec.timeoutMs,
-    modelKwargs: { reasoning_effort: spec.effort },
-  } as ChatXaiFields);
+  };
 }
 
-export function createChatModel(kind: ChatModelKind, env: EnvMap = process.env): BaseChatModel {
-  if (injected) return injected(kind);
-  return xai(kind, env);
+function liveModel(spec: ChatModelSpec, profile: TeamLlmProfile, env: EnvMap): BaseChatModel {
+  const adapter = toAdapterSpec(spec);
+  switch (profile.provider) {
+    case "xai":
+      return createXaiChatModel(adapter, env);
+    case "muse":
+      return createMuseChatModel(adapter, env);
+    case "openai":
+      return createOpenAiChatModel(adapter, env);
+    case "gemini":
+      return createGeminiChatModel(adapter, env);
+  }
 }
 
-export function coachLlm(env: EnvMap = process.env): BaseChatModel {
-  return createChatModel("coach", env);
+export type CreateChatModelArgs = {
+  kind: ChatModelKind;
+  profile?: TeamLlmProfile;
+  env?: EnvMap;
+};
+
+function isCreateArgs(v: unknown): v is CreateChatModelArgs {
+  return typeof v === "object" && v !== null && "kind" in v && typeof (v as CreateChatModelArgs).kind === "string";
 }
 
-export function fastLlm(env: EnvMap = process.env): BaseChatModel {
-  return createChatModel("fast", env);
+export function createChatModel(kind: ChatModelKind, env?: EnvMap, profile?: TeamLlmProfile): BaseChatModel;
+export function createChatModel(args: CreateChatModelArgs): BaseChatModel;
+export function createChatModel(
+  kindOrArgs: ChatModelKind | CreateChatModelArgs,
+  env: EnvMap = process.env,
+  profile?: TeamLlmProfile,
+): BaseChatModel {
+  if (isCreateArgs(kindOrArgs)) {
+    return createChatModel(kindOrArgs.kind, kindOrArgs.env ?? process.env, kindOrArgs.profile);
+  }
+  if (injected) return injected(kindOrArgs, profile);
+  const resolved = profile ?? defaultProfile("xai", env);
+  const spec = chatModelSpec(kindOrArgs, env, resolved);
+  return liveModel(spec, resolved, env);
 }
 
-export function aarLlm(env: EnvMap = process.env): BaseChatModel {
-  return createChatModel("aar", env);
+export function coachLlm(env: EnvMap = process.env, profile?: TeamLlmProfile): BaseChatModel {
+  return createChatModel("coach", env, profile);
+}
+
+export function fastLlm(env: EnvMap = process.env, profile?: TeamLlmProfile): BaseChatModel {
+  return createChatModel("fast", env, profile);
+}
+
+export function aarLlm(env: EnvMap = process.env, profile?: TeamLlmProfile): BaseChatModel {
+  return createChatModel("aar", env, profile);
 }
 
 export { DEFAULT_AAR_MODEL, DEFAULT_COACH_MODEL, DEFAULT_FAST_MODEL };

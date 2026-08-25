@@ -5,7 +5,8 @@ on:
   pull_request:
 
 # Dev machine is Windows. ubuntu-latest is used for CI speed; this job has no native addons.
-# Do not inject XAI_API_KEY, LangSmith keys, or other secrets — tests must stay LLM-free.
+# Do not inject XAI_API_KEY, OPENAI_API_KEY, GEMINI_API_KEY, GOOGLE_API_KEY,
+# MODEL_API_KEY, MUSE_API_KEY, LangSmith keys, or other secrets — tests must stay LLM-free.
 jobs:
   test:
     runs-on: ubuntu-latest

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { createBudget, recordLlmUsage, toCostTick } from "../llm/budgets.ts";
 import { denylistHits, opponentPlayLeak } from "../server/protocol.ts";
-import { formatCostHud, formatHudUsd } from "./hud.ts";
+import { formatBenchHud, formatCostHud, formatHudUsd } from "./hud.ts";
 
 const HOME_PLAY = "5v5-122-forecheck";
 const AWAY_PLAY = "5v5-212-forecheck";
@@ -33,6 +33,19 @@ describe("cost HUD", () => {
     );
     expect(formatHudUsd(0)).toBe("$0.00");
     expect(formatHudUsd(0.04)).toBe("$0.04");
+  });
+
+  it("labels benches by provider/model names only", () => {
+    expect(formatBenchHud({ noLlm: true })).toBe("benches: no-llm");
+    const line = formatBenchHud({
+      noLlm: false,
+      homeProvider: "xai",
+      homeCoach: "grok-4.5",
+      awayProvider: "muse",
+      awayCoach: "muse-spark-1.2",
+    });
+    expect(line).toBe("home: xai/grok-4.5 vs away: muse/muse-spark-1.2");
+    expect(line).not.toMatch(/API_KEY/);
   });
 
   it("toCostTick HUD line still has no opponent playId", () => {

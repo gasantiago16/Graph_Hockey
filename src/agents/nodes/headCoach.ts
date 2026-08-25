@@ -1,6 +1,7 @@
 import { Command, Send } from "@langchain/langgraph";
 import { HumanMessage, SystemMessage } from "@langchain/core/messages";
 import { coachLlm } from "../../llm/client.ts";
+import type { TeamLlmProfile } from "../../llm/profiles.ts";
 import { CoachIntentSchema, type CoachIntent } from "../../llm/schemas.ts";
 import type { PlayDigest } from "../../types/play.ts";
 import type { TeamGraphStateType } from "../state.ts";
@@ -25,6 +26,7 @@ const COACH_SYSTEM =
 export type HeadCoachOpts = {
   /** Skip grok-4.5; assemble_directive still uses the seed default play. */
   noLlm?: boolean;
+  profile?: TeamLlmProfile;
 };
 
 export function clampCoachPlayId(playId: string, retrievedPlays: readonly Pick<PlayDigest, "id">[]): string {
@@ -70,10 +72,10 @@ function coachUserPrompt(state: TeamGraphStateType): string {
   });
 }
 
-async function invokeCoachIntent(state: TeamGraphStateType): Promise<CoachIntent> {
+async function invokeCoachIntent(state: TeamGraphStateType, profile?: TeamLlmProfile): Promise<CoachIntent> {
   const fallback = fallbackIntent(state);
   try {
-    const raw: unknown = await coachLlm().withStructuredOutput(CoachIntentSchema).invoke([
+    const raw: unknown = await coachLlm(process.env, profile).withStructuredOutput(CoachIntentSchema).invoke([
       new SystemMessage(COACH_SYSTEM),
       new HumanMessage(coachUserPrompt(state)),
     ]);
@@ -107,7 +109,7 @@ export function makeHeadCoach(opts: HeadCoachOpts = {}) {
     if (opts.noLlm) {
       return new Command({ goto: "assemble_directive" });
     }
-    const coachIntent = await invokeCoachIntent(state);
+    const coachIntent = await invokeCoachIntent(state, opts.profile);
     const specs = routedSpecialists(state);
     if (specs.length === 0) {
       return new Command({ update: { coachIntent }, goto: "assemble_directive" });

@@ -15,6 +15,7 @@ import {
 import { ensureSeedPlaybooks, latestPlaybook } from "../persist/playbooks.ts";
 import { loadPlaybook, loadTeam, SEED_TEAM_IDS } from "../playbook/store.ts";
 import type { Roster } from "../types/hockey.ts";
+import type { TeamLlmProfile } from "../llm/profiles.ts";
 import type { Playbook } from "../types/play.ts";
 
 /** DESIGN: default self-play series length. */
@@ -99,6 +100,8 @@ export type RunSeriesOpts = {
   snapshotDir?: string;
   record?: boolean;
   models?: { home: string; away: string };
+  homeProfile?: TeamLlmProfile;
+  awayProfile?: TeamLlmProfile;
   startedAt?: string;
   onGameStart?: (info: SeriesGameStart) => void;
   onTick?: MatchOptions["onTick"];
@@ -183,12 +186,14 @@ export async function runSeries(opts: RunSeriesOpts): Promise<SeriesResult> {
       playbook: home.body,
       checkpointer: new MemorySaver(),
       noLlm,
+      profile: noLlm ? undefined : opts.homeProfile,
     });
     const awayGraph = compileTeamGraph({
       side: "away",
       playbook: away.body,
       checkpointer: new MemorySaver(),
       noLlm,
+      profile: noLlm ? undefined : opts.awayProfile,
     });
 
     const match = await runMatch({
@@ -213,6 +218,8 @@ export async function runSeries(opts: RunSeriesOpts): Promise<SeriesResult> {
       noLlm,
       aarMode: opts.aarMode,
       models: opts.models ?? (noLlm ? { home: "none", away: "none" } : undefined),
+      homeProfile: noLlm ? undefined : opts.homeProfile,
+      awayProfile: noLlm ? undefined : opts.awayProfile,
       record: opts.record,
       seriesId,
       gameIndex,

@@ -21,6 +21,7 @@ import type { AarReport } from "../types/aar.ts";
 import type { TeamDirective } from "../types/directive.ts";
 import type { MatchEvent } from "../types/events.ts";
 import type { Side } from "../types/hockey.ts";
+import type { TeamLlmProfile } from "../llm/profiles.ts";
 import type { Playbook } from "../types/play.ts";
 import { createEpochTracker, shouldDecide } from "./epochs.ts";
 import { invokeTeam } from "./invokeTeam.ts";
@@ -51,6 +52,8 @@ export type MatchOptions = {
   /** Default auto-apply with caps. propose writes AAR JSON and does not bump playbooks. */
   aarMode?: AarMode;
   models?: { home: string; away: string };
+  homeProfile?: TeamLlmProfile;
+  awayProfile?: TeamLlmProfile;
   /** Default true. `false` is `--no-record`: events stay, clip index is skipped. */
   record?: boolean;
   seriesId?: string;
@@ -231,6 +234,8 @@ export async function runMatch(opts: MatchOptions): Promise<MatchResult> {
     aarMode: opts.aarMode,
     budget,
     signal: opts.signal,
+    homeProfile: noLlm ? undefined : opts.homeProfile,
+    awayProfile: noLlm ? undefined : opts.awayProfile,
   });
 
   if (opts.record !== false) {
