@@ -218,7 +218,7 @@ These are not hypothetical. They showed up in design review or PR review and wou
 
 **Root.** Coaches now pick plays. Ice F1 still releases every tick while facing the net. Captain micros still time out on offside. `liveTick` resets each period (clip windows need the anchor’s period).
 
-**Fix (partial).** Period-aware `framesForClip`. MP4 highlight export. The shot-rate and captain-micro budget are the **way forward**, not a victory lap.
+**Fix.** `shotLock`: one shot per possession; Save/Rebound grants one extra. AAR rolls real `playUsage` xG into `play.stats` (never `--no-llm`). Retrieve bonuses a play whose `counters` include a public-geometry `themFamily`. Loser `add_counter` cites **their** family. `gh series --json` prints distinct chances, offsides, and retrieveTop — not Shot-row count.
 
 **Lesson.** “The graph ran” is not “they play hockey.” Count distinct chances, not Shot rows.
 
@@ -244,7 +244,7 @@ These are not hypothetical. They showed up in design review or PR review and wou
 
 - **Referee in code.** Fairness is testable without an API key.
 - **Two compiles, not `side` on one graph.** Information hiding is structural.
-- **365 tests, fakes for every LLM node.** `setCreateChatModel` / `FakeListChatModel`.
+- **Tests, fakes for every LLM node.** `setCreateChatModel` / `FakeListChatModel`.
 - **PR slices.** Engine → stub graphs → rink → coaches → AAR → series. Each independently reviewable.
 - **Caps on learning.** Max 3 AAR ops, cited events only, winner cannot retire a play that just worked from one lucky bounce.
 - **Golden hashes.** Short periods (`GRAPH_HOCKEY_PERIOD_SECONDS=5`) keep CI honest without 36k ticks.
@@ -267,13 +267,12 @@ These are not hypothetical. They showed up in design review or PR review and wou
 
 `main` **is** the game. live-52 proved Head Coach can pick `5v5-122-forecheck` / `stretch-pass-nz` and AAR still bumps books. The next work is hockey quality, not more folders.
 
-1. **Stop the machine-gun.** `maybeReleasePuck` needs a cooldown or “one shot until a new possession.” live-52’s 118 Shot rows are not 118 chances.
+1. **7-game LLM series (20s periods, clean db).** `npm run gh -- series --games 7 --home-provider xai --away-provider muse --period-seconds 20`. Pass = retrieveTop actually moves, not just a version bump. 60s is a later demo.
 2. **Captain micro budget.** Offside/icing still `Send`s captain into a 4s timeout (`structured:specialist:captain`). Same pattern as Scar 9: skip the specialist or give micro a code fallback and **do not JSON-retry**.
-3. **Offside rate.** 166 offsides in three 60s periods. F1 dump/pass that crosses the blue without a tagged-up F2 is not a stretch play — tune ice roles or NZ pass targets.
+3. **Offside rate.** Counted on the series scorecard; F2 tag-up / NZ pass targets still need ice work.
 4. **Goal attribution.** live-52 “HOME GOAL” actor `h-G` in OZ. Audit `maybeGoal` + last contact so a goalie cannot be the scorer of an attacking-zone goal unless that is actually what happened.
-5. **7-game series, Use LLM.** `npm run gh -- series --games 7 --home-provider xai --away-provider muse --period-seconds 60`. Open `/film?series=` and watch whether Original Six’s 1-2-2 still dies to crash-net **after** books have been patched six times.
-6. **HITL later.** LangGraph `interrupt()` for a human coach, **off** the default compile. Do not put it on the 12s clock.
-7. Keep `AGENTS.md` honest: `src/ice/` is environment, not a graph. `gh footage --mp4` is derivative.
+5. **HITL later.** LangGraph `interrupt()` for a human coach, **off** the default compile. Do not put it on the 12s clock.
+6. Keep `AGENTS.md` honest: `src/ice/` is environment, not a graph. `gh footage --mp4` is derivative.
 
 ---
 
@@ -290,4 +289,4 @@ These are not hypothetical. They showed up in design review or PR review and wou
 
 ---
 
-*Generated 2026-08-25. `main` is playable. Tests: 365. live-52: Muse 3–1, 211/212 epochs ok. HITL not in v1.*
+*Generated 2026-08-25. `main` is playable. Shot lock + retrieve stats + series scorecard. live-52: Muse 3–1, 211/212 epochs ok. HITL not in v1.*

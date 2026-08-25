@@ -413,6 +413,16 @@ describe("gh CLI", () => {
           env,
         ),
       ).toBe(0);
+      const seriesOut = JSON.parse(String(log.mock.calls.at(-1)?.[0])) as {
+        learning: { booksMoved: { home: boolean; away: boolean }; retrieveTopChanged: { steps: number } };
+        matches: { home: { distinctChances: number; offsides: number } }[];
+      };
+      expect(seriesOut.matches).toHaveLength(2);
+      expect(seriesOut.matches[0]?.home.distinctChances).toBeGreaterThanOrEqual(0);
+      expect(seriesOut.matches[0]?.home.offsides).toBeGreaterThanOrEqual(0);
+      expect(seriesOut.learning.retrieveTopChanged.steps).toBe(1);
+      expect(seriesOut.learning.booksMoved.home).toBe(false);
+      expect(seriesOut.learning.booksMoved.away).toBe(false);
 
       log.mockClear();
       expect(await main(["footage", "--series", "ser-cli-15b", "--db", dbPath, "--json"], env)).toBe(0);

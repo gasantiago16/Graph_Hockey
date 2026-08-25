@@ -1197,7 +1197,7 @@ export const TeamGraphOutput = new StateSchema({
 | --- | --- | --- | --- |
 | `ingest` | `nodes/ingest.ts` | no | Copy input; **do not write `specialistMemos`** |
 | `situation` | `nodes/situation.ts` | no | Classifier + specialist list from **routing table** (§10.3) |
-| `retrieve_plays` | `nodes/retrievePlays.ts` | no | Top 6 play digests (code) |
+| `retrieve_plays` | `nodes/retrievePlays.ts` | no | Top 6 play digests (code). May bonus `themFamily` inferred from public geometry; never opponent `playId`. |
 | `epoch_router` | conditional edge, not a node | no | `state.epochKind === "macro" ? "head_coach" : "captain"` |
 | `head_coach` | `nodes/headCoach.ts` | **yes** `grok-4.5` | **Macro only.** `Command` with `Send[]` or `assemble_directive` |
 | `oc` | `specialists/ocSubgraph.ts` | **yes** `grok-4.3` | Forecheck, OZ cycle, entries, shot policy |

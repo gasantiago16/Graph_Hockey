@@ -5,6 +5,9 @@ import type { Db } from "./db.ts";
 export type ImprovementMetrics = {
   aggregates: MatchAggregates;
   clipCounts: Partial<Record<ClipKind, number>>;
+  chanceCounts?: { shots: number; distinctChances: number; offsides: number };
+  openingPlayId?: string;
+  retrieveTopId?: string;
 };
 
 export type ImprovementRow = {

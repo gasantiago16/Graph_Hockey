@@ -8,7 +8,9 @@ import { formatCostSummary } from "../llm/budgets.ts";
 import { hasInjectedChatModel } from "../llm/client.ts";
 import { missingProviderKeys, resolveTeamProfile, type TeamLlmProfile } from "../llm/profiles.ts";
 import { defaultExportPath, exportMatchMp4 } from "../film/exportMp4.ts";
+import { retrieveTopChanged, sideScorecard } from "../film/chances.ts";
 import { formatDelta, loadSeriesImprovement } from "../film/improvement.ts";
+import type { PlaybookSnapshot } from "../persist/playbookSnapshots.ts";
 import { pairClipsForGames } from "../film/pairClips.ts";
 import { getFootage } from "../persist/clips.ts";
 import { defaultDbPath, openDb, type Db } from "../persist/db.ts";
@@ -47,7 +49,7 @@ series default is 7 games; gameSeed = seed + gameIndex. AAR auto-apply mutates p
 Playbook snapshots go in data/playbook-snapshots/<seriesId>/ (before.json + after-game-N.json).
 --no-llm series uses 5s periods unless GRAPH_HOCKEY_PERIOD_SECONDS or --period-seconds is set.
 footage --match lists auto-clips + open ticks. --mp4 writes a derivative H.264 file (ffmpeg required; Film Room stays the review surface).
---series prints the improvement ledger + deltas.
+--series prints the improvement ledger + deltas (chances, offsides, retrieveTop).
 --compare i,j prints paired signatures (same play + zone, Jaccard ≥ 0.3 fallback).
 replay resimulates from seed + stored DirectiveApplied events (zero LLM).
 aar dumps stored reports or re-runs the AAR graph (--no-llm for code-only).
@@ -655,6 +657,29 @@ async function cmdSeries(argv: string[], env: EnvMap): Promise<number> {
     });
   });
 
+  const matches = result.matches.map((g) => {
+    const homeBook = latestSnapshotBook(g.snapshot, homeTeamId);
+    const awayBook = latestSnapshotBook(g.snapshot, awayTeamId);
+    const home = sideScorecard(g.match.events, "home", homeBook, g.playbookVersions.home);
+    const away = sideScorecard(g.match.events, "away", awayBook, g.playbookVersions.away);
+    const homeXg = g.match.aar?.home.aggregates?.xgFor ?? 0;
+    const awayXg = g.match.aar?.away.aggregates?.xgFor ?? 0;
+    return {
+      gameIndex: g.gameIndex,
+      gameSeed: g.gameSeed,
+      matchId: g.match.matchId,
+      score: g.match.score,
+      result: g.match.result,
+      events: g.match.events.length,
+      eventHash: g.match.eventHash,
+      playbookVersions: g.playbookVersions,
+      xg: { home: homeXg, away: awayXg },
+      home,
+      away,
+    };
+  });
+  const homeTops = matches.map((g) => g.home.retrieveTopId);
+  const awayTops = matches.map((g) => g.away.retrieveTopId);
   const payload = {
     seriesId: result.seriesId,
     seed: result.seed,
@@ -666,29 +691,56 @@ async function cmdSeries(argv: string[], env: EnvMap): Promise<number> {
     db: dbPath,
     snapshotDir: result.snapshotDir,
     snapshots: result.snapshotPaths,
-    matches: result.matches.map((g) => ({
-      gameIndex: g.gameIndex,
-      gameSeed: g.gameSeed,
-      matchId: g.match.matchId,
-      score: g.match.score,
-      result: g.match.result,
-      events: g.match.events.length,
-      eventHash: g.match.eventHash,
-      playbookVersions: g.playbookVersions,
-    })),
+    matches,
+    learning: {
+      retrieveTopChanged: {
+        home: retrieveTopChanged(homeTops),
+        away: retrieveTopChanged(awayTops),
+        steps: Math.max(0, matches.length - 1),
+      },
+      booksMoved: {
+        home:
+          (matches.at(-1)?.playbookVersions.home ?? 1) >
+          (latestSnapshotBook(result.beforeSnapshot, homeTeamId)?.version ?? 1),
+        away:
+          (matches.at(-1)?.playbookVersions.away ?? 1) >
+          (latestSnapshotBook(result.beforeSnapshot, awayTeamId)?.version ?? 1),
+      },
+    },
   };
   if (flag(argv, "json")) {
     console.log(JSON.stringify(payload, null, 2));
   } else {
     console.log(`series ${payload.seriesId}  ${payload.games} games  seed ${payload.seed}`);
-    for (const g of payload.matches) {
+    for (const g of matches) {
       console.log(
-        `  g${g.gameIndex}  ${g.matchId}  seed ${g.gameSeed}  ${g.score.home}-${g.score.away} ${g.result}  events=${g.events}`,
+        `  g${g.gameIndex}  ${g.score.home}-${g.score.away} ${g.result}` +
+          `  chances ${g.home.distinctChances}-${g.away.distinctChances}` +
+          `  offsides ${g.home.offsides}-${g.away.offsides}` +
+          `  xG ${g.xg.home.toFixed(2)}-${g.xg.away.toFixed(2)}` +
+          `  open ${g.home.openingPlayId ?? "?"} vs ${g.away.openingPlayId ?? "?"}` +
+          `  books v${g.playbookVersions.home}/v${g.playbookVersions.away}` +
+          `  retrieve ${g.home.retrieveTopId ?? "?"} / ${g.away.retrieveTopId ?? "?"}`,
       );
     }
+    const L = payload.learning;
+    console.log(
+      `retrieveTop changed  home ${L.retrieveTopChanged.home}/${L.retrieveTopChanged.steps}` +
+        `  away ${L.retrieveTopChanged.away}/${L.retrieveTopChanged.steps}` +
+        `  booksMoved ${L.booksMoved.home}/${L.booksMoved.away}`,
+    );
     console.log(`snapshots ${payload.snapshotDir}`);
   }
   return 0;
+}
+
+function latestSnapshotBook(snapshot: PlaybookSnapshot, teamId: string) {
+  let best: PlaybookSnapshot["books"][number] | undefined;
+  for (const row of snapshot.books) {
+    if (row.teamId !== teamId) continue;
+    if (!best || row.version > best.version) best = row;
+  }
+  return best?.body;
 }
 
 export async function main(argv: string[], env: EnvMap = process.env): Promise<number> {

@@ -4,7 +4,7 @@ Two **LangGraph.js** teams compete in a realistic hockey game. After every win, 
 
 This is a **localhost Node.js browser game**. The server owns physics, rules, both team graphs, and LLM calls. The browser is a Canvas 2D spectator — it never scores a goal, never sees the opponent's playbook, and **never receives `*_API_KEY`**.
 
-**Status:** private repo, **`main` is playable**. Ice F1 actually shoots. Live Head Coach finishes the epoch (HC → assemble). AAR applies even if the LLM times out. Film Room is resimulation; `gh footage --mp4` is a derivative for a human inbox. Handbook: [`docs/FORgasan.md`](docs/FORgasan.md). Way forward is in that file, section 10.
+**Status:** private repo, **`main` is playable**. Ice F1 actually shoots (one shot per possession). Live Head Coach finishes the epoch (HC → assemble). AAR rolls match xG into play stats and applies even if the LLM times out. `gh series --json` scores distinct chances, offsides, and retrieveTop. Film Room is resimulation; `gh footage --mp4` is a derivative. Handbook: [`docs/FORgasan.md`](docs/FORgasan.md).
 
 ## What you are looking at
 
