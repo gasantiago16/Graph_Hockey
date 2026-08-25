@@ -25,7 +25,7 @@ LLMs do **not** run every physics tick. Coaches act at decision epochs (faceoff,
 - LangGraph.js (`@langchain/langgraph`)
 - xAI only: `XAI_API_KEY`, `https://api.x.ai/v1`, `grok-4.5` (coach/AAR) + `grok-4.3` (specialists)
 - Fastify + WebSocket + Canvas 2D on `127.0.0.1:8787` (match server lands in a later PR)
-- SQLite for matches, events, playbooks
+- SQLite for matches, events, playbooks (`sql.js` WASM adapter — see Persistence)
 
 LangSmith tracing is **optional**. If `LANGSMITH_API_KEY` or `LANGCHAIN_API_KEY` is set, the app turns on `LANGSMITH_TRACING` itself. Leave those unset for local/CI.
 
@@ -38,6 +38,8 @@ src/engine/         deterministic world + rules
 src/agents/         team StateGraphs (home vs away)
 src/aar/            post-game AAR graph
 src/playbook/       structured plays + capped mutations
+src/persist/        SQLite matches/events + replay snapshot
+src/sim/            LLM-free replay (resimulation)
 src/orchestrator/   match loop
 src/server/         Fastify + WS
 src/web/            Canvas 2D rink + HUD + Film Room
@@ -61,6 +63,12 @@ npm run gh -- --help
 ```
 
 `XAI_API_KEY` lives in `.env` on the Node process. **Never** put it in `src/web/`, client JS, or WebSocket payloads. The browser never calls xAI.
+
+## Persistence
+
+Match events live in `data/graph-hockey.sqlite` (`matches.config_json` holds the `OpeningSnapshot`). Replay is **LLM-free resimulation**: `advanceWorld` with the match seed plus stored `DirectiveApplied` events. Sparse `applyEvent` kinematics are not used.
+
+This repo uses **sql.js** (SQLite compiled to WASM) in `src/persist/db.ts` instead of `better-sqlite3`. Native `better-sqlite3` needs Visual Studio Build Tools on Windows, and CI has no native addons. The `Db` adapter is the swap point if a native driver is added later. LangGraph checkpoints (later PR) use a **separate** `data/checkpoints.sqlite`.
 
 LangSmith keys in `.env.example` stay commented. CI does not set secrets.
 

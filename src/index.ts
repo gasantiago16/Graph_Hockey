@@ -16,3 +16,5 @@ export * from "./engine/xg.ts";
 export * from "./engine/fatigue.ts";
 export * from "./engine/tactics.ts";
 export * from "./playbook/index.ts";
+export * from "./persist/index.ts";
+export * from "./sim/replay.ts";

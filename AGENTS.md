@@ -12,7 +12,7 @@ Single TypeScript package. The learning goal is to make LangGraph concepts visib
 | `src/playbook/` | Structured plays (data, not prompts). AAR emits capped patches. | Long-term store vs short-term checkpointer threads. |
 | `src/orchestrator/` | Match host: ticks world, hides private state, collects directives. | Not an LLM. Invokes each team graph with a per-epoch `thread_id`. |
 | `src/llm/` | xAI-only `ChatXAI` factories, Zod schemas, circuit breaker. | Structured output; `createChatModel` inject so tests use `FakeListChatModel`. |
-| `src/persist/` | SQLite matches/events + checkpointer. | `MemorySaver` (tests) vs `SqliteSaver` (CLI). |
+| `src/persist/` | SQLite matches/events (`sql.js` WASM adapter; native `better-sqlite3` needs VS Build Tools). Checkpointer is a separate file. | `MemorySaver` (tests) vs `SqliteSaver` (CLI). |
 | `src/film/` | Auto-clips, pairing, series improvement ledger. | Downstream of the event log — resimulation, not video. |
 | `src/web/` | Canvas 2D spectator + Film Room. **Never** calls xAI, **never** gets `XAI_API_KEY`. | Renderer of server snapshots. |
 | `src/cli/` | Headless `gh` for CI (`simulate --no-llm`, replay, aar, playbook, series, footage). | Invokes graphs without a browser. |

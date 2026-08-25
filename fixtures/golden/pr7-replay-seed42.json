@@ -1,0 +1,32 @@
+{
+  "seed": 42,
+  "matchId": "golden-pr7",
+  "hash": "5090fd9015b3d51b250e2c1e3a056e9989c1c53181bd348ede55deebf508bd4b",
+  "count": 24,
+  "types": [
+    "FaceoffWin",
+    "ZoneEntry",
+    "DirectiveApplied",
+    "Contact",
+    "Contact",
+    "Contact",
+    "Contact",
+    "Contact",
+    "Contact",
+    "Contact",
+    "Contact",
+    "Contact",
+    "Save",
+    "Rebound",
+    "Contact",
+    "Contact",
+    "Contact",
+    "Contact",
+    "Contact",
+    "Save",
+    "Rebound",
+    "Contact",
+    "Save",
+    "Rebound"
+  ]
+}
