@@ -8,7 +8,11 @@ import type { MatchEvent } from "../types/events.ts";
 import type { Side } from "../types/hockey.ts";
 import type { TeamLlmProfile } from "../llm/profiles.ts";
 import type { Playbook, PlaybookRevision } from "../types/play.ts";
+import { AAR_TIMEOUT_MS } from "../llm/client.ts";
 import { AAR_RECURSION_LIMIT, aarThreadId, compileAarGraph, type CompiledAarGraph } from "./aarGraph.ts";
+
+/** Whole AAR graph for one side (several LLM nodes). */
+export const AAR_SIDE_TIMEOUT_MS = AAR_TIMEOUT_MS * 2;
 import { applyAarRevision, persistAarReport, shouldApplyRevision, type AarMode } from "./apply.ts";
 import { computeActual } from "./nodes/actual.ts";
 import { codeIntentSummary } from "./nodes/intent.ts";
@@ -107,23 +111,46 @@ export async function runAarForSide(
   const events = opts.events ?? listEvents(opts.db, opts.matchId);
   const epochs = listEpochInvocations(opts.db, opts.matchId).filter((e) => e.side === opts.side);
   const tap = opts.budget ? new UsageTap(opts.side, opts.budget) : undefined;
-  const out = (await opts.graph.invoke(
-    {
+  const fallback = () =>
+    codeOnlyAarReport({
       matchId: opts.matchId,
       side: opts.side,
       result,
-      playbook: opts.playbook,
       events,
       epochs,
-    },
-    {
-      configurable: { thread_id: aarThreadId(opts.matchId, opts.side) },
-      recursionLimit: AAR_RECURSION_LIMIT,
-      signal: opts.signal,
-      callbacks: tap ? [tap] : undefined,
-    },
-  )) as Record<string, unknown>;
-  return reportFromOutput({ matchId: opts.matchId, side: opts.side, result }, out, { noLlm: opts.noLlm });
+    });
+  try {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const out = (await Promise.race([
+      opts.graph.invoke(
+        {
+          matchId: opts.matchId,
+          side: opts.side,
+          result,
+          playbook: opts.playbook,
+          events,
+          epochs,
+        },
+        {
+          configurable: { thread_id: aarThreadId(opts.matchId, opts.side) },
+          recursionLimit: AAR_RECURSION_LIMIT,
+          signal: opts.signal,
+          callbacks: tap ? [tap] : undefined,
+        },
+      ),
+      new Promise<never>((_, reject) => {
+        timer = setTimeout(
+          () => reject(new Error(`aar ${opts.side} timed out after ${AAR_SIDE_TIMEOUT_MS}ms`)),
+          AAR_SIDE_TIMEOUT_MS,
+        );
+      }),
+    ]).finally(() => {
+      if (timer !== undefined) clearTimeout(timer);
+    })) as Record<string, unknown>;
+    return reportFromOutput({ matchId: opts.matchId, side: opts.side, result }, out, { noLlm: opts.noLlm });
+  } catch {
+    return fallback();
+  }
 }
 
 function finalizeSide(

@@ -22,7 +22,8 @@ export type CreateChatModel = (kind: ChatModelKind, profile?: TeamLlmProfile) =>
 
 export const COACH_TIMEOUT_MS = 5_000;
 export const FAST_TIMEOUT_MS = 2_500;
-export const AAR_TIMEOUT_MS = 60_000;
+/** Per ChatXAI/OpenAI/Gemini HTTP call. AAR nodes also race this in invokeAarStructured. */
+export const AAR_TIMEOUT_MS = 12_000;
 export const COACH_MAX_TOKENS = 1_600;
 export const FAST_MAX_TOKENS = 500;
 export const AAR_MAX_TOKENS = 3_000;
@@ -118,7 +119,7 @@ export function chatModelSpec(
       maxTokens: AAR_MAX_TOKENS,
       timeoutMs: AAR_TIMEOUT_MS,
       temperature: LLM_TEMPERATURE,
-      maxRetries: LLM_MAX_RETRIES,
+      maxRetries: 0,
     };
   }
   return {

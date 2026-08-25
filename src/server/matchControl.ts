@@ -8,7 +8,7 @@ import type { MatchBudget } from "../llm/budgets.ts";
 import { hasInjectedChatModel } from "../llm/client.ts";
 import { configHasProviderKey, profileFromConfig } from "../llm/profiles.ts";
 import type { ProviderId } from "../types/provider.ts";
-import { MatchAborted, runMatch } from "../orchestrator/match.ts";
+import { MatchAborted, resultLabel, runMatch } from "../orchestrator/match.ts";
 import type { Db } from "../persist/db.ts";
 import { defaultSnapshotDir } from "../persist/playbookSnapshots.ts";
 import { latestPlaybook } from "../persist/playbooks.ts";
@@ -219,6 +219,7 @@ export function createMatchControl(opts: CreateMatchControlOpts): MatchControl {
     job = (async () => {
       let outcome: { score: { home: number; away: number }; result: "home" | "away" | "tie" | "aborted" } | null =
         null;
+      let hornSent = false;
       try {
         const homeGraph = compileTeamGraph({
           side: "home",
@@ -261,6 +262,11 @@ export function createMatchControl(opts: CreateMatchControlOpts): MatchControl {
             liveWorld.current = next;
             lastScore = { home: next.score.home, away: next.score.away };
             emit({ type: "tick", world: next, events, budget });
+            if (!hornSent && next.phase === "game_over") {
+              hornSent = true;
+              outcome = { score: { ...next.score }, result: resultLabel(next.score) };
+              emit({ type: "over", matchId, score: outcome.score, result: outcome.result });
+            }
           },
         });
         outcome = { score: { ...result.score }, result: result.result };
@@ -268,13 +274,13 @@ export function createMatchControl(opts: CreateMatchControlOpts): MatchControl {
         if (!(err instanceof MatchAborted)) {
           console.error(err);
         }
-        outcome = { score: { ...lastScore }, result: "aborted" };
+        if (!hornSent) outcome = { score: { ...lastScore }, result: "aborted" };
       } finally {
         if (live?.matchId === matchId) live = null;
         if (ac === controller) ac = null;
         job = null;
       }
-      if (outcome) emit({ type: "over", matchId, score: outcome.score, result: outcome.result });
+      if (outcome && !hornSent) emit({ type: "over", matchId, score: outcome.score, result: outcome.result });
     })();
 
     return {

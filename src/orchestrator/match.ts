@@ -102,7 +102,7 @@ export function matchIterCap(periodSeconds: number, otSeconds: number): number {
   return live + 8_000;
 }
 
-function resultLabel(score: { home: number; away: number }): MatchResultLabel {
+export function resultLabel(score: { home: number; away: number }): MatchResultLabel {
   if (score.home > score.away) return "home";
   if (score.away > score.home) return "away";
   return "tie";

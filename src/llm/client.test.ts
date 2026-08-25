@@ -54,7 +54,7 @@ describe("chatModelSpec", () => {
     });
     expect(COACH_TIMEOUT_MS).toBe(5_000);
     expect(FAST_TIMEOUT_MS).toBe(2_500);
-    expect(AAR_TIMEOUT_MS).toBe(60_000);
+    expect(AAR_TIMEOUT_MS).toBe(12_000);
     expect(COACH_MAX_TOKENS).toBe(1_600);
     expect(FAST_MAX_TOKENS).toBe(500);
     expect(AAR_MAX_TOKENS).toBe(3_000);

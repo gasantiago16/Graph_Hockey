@@ -28,6 +28,7 @@ export {
   MatchAborted,
   matchIterCap,
   replayHash,
+  resultLabel,
   runMatch,
   seedPlaybookFor,
   type MatchOptions,
