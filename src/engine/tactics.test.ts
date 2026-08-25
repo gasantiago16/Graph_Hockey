@@ -5,7 +5,15 @@ import { loadPlaybook } from "../playbook/store.ts";
 import { BLUE_LINE_X, GOAL_LINE_X } from "./rink.ts";
 import { createRng } from "./rng.ts";
 import { advanceWorld } from "./step.ts";
-import { maybeReleasePuck, passReceiver, playForSide, softmax, steeringTarget, UTILITY_TEMPERATURE } from "./tactics.ts";
+import {
+  maybeReleasePuck,
+  nearestSkaterToPuck,
+  passReceiver,
+  playForSide,
+  softmax,
+  steeringTarget,
+  UTILITY_TEMPERATURE,
+} from "./tactics.ts";
 import { createWorld, defaultDirective, DEFAULT_SLOTS, findBySlot } from "./world.ts";
 
 describe("1-2-2 tactics", () => {
@@ -78,17 +86,52 @@ describe("1-2-2 tactics", () => {
 });
 
 describe("default-structure slots", () => {
-  it("keeps PR3 attacking-frame slots for non-goalie skaters", () => {
+  it("keeps PR3 attacking-frame slots for off-puck skaters", () => {
     const world = createWorld({
       playId: { home: DEFAULT_PLAY_ID, away: DEFAULT_PLAY_ID },
-      puck: { pos: { x: 0, y: 0 }, possessor: null },
+      puck: { pos: { x: 8, y: 0 }, possessor: "h-C" },
     });
-    for (const pos of ["C", "LW", "RW", "LD", "RD"] as const) {
+    for (const pos of ["LW", "RW", "LD", "RD"] as const) {
       const body = findBySlot(world, "home", pos);
       const target = steeringTarget(world, body!);
       expect(target.x).toBeCloseTo(DEFAULT_SLOTS[pos].x, 5);
       expect(target.y).toBeCloseTo(DEFAULT_SLOTS[pos].y, 5);
     }
+  });
+});
+
+describe("puck awareness", () => {
+  it("nearest skater hunts a loose puck; others stay in structure", () => {
+    const world = createWorld({
+      puck: { pos: { x: 40, y: 0 }, possessor: null },
+      bodies: {
+        "h-C": { pos: { x: 0, y: 0 } },
+        "h-LW": { pos: { x: 30, y: 0 } },
+        "h-RW": { pos: { x: 0, y: 20 } },
+      },
+    });
+    const hunter = nearestSkaterToPuck(world, "home");
+    expect(hunter?.id).toBe("h-LW");
+    const lw = findBySlot(world, "home", "LW")!;
+    const c = findBySlot(world, "home", "C")!;
+    expect(steeringTarget(world, lw)).toMatchObject({ x: 40, y: 0 });
+    const cTarget = steeringTarget(world, c);
+    expect(Math.hypot(cTarget.x - 40, cTarget.y)).toBeGreaterThan(10);
+  });
+
+  it("nearest defender pressures the opponent puck-carrier", () => {
+    const world = createWorld({
+      puck: { pos: { x: 20, y: 0 }, possessor: "a-C" },
+      bodies: {
+        "a-C": { pos: { x: 20, y: 0 } },
+        "h-C": { pos: { x: 0, y: 0 } },
+        "h-LW": { pos: { x: 12, y: 4 } },
+      },
+    });
+    const hunter = nearestSkaterToPuck(world, "home");
+    expect(hunter?.id).toBe("h-LW");
+    const lw = findBySlot(world, "home", "LW")!;
+    expect(steeringTarget(world, lw)).toMatchObject({ x: 20, y: 0 });
   });
 });
 

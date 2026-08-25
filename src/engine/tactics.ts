@@ -244,6 +244,43 @@ function fallbackTarget(body: Body, dir: 1 | -1): Vec2 {
   return { x: slot.x * dir, y: slot.y };
 }
 
+/** Deterministic nearest on-ice skater to the puck (goalies excluded). */
+export function nearestSkaterToPuck(world: WorldState, side: Side): Body | undefined {
+  let best: Body | undefined;
+  let bestD = Infinity;
+  for (const id of world.onIce[side]) {
+    const mate = world.bodies[id];
+    if (!mate || isGoalie(mate)) continue;
+    const d = hypot(sub(world.puck.pos, mate.pos));
+    if (d < bestD - 1e-9) {
+      bestD = d;
+      best = mate;
+    } else if (best && Math.abs(d - bestD) <= 1e-9 && mate.id < best.id) {
+      best = mate;
+    }
+  }
+  return best;
+}
+
+/**
+ * Loose puck: nearest skater retrieves. Opponent possession: nearest skater
+ * pressure the carrier. Everyone else keeps formation.
+ */
+function puckHuntTarget(world: WorldState, body: Body): Vec2 | undefined {
+  if (isGoalie(body)) return undefined;
+  const nearest = nearestSkaterToPuck(world, body.side);
+  if (nearest?.id !== body.id) return undefined;
+  const possessorId = world.puck.possessor;
+  if (!possessorId) {
+    return { x: world.puck.pos.x, y: world.puck.pos.y };
+  }
+  const holder = world.bodies[possessorId];
+  if (holder && holder.side !== body.side) {
+    return { x: holder.pos.x, y: holder.pos.y };
+  }
+  return undefined;
+}
+
 export function steeringTarget(world: WorldState, body: Body): Vec2 {
   const play = playForSide(world, body.side);
   const dir = world.attackingDir[body.side];
@@ -255,6 +292,11 @@ export function steeringTarget(world: WorldState, body: Body): Vec2 {
 
   if (isGoalie(body) && (!slot || slot.role === "crease")) {
     return creaseTarget(world, body);
+  }
+
+  const hunt = puckHuntTarget(world, body);
+  if (hunt) {
+    return projectInsideRink(hunt, body.radius).pos;
   }
 
   if (!slot) {
