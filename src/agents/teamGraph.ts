@@ -54,6 +54,7 @@ export type CompileTeamGraphOpts = {
   noLlm?: boolean;
   /** Per-side company. Ignored when noLlm. Default xAI when omitted. */
   profile?: TeamLlmProfile;
+  /** Specialists run only when opted in. */
 };
 
 export type TeamGraphInvokeInput = {
@@ -73,8 +74,8 @@ export type TeamGraphInvokeConfig = {
 
 /**
  * Compile: START → ingest → situation → retrieve_plays → (macro) head_coach
- * Command.goto Send[] or assemble; (micro) captain → assemble_directive →
- * validate_directive → END. No hitl_override on the default compile.
+ * → assemble_directive (Send[] specialists only when opts.specialists);
+ * (micro) captain → assemble_directive → validate_directive → END.
  */
 export type CompiledTeamGraph = {
   nodes: Record<string, unknown>;
@@ -105,7 +106,9 @@ export function compileTeamGraph(opts: CompileTeamGraphOpts): CompiledTeamGraph 
     // Node `situation`; state channel is classifiedSituation (JS forbids same names).
     .addNode("situation", situation)
     .addNode("retrieve_plays", makeRetrievePlays(opts.playbook))
-    .addNode("head_coach", makeHeadCoach({ noLlm, profile }) as never, { ends: [...HEAD_COACH_ENDS] })
+    .addNode("head_coach", makeHeadCoach({ noLlm, profile, specialists: opts.specialists === true }) as never, {
+      ends: [...HEAD_COACH_ENDS],
+    })
     .addNode("oc", wrapSpecialist("oc", compileOcSubgraph(specOpts)) as never, {
       input: SpecialistInputSchema,
     })

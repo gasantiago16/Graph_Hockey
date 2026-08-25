@@ -85,6 +85,14 @@ describe("head_coach Command", () => {
     ]);
   });
 
+  it("fallback skips default-structure and uses retrieved[0]", async () => {
+    setCreateChatModel(() => new FakeListChatModel({ responses: ["not-json"] }));
+    const cmd = await makeHeadCoach()(state());
+    const update = cmd.update as { coachIntent?: { playId: string } } | undefined;
+    expect(update?.coachIntent?.playId).not.toBe("default-structure");
+    expect(state().retrievedPlays.map((p) => p.id)).toContain(update?.coachIntent?.playId);
+  });
+
   it("clamps playId to retrievedPlays", () => {
     const plays = [{ id: "nz-122-trap" }, { id: "5v5-122-forecheck" }];
     expect(clampCoachPlayId("5v5-122-forecheck", plays)).toBe("5v5-122-forecheck");
@@ -92,7 +100,7 @@ describe("head_coach Command", () => {
     expect(clampCoachPlayId("ghost", [])).toBe("ghost");
   });
 
-  it("returns Command.goto Send[] for 5v5 NZ (no ST)", async () => {
+  it("live default goes assemble_directive with coachIntent (no specialist Send)", async () => {
     const intent = {
       supposedToHappen: "win the draw",
       playId: "5v5-122-forecheck",
@@ -101,6 +109,20 @@ describe("head_coach Command", () => {
     setCreateChatModel(() => new FakeListChatModel({ responses: [JSON.stringify(intent)] }));
     const cmd = await makeHeadCoach()(state());
     expect(cmd).toBeInstanceOf(Command);
+    expect(gotoNodes(cmd)).toEqual(["assemble_directive"]);
+    const update = cmd.update as { coachIntent?: { playId: string } } | undefined;
+    expect(update?.coachIntent?.playId).toBe("5v5-122-forecheck");
+  });
+
+  it("specialists: true still Send[] for 5v5 NZ", async () => {
+    const intent = {
+      supposedToHappen: "win the draw",
+      playId: "5v5-122-forecheck",
+      pressure: "neutral",
+    };
+    setCreateChatModel(() => new FakeListChatModel({ responses: [JSON.stringify(intent)] }));
+    const cmd = await makeHeadCoach({ specialists: true })(state());
+    expect(cmd).toBeInstanceOf(Command);
     const gotos = Array.isArray(cmd.goto) ? cmd.goto : [cmd.goto];
     expect(gotos.every((g) => g instanceof Send)).toBe(true);
     expect(gotoNodes(cmd).sort()).toEqual(["captain", "dc", "oc"]);
@@ -108,11 +130,6 @@ describe("head_coach Command", () => {
     expect(first.args).toMatchObject({
       coachIntent: { playId: "5v5-122-forecheck" },
     });
-    expect(first.args).toHaveProperty("observation");
-    expect(first.args).toHaveProperty("retrievedPlays");
-    expect(first.args).toHaveProperty("lastDirective");
-    const update = cmd.update as { coachIntent?: { playId: string } } | undefined;
-    expect(update?.coachIntent?.playId).toBe("5v5-122-forecheck");
   });
 
   it("empty specialists goto assemble_directive", async () => {

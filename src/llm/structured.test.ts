@@ -132,6 +132,21 @@ describe("invokeStructured", () => {
     expect(out?.playId).toBe("5v5-122-forecheck");
   });
 
+  it("coach parse-fail does not spend a second invoke", async () => {
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    let jsonCalls = 0;
+    const llm = fakeLlm({
+      structured: async () => ({ supposedToHappen: "x" }),
+      invoke: async () => {
+        jsonCalls += 1;
+        return { content: JSON.stringify(intent) };
+      },
+    });
+    const out = await invokeStructured(llm, CoachIntentSchema, messages, { label: "coach", noJsonRetry: true });
+    expect(out).toBeUndefined();
+    expect(jsonCalls).toBe(0);
+  });
+
   it("does not spend a second invoke after a timeout", async () => {
     vi.spyOn(console, "warn").mockImplementation(() => {});
     let jsonCalls = 0;

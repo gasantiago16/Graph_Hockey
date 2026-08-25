@@ -9,7 +9,7 @@ export const MAX_PROMPT_TOKENS_PER_GAME = 900_000;
 export const MAX_OUTPUT_TOKENS_PER_GAME = 250_000;
 export const MAX_USD_PER_GAME = 4.0;
 export const EPOCH_TIMEOUT_MS = 8_000;
-/** Live LLM graphs: coach 6s + specialists in parallel. --no-llm stays on EPOCH_TIMEOUT_MS. */
+/** Live LLM graphs: one Head Coach call. --no-llm stays on EPOCH_TIMEOUT_MS. */
 export const LIVE_EPOCH_TIMEOUT_MS = 12_000;
 
 export type TokenUsage = {

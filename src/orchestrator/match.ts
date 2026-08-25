@@ -15,7 +15,7 @@ import type { Db } from "../persist/db.ts";
 import { insertEvents, persistEpoch } from "../persist/events.ts";
 import { finishMatch, insertMatch, type MatchResultLabel } from "../persist/matches.ts";
 import { makeOpeningSnapshot, type OpeningSnapshot } from "../persist/snapshot.ts";
-import { loadPlaybook } from "../playbook/store.ts";
+import { defaultPlayIdForBook, loadPlaybook } from "../playbook/store.ts";
 import { collectReplayEvents, eventStreamHash, pushDirectiveApplied, worldFromSnapshot } from "../sim/replay.ts";
 import type { AarReport } from "../types/aar.ts";
 import type { TeamDirective } from "../types/directive.ts";
@@ -112,9 +112,9 @@ function attachBooks(world: WorldState, home: Playbook, away: Playbook): void {
   world.playbooks = { home, away };
 }
 
-function epochModel(opts: MatchOptions, kind: "macro" | "micro"): string {
-  if (kind === "macro") return opts.models?.home ?? DEFAULT_COACH_MODEL;
-  return DEFAULT_FAST_MODEL;
+function epochModel(opts: MatchOptions, kind: "macro" | "micro", side: Side): string {
+  if (kind === "micro") return DEFAULT_FAST_MODEL;
+  return (side === "home" ? opts.models?.home : opts.models?.away) ?? DEFAULT_COACH_MODEL;
 }
 
 /**
@@ -185,6 +185,7 @@ export async function runMatch(opts: MatchOptions): Promise<MatchResult> {
           budget,
           timeoutMs,
           signal: opts.signal,
+          seedPlayId: defaultPlayIdForBook(side === "home" ? opts.homePlaybook : opts.awayPlaybook),
         }).then((r) => ({ side, r, reason: decision[side]!.reason, kind: decision[side]!.kind }));
       });
 
@@ -201,7 +202,7 @@ export async function runMatch(opts: MatchOptions): Promise<MatchResult> {
           side,
           reason,
           epochKind: kind,
-          model: noLlm ? "none" : epochModel(opts, kind),
+          model: noLlm ? "none" : epochModel(opts, kind, side),
           promptTokens: r.usage.promptTokens,
           completionTokens: r.usage.completionTokens,
           reasoningTokens: r.usage.reasoningTokens,

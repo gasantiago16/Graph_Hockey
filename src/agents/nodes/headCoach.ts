@@ -4,7 +4,7 @@ import { coachLlm } from "../../llm/client.ts";
 import type { TeamLlmProfile } from "../../llm/profiles.ts";
 import { CoachIntentSchema, type CoachIntent } from "../../llm/schemas.ts";
 import { invokeStructured } from "../../llm/structured.ts";
-import type { PlayDigest } from "../../types/play.ts";
+import { DEFAULT_PLAY_ID, type PlayDigest } from "../../types/play.ts";
 import type { TeamGraphStateType } from "../state.ts";
 import { SPECIALIST_IDS, type SpecialistId } from "./situation.ts";
 
@@ -32,6 +32,7 @@ export type HeadCoachOpts = {
   /** Skip grok-4.5; assemble_directive still uses the seed default play. */
   noLlm?: boolean;
   profile?: TeamLlmProfile;
+  /** Specialists run only when opted in. */
 };
 
 export function clampCoachPlayId(playId: string, retrievedPlays: readonly Pick<PlayDigest, "id">[]): string {
@@ -39,12 +40,19 @@ export function clampCoachPlayId(playId: string, retrievedPlays: readonly Pick<P
   return retrievedPlays[0]?.id ?? playId;
 }
 
+function fallbackPlayId(state: TeamGraphStateType): string {
+  const retrieved = state.retrievedPlays ?? [];
+  const last = state.lastDirective.playId;
+  if (last && last !== DEFAULT_PLAY_ID && retrieved.some((p) => p.id === last)) return last;
+  return retrieved[0]?.id ?? last;
+}
+
 function fallbackIntent(state: TeamGraphStateType): CoachIntent {
   const zone = state.observation.zone;
   const shotPolicy = zone === "OZ" ? "shoot" : zone === "DZ" ? "pass" : "pass";
   return {
     supposedToHappen: "occupy ice, pass to a teammate in a scoring spot, attack the net",
-    playId: clampCoachPlayId(state.lastDirective.playId, state.retrievedPlays),
+    playId: clampCoachPlayId(fallbackPlayId(state), state.retrievedPlays),
     pressure: state.lastDirective.pressure,
     shotPolicy,
   };
@@ -80,13 +88,17 @@ function coachUserPrompt(state: TeamGraphStateType): string {
   });
 }
 
-async function invokeCoachIntent(state: TeamGraphStateType, profile?: TeamLlmProfile): Promise<CoachIntent> {
+async function invokeCoachIntent(
+  state: TeamGraphStateType,
+  profile?: TeamLlmProfile,
+  signal?: AbortSignal,
+): Promise<CoachIntent> {
   const fallback = fallbackIntent(state);
   const parsed = await invokeStructured(
     coachLlm(process.env, profile),
     CoachIntentSchema,
     [new SystemMessage(COACH_SYSTEM), new HumanMessage(coachUserPrompt(state))],
-    { label: "coach" },
+    { label: "coach", signal, noJsonRetry: true },
   );
   if (!parsed) return fallback;
   return { ...parsed, playId: clampCoachPlayId(parsed.playId, state.retrievedPlays) };
@@ -105,17 +117,14 @@ function specialistPayload(state: TeamGraphStateType, intent: CoachIntent) {
   };
 }
 
-/**
- * Macro supervisor. Command.goto is Send[] to specialists, or assemble_directive if empty.
- * --no-llm skips grok-4.5 and specialists (goto assemble).
- */
+/** Macro supervisor. --no-llm skips grok-4.5. */
 export function makeHeadCoach(opts: HeadCoachOpts = {}) {
-  return async (state: TeamGraphStateType) => {
+  return async (state: TeamGraphStateType, config?: { signal?: AbortSignal }) => {
     if (opts.noLlm) {
       return new Command({ goto: "assemble_directive" });
     }
-    const coachIntent = await invokeCoachIntent(state, opts.profile);
-    const specs = routedSpecialists(state);
+    const coachIntent = await invokeCoachIntent(state, opts.profile, config?.signal);
+    const specs = opts.specialists === true ? routedSpecialists(state) : [];
     if (specs.length === 0) {
       return new Command({ update: { coachIntent }, goto: "assemble_directive" });
     }

@@ -7,6 +7,7 @@ import { markReasoningNoneUnsupported } from "./client.ts";
 export type InvokeStructuredOpts = {
   label?: string;
   signal?: AbortSignal;
+  /** Skip the JSON invoke after structured fails (timeout or parse). */
 };
 
 /** Visible text only — skip reasoning/tool blocks so JSON parse can see the object. */
@@ -104,9 +105,8 @@ function normalizeLlmObject(raw: unknown): unknown {
 const LooseJsonObject = z.object({}).passthrough();
 
 /**
- * Native `.withStructuredOutput` first (FakeListChatModel JSON and vendor json_schema).
- * On a fast failure, parse `invoke` content. Skip the JSON pass after a timeout so
- * one hung call cannot eat the 8s epoch twice.
+ * Native `.withStructuredOutput` first. JSON invoke is the fallback unless
+ * the structured call timed out or `noJsonRetry` is set.
  */
 export async function invokeStructured<T>(
   llm: BaseChatModel,
@@ -127,10 +127,11 @@ export async function invokeStructured<T>(
     const parsed = schema.safeParse(normalizeLlmObject(raw));
     if (parsed.success) return parsed.data;
     console.warn(`structured:${label}:structured parse failed`);
+    if (opts.noJsonRetry) return undefined;
   } catch (err) {
     maybeMarkNone(err);
     logFail(label, "structured", err);
-    if (isTimeoutErr(err)) return undefined;
+    if (isTimeoutErr(err) || opts.noJsonRetry) return undefined;
   }
 
   try {

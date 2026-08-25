@@ -201,20 +201,19 @@ describe("epochRouter", () => {
     expect(epochRouter({ epochKind: "micro" })).toBe("captain");
   });
 
-  it("epochKind macro visits head_coach; micro never does (captain only)", async () => {
+  it("epochKind macro visits head_coach then assemble (no specialist Send)", async () => {
     const kinds = installFakes();
     const graph = compile();
     const macro = await visitedNodes(graph, input({ epochKind: "macro" }, { epochKind: "macro" }), "match:m:team:home:epoch:macro");
     expect(macro).toContain("head_coach");
     expect(macro).toContain("retrieve_plays");
     expect(macro).toContain("situation");
-    expect(macro).toContain("oc");
-    expect(macro).toContain("dc");
-    expect(macro).toContain("captain");
-    expect(macro).toContain("scout");
-    expect(macro).not.toContain("st");
+    expect(macro).toContain("assemble_directive");
+    expect(macro).not.toContain("oc");
+    expect(macro).not.toContain("dc");
+    expect(macro).not.toContain("scout");
     expect(kinds).toContain("coach");
-    expect(kinds).toContain("fast");
+    expect(kinds).not.toContain("fast");
 
     kinds.length = 0;
     const micro = await visitedNodes(
@@ -231,9 +230,9 @@ describe("epochRouter", () => {
     expect(kinds).toContain("fast");
   });
 
-  it("ST is idle at 5v5 and runs on PP", async () => {
+  it("ST is idle at 5v5 and runs on PP when specialists are on", async () => {
     installFakes();
-    const graph = compile();
+    const graph = compile({ specialists: true });
     const even = await visitedNodes(graph, input({ strength: "5v5" }), "match:m:team:home:epoch:5v5");
     expect(even).not.toContain("st");
     expect(even).toContain("oc");
@@ -265,9 +264,7 @@ describe("head_coach structured intent", () => {
     expect(out.coachIntent?.playId).toBe("5v5-122-forecheck");
     expect(out.directive?.playId).toBe("5v5-122-forecheck");
     expect(out.directive?.pressure).toBe("aggressive");
-    expect(out.directive?.playParams?.forecheck).toBe("1-2-2");
-    const specs = (out.specialistMemos ?? []).map((m) => m.specialist).sort();
-    expect(specs).toEqual(["captain", "dc", "oc", "scout"]);
+    expect(out.specialistMemos ?? []).toEqual([]);
   });
 
   it("clamps a playId that is not in retrievedPlays", async () => {
@@ -285,13 +282,13 @@ describe("head_coach structured intent", () => {
     expect(["5v5-122-forecheck", "nz-122-trap", "protect-lead-1-1-3"]).toContain(out.directive?.playId);
   });
 
-  it("HC playId wins when OC disagrees", async () => {
+  it("HC playId wins when OC disagrees (specialists on)", async () => {
     installFakes(COACH_INTENT, {
       memo: "run a cycle",
       playIdSuggestion: "oz-cycle-low",
       params: { forecheck: "2-1-2", shotPolicy: "cycle" },
     });
-    const graph = compile();
+    const graph = compile({ specialists: true });
     const out = (await graph.invoke(input({ zone: "NZ" }), {
       configurable: { thread_id: "match:m:team:home:epoch:hc-wins" },
     })) as { directive?: { playId: string; playParams?: { forecheck?: string } } };

@@ -3,7 +3,7 @@ import { defaultDirective } from "../engine/world.ts";
 import { createBudget } from "../llm/budgets.ts";
 import { MAX_CALLS_PER_TEAM, recordLlmUsage } from "../llm/budgets.ts";
 import type { TeamObservation } from "../types/observation.ts";
-import { epochThreadId, invokeTeam, type InvokableTeamGraph } from "./invokeTeam.ts";
+import { epochThreadId, invokeTeam, timeoutDirective, type InvokableTeamGraph } from "./invokeTeam.ts";
 
 const last = defaultDirective();
 
@@ -81,6 +81,33 @@ describe("invokeTeam", () => {
     expect(r.ok).toBe(false);
     if (!r.ok) expect(r.reason).toBe("timeout");
     expect(r.directive).toEqual(last);
+  });
+
+  it("timeout on default-structure uses seedPlayId", async () => {
+    const graph: InvokableTeamGraph = {
+      invoke: async (_input, config) =>
+        new Promise((_resolve, reject) => {
+          config?.signal?.addEventListener("abort", () => {
+            const err = new Error("aborted");
+            err.name = "AbortError";
+            reject(err);
+          });
+        }),
+    };
+    const r = await invokeTeam({
+      graph,
+      side: "home",
+      obs,
+      last,
+      epochIndex: 0,
+      matchId: "m",
+      budget: createBudget(),
+      timeoutMs: 20,
+      seedPlayId: "5v5-122-forecheck",
+    });
+    expect(r.ok).toBe(false);
+    expect(r.directive.playId).toBe("5v5-122-forecheck");
+    expect(timeoutDirective(last, "5v5-212-forecheck").playId).toBe("5v5-212-forecheck");
   });
 
   it("returns circuit for a tripped team without invoking", async () => {

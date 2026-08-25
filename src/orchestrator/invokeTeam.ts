@@ -1,4 +1,6 @@
 import { TeamDirectiveSchema, type TeamDirective } from "../types/directive.ts";
+import { DEFAULT_PLAY_ID } from "../types/play.ts";
+import { defaultDirective } from "../engine/world.ts";
 import type { TeamObservation } from "../types/observation.ts";
 import type { Side } from "../types/hockey.ts";
 import {
@@ -74,6 +76,12 @@ function parseDirective(out: unknown, fallback: TeamDirective): { directive: Tea
   return { directive: parsed.data, ok: true };
 }
 
+/** Opening last is default-structure. Timeout must not freeze that for the whole match. */
+export function timeoutDirective(last: TeamDirective, seedPlayId?: string): TeamDirective {
+  if (seedPlayId && last.playId === DEFAULT_PLAY_ID) return defaultDirective(seedPlayId);
+  return last;
+}
+
 /**
  * Never throws. Independent AbortController per call. timeoutMs 0 = no abort.
  */
@@ -87,6 +95,8 @@ export async function invokeTeam(args: {
   budget: MatchBudget;
   timeoutMs: number;
   signal?: AbortSignal;
+  /** Seed 5v5 play if the graph aborts before assemble (not default-structure). */
+  seedPlayId?: string;
 }): Promise<TeamInvokeResult> {
   const threadId = epochThreadId(args.matchId, args.side, args.epochIndex);
 
@@ -131,11 +141,12 @@ export async function invokeTeam(args: {
     );
     const usage = copyUsage(tap.usage);
     const coachIntent = parseCoachIntentText(out);
-    const parsed = parseDirective(out, args.last);
+    const stuck = timeoutDirective(args.last, args.seedPlayId);
+    const parsed = parseDirective(out, stuck);
     if (!parsed.ok) {
       return {
         ok: false,
-        directive: args.last,
+        directive: stuck,
         reason: "parse",
         billed: usage.calls > 0,
         usage,
@@ -147,7 +158,14 @@ export async function invokeTeam(args: {
   } catch (err) {
     const usage = copyUsage(tap.usage);
     const reason = ac.signal.aborted || isAbortError(err) ? "timeout" : "error";
-    return { ok: false, directive: args.last, reason, billed: usage.calls > 0, usage, threadId };
+    return {
+      ok: false,
+      directive: timeoutDirective(args.last, args.seedPlayId),
+      reason,
+      billed: usage.calls > 0,
+      usage,
+      threadId,
+    };
   } finally {
     if (args.signal) args.signal.removeEventListener("abort", onExternalAbort);
     if (timer) clearTimeout(timer);
