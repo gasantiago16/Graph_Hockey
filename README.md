@@ -109,6 +109,7 @@ $env:GRAPH_HOCKEY_PERIOD_SECONDS=5; npm test
 - `GET /api/health` `{ ok, llmConfigured, langsmith }`
 - `WS /ws` streams 10 Hz `SpectatorFrame` snapshots plus `cost` and inspect-side `inspect`
 - Inspect toggle **none / home / away** — the play **name** is sent only for the inspected side (never the opponent `playId`)
+- After `match_over`, **AAR / playbook** opens `/aar?match=` (supposed / actual / why / ops). **Watch** on `eventIds` jumps to `/film?match=&event=`
 
 The start form defaults to **5 second** periods so a demo is watchable. Engine/config default remains **1200 s** (3×20:00) unless you pass `periodSeconds` or set `GRAPH_HOCKEY_PERIOD_SECONDS`.
 
@@ -119,6 +120,7 @@ Every finished match is **auto-recorded** as deterministic game film (resimulati
 - builds clips around goals, chances, turnovers, penalties, and AAR citations
 - plays them on the same Canvas rink (scrub, 0.25×–2×)
 - `/film` is the scripted demo series; `/film?match=ID` plays real match clips
+- `/aar?match=ID` is the post-game AAR + playbook version diff (`GET /api/aar/:matchId/:side`, `GET /api/playbook/:team?diff=1`)
 - series pairing / improvement board is a later PR
 
 ```bash

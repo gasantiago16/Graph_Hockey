@@ -13,11 +13,12 @@ import {
 import { getFootage, getRecording } from "../persist/clips.ts";
 import type { Clip } from "../types/film.ts";
 import { defaultDbPath, openDb, type Db } from "../persist/db.ts";
-import { getMatch, listMatches } from "../persist/matches.ts";
+import { getAarReport, getMatch, listMatches } from "../persist/matches.ts";
 import { ensureSeedPlaybooks } from "../persist/playbooks.ts";
 import { StartMatchBodySchema } from "../types/ws.ts";
 import { createMatchControl, MatchBusyError, MatchStartError, type MatchControl } from "./matchControl.ts";
 import { corsOrigins, isLoopbackHost, originAllowed } from "./protocol.ts";
+import { aarApiResponse, playbookApiResponse } from "./reports.ts";
 import { createWsHub } from "./ws.ts";
 
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
@@ -35,7 +36,7 @@ const MIME: Record<string, string> = {
 
 const MAX_BODY = 64_000;
 
-type Ctx = {
+export type HockeyHttpCtx = {
   config: AppConfig;
   control: MatchControl;
   port: number;
@@ -115,7 +116,7 @@ function forbiddenRel(rel: string): boolean {
   return false;
 }
 
-function resolveStatic(urlPath: string, root: string): string | null {
+export function resolveStatic(urlPath: string, root: string): string | null {
   let u = urlPath.split("?")[0] ?? "/";
   try {
     u = decodeURIComponent(u);
@@ -124,6 +125,7 @@ function resolveStatic(urlPath: string, root: string): string | null {
   }
   if (u === "/" || u === "") return path.join(root, "src/web/index.html");
   if (u === "/film" || u === "/film/") return path.join(root, "src/web/film.html");
+  if (u === "/aar" || u === "/aar/") return path.join(root, "src/web/aar.html");
   const rel = u.replace(/^\/+/, "");
   if (forbiddenRel(rel)) return null;
   const file = path.resolve(root, rel);
@@ -132,7 +134,11 @@ function resolveStatic(urlPath: string, root: string): string | null {
   return file;
 }
 
-async function handleRequest(req: IncomingMessage, res: ServerResponse, ctx: Ctx): Promise<void> {
+export async function handleHockeyRequest(
+  req: IncomingMessage,
+  res: ServerResponse,
+  ctx: HockeyHttpCtx,
+): Promise<void> {
   if (!applyCors(req, res, ctx.port)) return;
   const method = req.method ?? "GET";
   const host = req.headers.host ?? `127.0.0.1:${ctx.port}`;
@@ -215,6 +221,10 @@ async function handleRequest(req: IncomingMessage, res: ServerResponse, ctx: Ctx
         score: { home: row.finalHome, away: row.finalAway },
         recorded: Boolean(footage),
         clipCount: footage?.clips.length ?? 0,
+        aar: {
+          home: Boolean(getAarReport(ctx.db, row.id, "home")),
+          away: Boolean(getAarReport(ctx.db, row.id, "away")),
+        },
       };
     });
     sendJson(res, 200, { matches });
@@ -222,6 +232,27 @@ async function handleRequest(req: IncomingMessage, res: ServerResponse, ctx: Ctx
   }
 
   if (method === "GET") {
+    const aarHit = /^\/api\/aar\/([^/]+)\/([^/]+)$/.exec(url.pathname);
+    if (aarHit) {
+      const matchId = decodeURIComponent(aarHit[1] ?? "");
+      const side = decodeURIComponent(aarHit[2] ?? "");
+      const out = aarApiResponse(ctx.db, matchId, side);
+      sendJson(res, out.status, out.body);
+      return;
+    }
+
+    const playbookHit = /^\/api\/playbook\/([^/]+)$/.exec(url.pathname);
+    if (playbookHit) {
+      const teamId = decodeURIComponent(playbookHit[1] ?? "");
+      const out = playbookApiResponse(ctx.db, teamId, {
+        diff: url.searchParams.get("diff"),
+        version: url.searchParams.get("version"),
+        match: url.searchParams.get("match"),
+      });
+      sendJson(res, out.status, out.body);
+      return;
+    }
+
     const eventHit = /^\/api\/footage\/event\/(.+)$/.exec(url.pathname);
     if (eventHit) {
       const eventId = decodeURIComponent(eventHit[1] ?? "");
@@ -373,7 +404,7 @@ export async function listenAndServe(opts: ListenOpts = {}): Promise<Server> {
   });
 
   const server = createServer((req, res) => {
-    void handleRequest(req, res, { config, control, port, root, db }).catch((err) => {
+    void handleHockeyRequest(req, res, { config, control, port, root, db }).catch((err) => {
       console.error(err);
       if (!res.headersSent) sendJson(res, 500, { error: "internal" });
     });
@@ -414,6 +445,7 @@ export async function listenAndServe(opts: ListenOpts = {}): Promise<Server> {
   const origins = corsOrigins(port).join(", ");
   console.log(`Graph_Hockey  http://${host}:${port}/`);
   console.log(`Film Room     http://${host}:${port}/film`);
+  console.log(`AAR           http://${host}:${port}/aar`);
   console.log(`WebSocket     ws://${host}:${port}/ws`);
   console.log(`CORS/WS origin allowlist: ${origins}`);
   if (config.periodSeconds !== 1200) {

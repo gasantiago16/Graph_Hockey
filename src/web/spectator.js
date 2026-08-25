@@ -1,3 +1,4 @@
+import { aarHref, loadPostMatchPanels } from "./aar.js";
 import { drawSpectatorFrame, formatClock, sizeRinkCanvas } from "./rink.js";
 
 const canvas = document.getElementById("rink");
@@ -40,6 +41,8 @@ const state = {
   running: false,
   ws: null,
   noLlm: true,
+  lastMatchId: null,
+  aarSide: "home",
 };
 
 function setErr(msg) {
@@ -95,12 +98,31 @@ function onMessage(msg) {
     setRunning(true);
     costEl.textContent = formatCostHud(ZERO_COST, state.noLlm);
     tickerEl.textContent = `Match ${msg.matchId} · period ${msg.periodSeconds}s · seed ${msg.seed}`;
+    const post = document.getElementById("postMatch");
+    if (post) post.hidden = true;
   } else if (msg.type === "match_over") {
     setRunning(false);
+    state.lastMatchId = msg.matchId;
     const href = `/film?match=${encodeURIComponent(msg.matchId)}`;
-    tickerEl.innerHTML = `Final ${msg.score.home}–${msg.score.away} (${msg.result}) · <a href="${href}">Review footage</a>`;
+    const aar = aarHref({ matchId: msg.matchId });
+    tickerEl.innerHTML = `Final ${msg.score.home}–${msg.score.away} (${msg.result}) · <a href="${href}">Review footage</a> · <a href="${aar}">AAR / playbook</a>`;
     const review = document.getElementById("reviewFootage");
     if (review) review.setAttribute("href", href);
+    const openAar = document.getElementById("openAar");
+    if (openAar) openAar.setAttribute("href", aar);
+    const post = document.getElementById("postMatch");
+    if (post) {
+      post.hidden = false;
+      void loadPostMatchPanels({
+        matchId: msg.matchId,
+        side: state.aarSide,
+        aarEl: document.getElementById("aarPanel"),
+        playbookEl: document.getElementById("playbookPanel"),
+        filmLink: document.getElementById("postFilm"),
+        aarLink: document.getElementById("postAar"),
+        titleEl: document.getElementById("postMatchTitle"),
+      });
+    }
   } else if (msg.type === "cost") {
     costEl.textContent = formatCostHud(msg, state.noLlm);
   }
@@ -188,6 +210,25 @@ document.querySelectorAll("[data-inspect]").forEach((el) => {
     state.inspectSide = el.dataset.inspect;
     applyInspectUi();
     sendInspect();
+  });
+});
+document.querySelectorAll("[data-aar-side]").forEach((el) => {
+  el.addEventListener("click", () => {
+    state.aarSide = el.dataset.aarSide === "away" ? "away" : "home";
+    document.querySelectorAll("[data-aar-side]").forEach((b) => {
+      b.classList.toggle("on", b.dataset.aarSide === state.aarSide);
+    });
+    if (state.lastMatchId) {
+      void loadPostMatchPanels({
+        matchId: state.lastMatchId,
+        side: state.aarSide,
+        aarEl: document.getElementById("aarPanel"),
+        playbookEl: document.getElementById("playbookPanel"),
+        filmLink: document.getElementById("postFilm"),
+        aarLink: document.getElementById("postAar"),
+        titleEl: document.getElementById("postMatchTitle"),
+      });
+    }
   });
 });
 window.addEventListener("resize", paint);

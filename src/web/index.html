@@ -28,7 +28,7 @@
     .sub { color: var(--muted); font-size: 12px; }
     .nav a { color: var(--muted); text-decoration: none; margin-left: 14px; }
     .nav a:hover, .nav a.on { color: var(--gold); }
-    .layout { display: grid; grid-template-rows: auto auto 1fr auto; height: calc(100% - 54px); }
+    .layout { display: grid; grid-template-rows: auto auto 1fr auto auto; height: calc(100% - 54px); }
     .toolbar, .hud {
       display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
       padding: 10px 16px; border-bottom: 1px solid var(--line);
@@ -56,6 +56,21 @@
     .ticker { flex: 1; min-width: 180px; color: var(--muted); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .play { color: var(--gold); min-width: 140px; }
     .err { color: var(--bad); font-size: 12px; }
+    [hidden] { display: none !important; }
+    .post-match { border-top: 1px solid var(--line); background: #0c1320; max-height: 42%; overflow: auto; }
+    .post-match-bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 8px 16px; }
+    .post-match-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 0 16px 12px; }
+    @media (max-width: 900px) { .post-match-grid { grid-template-columns: 1fr; } }
+    article.aar, article.playbook-diff { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; }
+    article.aar h2, article.playbook-diff h2 { margin: 0 0 6px; font-size: 14px; }
+    article.aar h3 { margin: 10px 0 4px; font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--gold); }
+    .pre { white-space: pre-wrap; margin: 0; }
+    .applied { color: var(--ok); font-size: 12px; margin: 0 0 6px; }
+    .muted { color: var(--muted); font-size: 12px; }
+    ul.cites { list-style: none; padding-left: 0; display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 0; }
+    ul.cites li { display: flex; gap: 6px; align-items: center; }
+    a.watch { color: var(--gold); text-decoration: none; border: 1px solid var(--gold); border-radius: 4px; padding: 1px 8px; font-size: 12px; }
+    a.watch:hover { background: #17120a; }
   </style>
 </head>
 <body>
@@ -65,6 +80,7 @@
     <nav class="nav" style="margin-left:auto">
       <a class="on" href="/">Live rink</a>
       <a href="/film">Film Room</a>
+      <a href="/aar">AAR</a>
     </nav>
   </header>
   <div class="layout">
@@ -90,6 +106,7 @@
       <button id="btnStart" class="primary" type="button">Start match</button>
       <button id="btnStop" class="danger" type="button" disabled>Stop</button>
       <a class="chip" id="reviewFootage" href="/film">Review footage</a>
+      <a class="chip" id="openAar" href="/aar">AAR / playbook</a>
       <span class="sub">UI default 5s (watchable). Engine default remains 3×20:00.</span>
     </div>
     <div class="toolbar">
@@ -109,6 +126,19 @@
       <div class="ticker" id="ticker">Public event ticker. Start defaults to --no-llm.</div>
       <div class="sub" id="cost">no-llm · $0.00 · 0/0 tok · home 0 · away 0 calls</div>
     </div>
+    <section id="postMatch" class="post-match" hidden>
+      <div class="post-match-bar">
+        <span class="sub" id="postMatchTitle">Match over</span>
+        <a class="chip" id="postFilm" href="/film">Review footage</a>
+        <a class="chip" id="postAar" href="/aar">AAR page</a>
+        <button class="chip on" type="button" data-aar-side="home">Home AAR</button>
+        <button class="chip" type="button" data-aar-side="away">Away AAR</button>
+      </div>
+      <div class="post-match-grid">
+        <div id="aarPanel"></div>
+        <div id="playbookPanel"></div>
+      </div>
+    </section>
   </div>
   <script type="module" src="/src/web/spectator.js"></script>
 </body>

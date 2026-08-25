@@ -13,7 +13,7 @@ function emptyToUndef(v: string | null): string | undefined {
   return v;
 }
 
-/** Parse `/film?match=&clip=&event=&t=` (AAR Watch links may add `event=` in PR14b). */
+/** Parse `/film?match=&clip=&event=&t=` (AAR Watch links use `event=`). */
 export function parseFilmQuery(search: string): FilmQuery {
   const raw = search.startsWith("?") ? search.slice(1) : search;
   const q = new URLSearchParams(raw);

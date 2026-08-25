@@ -468,6 +468,7 @@ async function bootMatch(query) {
     tb.innerHTML = `
       <span class="sub">${m?.home ?? "home"} vs ${m?.away ?? "away"} · ${score} · ${matchId}</span>
       <a class="chip" href="/film">Demo series</a>
+      <a class="chip" href="/aar?match=${encodeURIComponent(matchId)}">AAR / playbook</a>
       <a class="chip" href="/">Live rink</a>`;
   }
 

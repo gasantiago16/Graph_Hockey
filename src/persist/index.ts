@@ -39,6 +39,7 @@ export {
 export {
   ensureSeedPlaybooks,
   getPlaybook,
+  getPlaybookByAarMatch,
   insertPlaybook,
   insertScoutNote,
   latestPlaybook,

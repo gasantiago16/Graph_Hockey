@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en" data-page="aar">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Graph_Hockey · AAR</title>
+  <style>
+    :root {
+      --bg: #070b12;
+      --panel: #101826;
+      --line: #1e2c40;
+      --text: #e8eef4;
+      --muted: #8aa0b5;
+      --gold: #d4a017;
+      --home: #c8102e;
+      --away: #2e6da4;
+      --ok: #3ecf8e;
+      --bad: #e85d5d;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; min-height: 100%; background: var(--bg); color: var(--text); font: 14px/1.45 "Segoe UI", system-ui, sans-serif; }
+    header {
+      display: flex; align-items: center; gap: 16px; padding: 12px 20px;
+      border-bottom: 1px solid var(--line); background: #0c1320;
+    }
+    header h1 { font-size: 15px; font-weight: 650; margin: 0; letter-spacing: .04em; }
+    header h1 span { color: var(--gold); }
+    .sub, .muted { color: var(--muted); font-size: 12px; }
+    .nav a { color: var(--muted); text-decoration: none; margin-left: 14px; }
+    .nav a:hover, .nav a.on { color: var(--gold); }
+    .toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 10px 16px; border-bottom: 1px solid var(--line); }
+    button, .chip, a.chip {
+      background: var(--panel); color: var(--text); border: 1px solid var(--line);
+      border-radius: 4px; padding: 6px 10px; cursor: pointer; font: inherit; text-decoration: none; display: inline-block;
+    }
+    button:hover, .chip:hover { border-color: var(--gold); }
+    .chip.on { background: #1c2a22; border-color: var(--ok); color: var(--ok); }
+    main { padding: 16px; }
+    .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    @media (max-width: 960px) { .cols { grid-template-columns: 1fr; } }
+    article.aar, article.playbook-diff, .match-row {
+      background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; margin-bottom: 12px;
+    }
+    article.aar[data-side="home"] { border-top: 3px solid var(--home); }
+    article.aar[data-side="away"] { border-top: 3px solid var(--away); }
+    h2 { margin: 0 0 8px; font-size: 15px; }
+    h3 { margin: 12px 0 6px; font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--gold); }
+    .pre { white-space: pre-wrap; margin: 0; }
+    .applied { color: var(--ok); font-size: 12px; margin: 0 0 8px; }
+    ul { margin: 0; padding-left: 18px; }
+    ul.cites { list-style: none; padding-left: 0; display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+    ul.cites li { display: flex; gap: 6px; align-items: center; }
+    a.watch { color: var(--gold); text-decoration: none; border: 1px solid var(--gold); border-radius: 4px; padding: 1px 8px; font-size: 12px; }
+    a.watch:hover { background: #17120a; }
+    code { font-size: 12px; color: var(--muted); }
+    .err { color: var(--bad); }
+    .match-row a { color: var(--gold); }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>GRAPH_<span>HOCKEY</span> · AAR</h1>
+    <div class="sub">Supposed / actual / why / ops · Watch jumps to Film Room</div>
+    <nav class="nav" style="margin-left:auto">
+      <a href="/">Live rink</a>
+      <a href="/film">Film Room</a>
+      <a class="on" href="/aar">AAR</a>
+    </nav>
+  </header>
+  <div class="toolbar" id="toolbar"></div>
+  <main>
+    <div id="list"></div>
+    <div class="cols" id="reports"></div>
+    <div id="diffs"></div>
+  </main>
+  <script type="module" src="/src/web/aar.js"></script>
+</body>
+</html>

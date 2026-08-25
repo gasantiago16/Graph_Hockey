@@ -57,6 +57,16 @@ export function latestPlaybook(db: Db, teamId: string): PlaybookRow | undefined 
   return row ? rowToPlaybook(row) : undefined;
 }
 
+/** Version written when this match's AAR applied (if any). */
+export function getPlaybookByAarMatch(db: Db, teamId: string, matchId: string): PlaybookRow | undefined {
+  const row = db
+    .prepare(
+      "SELECT * FROM playbooks WHERE team_id = ? AND aar_match_id = ? ORDER BY version DESC LIMIT 1",
+    )
+    .get<PlaybookSqlRow>(teamId, matchId);
+  return row ? rowToPlaybook(row) : undefined;
+}
+
 export function listPlaybookVersions(db: Db, teamId: string): PlaybookRow[] {
   return db
     .prepare("SELECT * FROM playbooks WHERE team_id = ? ORDER BY version ASC")
