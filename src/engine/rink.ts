@@ -57,3 +57,69 @@ export function attackingDir(period: Period): { home: AttackingDir; away: Attack
   const home: AttackingDir = period === 2 ? -1 : 1;
   return { home, away: home === 1 ? -1 : 1 };
 }
+
+export const RINK_HALF_LENGTH = RINK_LENGTH / 2;
+export const RINK_HALF_WIDTH = RINK_WIDTH / 2;
+/** Corner-arc centers sit this far from center ice. */
+export const CORNER_CENTER_X = RINK_HALF_LENGTH - CORNER_RADIUS;
+export const CORNER_CENTER_Y = RINK_HALF_WIDTH - CORNER_RADIUS;
+
+/**
+ * True if a disk of `radius` lies on or inside the rounded rectangle.
+ * Origin at center ice; corners are quarter-circles of `CORNER_RADIUS`.
+ */
+export function isInsideRink(pos: Vec2, radius = 0, eps = 1e-6): boolean {
+  const insetX = RINK_HALF_LENGTH - radius;
+  const insetY = RINK_HALF_WIDTH - radius;
+  const ax = Math.abs(pos.x);
+  const ay = Math.abs(pos.y);
+  if (ax > insetX + eps || ay > insetY + eps) return false;
+  if (ax > CORNER_CENTER_X && ay > CORNER_CENTER_Y) {
+    const cr = CORNER_RADIUS - radius;
+    return Math.hypot(ax - CORNER_CENTER_X, ay - CORNER_CENTER_Y) <= cr + eps;
+  }
+  return true;
+}
+
+/** If the disk is outside the ice, slide it back; `normal` is the outward unit. */
+export function projectInsideRink(pos: Vec2, radius = 0): { pos: Vec2; normal: Vec2 | null } {
+  const insetX = RINK_HALF_LENGTH - radius;
+  const insetY = RINK_HALF_WIDTH - radius;
+  const cr = CORNER_RADIUS - radius;
+  const sx = pos.x < 0 ? -1 : 1;
+  const sy = pos.y < 0 ? -1 : 1;
+  const ax = Math.abs(pos.x);
+  const ay = Math.abs(pos.y);
+
+  if (ax > CORNER_CENTER_X && ay > CORNER_CENTER_Y) {
+    const dx = ax - CORNER_CENTER_X;
+    const dy = ay - CORNER_CENTER_Y;
+    const d = Math.hypot(dx, dy);
+    if (d > cr && d > 0) {
+      const s = cr / d;
+      return {
+        pos: { x: sx * (CORNER_CENTER_X + dx * s), y: sy * (CORNER_CENTER_Y + dy * s) },
+        normal: { x: sx * (dx / d), y: sy * (dy / d) },
+      };
+    }
+    return { pos: { x: pos.x, y: pos.y }, normal: null };
+  }
+
+  let x = pos.x;
+  let y = pos.y;
+  let nx = 0;
+  let ny = 0;
+  if (ax > insetX) {
+    x = sx * insetX;
+    nx = sx;
+  }
+  if (ay > insetY) {
+    y = sy * insetY;
+    ny = sy;
+  }
+  if (nx === 0 && ny === 0) {
+    return { pos: { x, y }, normal: null };
+  }
+  const mag = Math.hypot(nx, ny) || 1;
+  return { pos: { x, y }, normal: { x: nx / mag, y: ny / mag } };
+}

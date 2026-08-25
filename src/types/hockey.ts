@@ -70,6 +70,17 @@ export const WHISTLE_KINDS = [
 export const WhistleKindSchema = z.enum(WHISTLE_KINDS);
 export type WhistleKind = z.infer<typeof WhistleKindSchema>;
 
+/** No limbs. Kick = skate-puck. */
+export const CONTACT_KINDS = [
+  "stick-puck",
+  "body-puck",
+  "skate-puck",
+  "body-body",
+  "stick-body",
+] as const;
+export const ContactKindSchema = z.enum(CONTACT_KINDS);
+export type ContactKind = z.infer<typeof ContactKindSchema>;
+
 export const EpochKindSchema = z.enum(["macro", "micro"]);
 export type EpochKind = z.infer<typeof EpochKindSchema>;
 

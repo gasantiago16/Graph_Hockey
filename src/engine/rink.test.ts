@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import {
   BLUE_LINE_X,
   CENTER_ICE,
+  CORNER_CENTER_X,
+  CORNER_CENTER_Y,
   CORNER_RADIUS,
   END_ZONE_FACEOFF_DOTS,
   END_ZONE_FACEOFF_X,
@@ -16,6 +18,7 @@ import {
   RINK_LENGTH,
   RINK_WIDTH,
   attackingDir,
+  isInsideRink,
 } from "./rink.ts";
 
 describe("rink geometry", () => {
@@ -53,5 +56,20 @@ describe("rink geometry", () => {
     expect(attackingDir(2)).toEqual({ home: -1, away: 1 });
     expect(attackingDir(3)).toEqual({ home: 1, away: -1 });
     expect(attackingDir("OT")).toEqual({ home: 1, away: -1 });
+  });
+
+  it("treats the ice as a 200×85 rounded rectangle (corner r=28)", () => {
+    expect(isInsideRink({ x: 0, y: 0 })).toBe(true);
+    expect(isInsideRink({ x: 99, y: 0 })).toBe(true);
+    expect(isInsideRink({ x: 0, y: 42 })).toBe(true);
+    expect(isInsideRink({ x: 101, y: 0 })).toBe(false);
+    expect(isInsideRink({ x: 0, y: 43 })).toBe(false);
+    expect(isInsideRink({ x: 100, y: 42.5 })).toBe(false);
+    const onArc = {
+      x: CORNER_CENTER_X + CORNER_RADIUS * Math.SQRT1_2,
+      y: CORNER_CENTER_Y + CORNER_RADIUS * Math.SQRT1_2,
+    };
+    expect(isInsideRink(onArc, 0, 1e-9)).toBe(true);
+    expect(isInsideRink({ x: onArc.x + 1, y: onArc.y + 1 })).toBe(false);
   });
 });
