@@ -283,7 +283,7 @@ export function inOwnCrease(world: WorldState, side: Side, pos: Vec2): boolean {
 }
 
 /** Never skate through our own net: first step is out to the hash, then the real dest. */
-function routeClearOfOwnNet(world: WorldState, body: Body, dest: Vec2): Vec2 {
+export function routeClearOfOwnNet(world: WorldState, body: Body, dest: Vec2): Vec2 {
   const dir = world.attackingDir[body.side];
   const net = defendingNet(world, body.side);
   const nearOwn = hypot(sub(body.pos, net)) < CREASE_RADIUS + 10 || (body.pos.x - net.x) * dir < CREASE_RADIUS + 8;
@@ -320,6 +320,11 @@ export function steeringTarget(world: WorldState, body: Body): Vec2 {
 
   if (isGoalie(body) && (!slot || slot.role === "crease")) {
     return creaseTarget(world, body);
+  }
+
+  const ice = world.iceIntents?.[body.side]?.targets[body.id];
+  if (ice) {
+    return projectInsideRink(routeClearOfOwnNet(world, body, ice), body.radius).pos;
   }
 
   const hunt = puckHuntTarget(world, body);

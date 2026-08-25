@@ -32,6 +32,7 @@ import {
   tickPenaltyClocks,
 } from "./rules.ts";
 import { maybeReleasePuck, steeringTarget } from "./tactics.ts";
+import { computeIceIntent } from "../ice/roles.ts";
 import { isGoalie, LAST_EVENTS_CAP, onIceBodies, type WorldState } from "./world.ts";
 
 export function clockRuns(
@@ -126,6 +127,11 @@ export function stepLive(world: WorldState, dt: number, rng: Rng): MatchEvent[] 
   tickFatigue(world, dt);
   tickPenaltyClocks(world, dt);
   applyPersonnel(world, emit);
+
+  world.iceIntents = {
+    home: computeIceIntent(world, "home"),
+    away: computeIceIntent(world, "away"),
+  };
 
   const bodies = onIceBodies(world);
   const targets = bodies.map((body) => steeringTarget(world, body));

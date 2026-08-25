@@ -1,5 +1,6 @@
 import { DEFAULT_PLAY_ID, type Playbook } from "../types/play.ts";
 import type { TeamDirective } from "../types/directive.ts";
+import type { IceIntent } from "../ice/types.ts";
 import type { MatchEvent } from "../types/events.ts";
 import type { PlayerId } from "../types/ids.ts";
 import type {
@@ -120,6 +121,8 @@ export type WorldState = {
   lastEvents: MatchEvent[];
   /** Per-side books when the host has loaded them; tactics falls back to seed catalog. */
   playbooks?: { home: Playbook; away: Playbook };
+  /** Five-man ice roles/targets for this tick. Filled in stepLive. */
+  iceIntents?: { home: IceIntent; away: IceIntent };
 };
 
 export type CreateWorldInput = {
@@ -159,6 +162,7 @@ export type CreateWorldInput = {
   directives?: { home: TeamDirective; away: TeamDirective };
   lastEvents?: MatchEvent[];
   playbooks?: { home: Playbook; away: Playbook };
+  iceIntents?: { home: IceIntent; away: IceIntent };
 };
 
 export function vec(x: number, y: number): Vec2 {
@@ -392,6 +396,7 @@ export function createWorld(input: CreateWorldInput = {}): WorldState {
     directives: { home: directives.home, away: directives.away },
     lastEvents: input.lastEvents ? [...input.lastEvents] : [],
     playbooks: input.playbooks,
+    iceIntents: input.iceIntents,
   };
 }
 
