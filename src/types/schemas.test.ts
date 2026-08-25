@@ -1,7 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { makeEventId } from "./ids.ts";
 import { STRENGTHS, StrengthSchema, PlayerAttributesSchema, POSITIONS } from "./hockey.ts";
-import { PlaySchema, PlaybookSchema, PlayPredicateSchema, DEFAULT_PLAY_ID } from "./play.ts";
+import {
+  PlaySchema,
+  PlaybookSchema,
+  PlayPredicateSchema,
+  PlayStrengthSchema,
+  DEFAULT_PLAY_ID,
+} from "./play.ts";
 import { TeamDirectiveSchema } from "./directive.ts";
 import { PublicEventSchema } from "./events.ts";
 import { PublicPlayerSchema, TeamObservationSchema } from "./observation.ts";
@@ -43,11 +49,14 @@ const play = {
 };
 
 describe("core hockey schemas", () => {
-  it("includes listed Strength values including EN", () => {
-    for (const s of ["5v5", "5v4", "5v3", "4v4", "4v3", "3v3", "EN"] as const) {
+  it("uses world Strength without playbook EN", () => {
+    for (const s of ["5v5", "5v4", "5v3", "4v4", "4v3", "3v3", "6v5", "5v6"] as const) {
       expect(STRENGTHS).toContain(s);
       expect(StrengthSchema.parse(s)).toBe(s);
     }
+    expect(STRENGTHS).not.toContain("EN");
+    expect(() => StrengthSchema.parse("EN")).toThrow();
+    expect(PlayStrengthSchema.parse("EN")).toBe("EN");
   });
 
   it("parses positions and player attributes", () => {
@@ -66,6 +75,14 @@ describe("core hockey schemas", () => {
     const dir = TeamDirectiveSchema.parse({
       playId: DEFAULT_PLAY_ID,
       pressure: "neutral",
+      playParams: {
+        shotPolicy: "cycle",
+        pointShotOk: true,
+        cycleSide: "left",
+        creaseDepth: "challenge",
+        playPuck: "play",
+        umbrella: true,
+      },
       pullGoalie: false,
       timeout: false,
       lockLines: true,
@@ -75,6 +92,11 @@ describe("core hockey schemas", () => {
     expect(dir.playId).toBe(DEFAULT_PLAY_ID);
     expect(dir.pressure).toBe("neutral");
     expect(dir.lockLines).toBe(true);
+    expect(dir.playParams).toEqual({
+      shotPolicy: "cycle",
+      pointShotOk: true,
+      cycleSide: "left",
+    });
     expect("extra" in dir).toBe(false);
   });
 

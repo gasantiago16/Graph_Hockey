@@ -19,7 +19,12 @@ export const SpecialistParamsSchema = z.object({
 });
 export type SpecialistParams = z.infer<typeof SpecialistParamsSchema>;
 
-export const PlayParamsSchema = SpecialistParamsSchema.extend({
+/** §8 playParams only. Goalie/ST knobs stay on SpecialistParams, goalie, and specialTeams. */
+export const PlayParamsSchema = z.object({
+  forecheck: ForecheckSchema.optional(),
+  nz: NzSchemeSchema.optional(),
+  dz: DzCoverageSchema.optional(),
+  shotPolicy: ShotPolicySchema.optional(),
   pointShotOk: z.boolean().optional(),
   cycleSide: z.enum(["left", "right", "auto"]).optional(),
 });

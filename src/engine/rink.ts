@@ -9,7 +9,6 @@ export const GOAL_LINE_FROM_END = 11;
 export const BLUE_LINE_FROM_END = 75;
 export const GOAL_LINE_X = RINK_LENGTH / 2 - GOAL_LINE_FROM_END;
 export const BLUE_LINE_X = RINK_LENGTH / 2 - BLUE_LINE_FROM_END;
-/** Distance between blue lines. */
 export const NEUTRAL_ZONE_LENGTH = BLUE_LINE_X * 2;
 
 export const GOAL_WIDTH = 6;

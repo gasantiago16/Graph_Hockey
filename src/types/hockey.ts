@@ -19,7 +19,7 @@ export const POSITIONS = ["C", "LW", "RW", "LD", "RD", "G"] as const;
 export const PositionSchema = z.enum(POSITIONS);
 export type Position = z.infer<typeof PositionSchema>;
 
-/** World / observation strength. Observer-relative: `5v4` means we have the extra skater. `EN` is empty-net. */
+/** World / observation strength. Observer-relative: `5v4` means we have the extra skater. Empty-net is `6v5`/`5v6`; playbook tag `EN` lives on PlayStrength. */
 export const STRENGTHS = [
   "5v5",
   "5v4",
@@ -32,7 +32,6 @@ export const STRENGTHS = [
   "3v3",
   "6v5",
   "5v6",
-  "EN",
 ] as const;
 export const StrengthSchema = z.enum(STRENGTHS);
 export type Strength = z.infer<typeof StrengthSchema>;
