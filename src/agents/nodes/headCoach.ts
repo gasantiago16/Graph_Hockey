@@ -33,6 +33,7 @@ export type HeadCoachOpts = {
   noLlm?: boolean;
   profile?: TeamLlmProfile;
   /** Specialists run only when opted in. */
+  specialists?: boolean;
 };
 
 export function clampCoachPlayId(playId: string, retrievedPlays: readonly Pick<PlayDigest, "id">[]): string {

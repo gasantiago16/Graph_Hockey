@@ -6,6 +6,7 @@ import type { Db } from "../persist/db.ts";
 import { getEvent } from "../persist/events.ts";
 import { replayMatch } from "../sim/replay.ts";
 import { CLIP_WINDOWS, type Clip } from "../types/film.ts";
+import type { Period } from "../types/hockey.ts";
 import type { SpectatorFrame } from "../types/ws.ts";
 
 export const CLIP_CACHE_DIRNAME = "clip-cache";
@@ -53,8 +54,18 @@ export function* framesForWindow(
   startLiveTick: number,
   endLiveTick: number,
   db: Db,
+  period?: Period,
 ): Generator<SpectatorFrame> {
-  for (const world of replayMatch(matchId, db, { toTick: endLiveTick })) {
+  const replayOpts = period === undefined ? { toTick: endLiveTick } : {};
+  let inPeriod = period === undefined;
+  for (const world of replayMatch(matchId, db, replayOpts)) {
+    if (period !== undefined) {
+      if (world.period !== period) {
+        if (inPeriod) break;
+        continue;
+      }
+      inPeriod = true;
+    }
     if (world.liveTick < startLiveTick) continue;
     if (world.liveTick > endLiveTick) break;
     yield spectatorFrame(world);
@@ -62,7 +73,15 @@ export function* framesForWindow(
 }
 
 export function* framesForClip(clip: Clip, db: Db): Generator<SpectatorFrame> {
-  yield* framesForWindow(clip.matchId, clip.startLiveTick, clip.endLiveTick, db);
+  const anchor = getEvent(db, clip.anchorEventId);
+  yield* framesForWindow(clip.matchId, clip.startLiveTick, clip.endLiveTick, db, anchor?.period);
+}
+
+/** Full match: liveTick resets each period, so do not use toTick. */
+export function* framesForFullMatch(matchId: string, db: Db): Generator<SpectatorFrame> {
+  for (const world of replayMatch(matchId, db)) {
+    yield spectatorFrame(world);
+  }
 }
 
 export function readJsonlFrames(path: string): SpectatorFrame[] {

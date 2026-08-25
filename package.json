@@ -28,6 +28,7 @@
     "@langchain/langgraph": "1.4.12",
     "@langchain/openai": "1.5.10",
     "@langchain/xai": "1.4.10",
+    "@napi-rs/canvas": "^1.0.8",
     "sql.js": "^1.14.2",
     "ws": "^8.21.3",
     "zod": "3.25.76"

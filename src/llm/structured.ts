@@ -8,6 +8,7 @@ export type InvokeStructuredOpts = {
   label?: string;
   signal?: AbortSignal;
   /** Skip the JSON invoke after structured fails (timeout or parse). */
+  noJsonRetry?: boolean;
 };
 
 /** Visible text only — skip reasoning/tool blocks so JSON parse can see the object. */

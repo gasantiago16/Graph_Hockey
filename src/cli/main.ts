@@ -7,6 +7,7 @@ import { loadConfig, scaledOtSeconds, type EnvMap } from "../config.ts";
 import { formatCostSummary } from "../llm/budgets.ts";
 import { hasInjectedChatModel } from "../llm/client.ts";
 import { missingProviderKeys, resolveTeamProfile, type TeamLlmProfile } from "../llm/profiles.ts";
+import { defaultExportPath, exportMatchMp4 } from "../film/exportMp4.ts";
 import { formatDelta, loadSeriesImprovement } from "../film/improvement.ts";
 import { pairClipsForGames } from "../film/pairClips.ts";
 import { getFootage } from "../persist/clips.ts";
@@ -32,7 +33,7 @@ Usage:
   gh playbook --team ID [--diff] [--version N] [--reset-playbook]
   gh series --games 7 [--home ID] [--away ID] [--seed N] [--no-llm] [--no-record] [--aar-mode auto|propose] [--db PATH] [--snapshot-dir PATH]
             [--home-provider xai|muse|openai|gemini] [--away-provider ...] [--home-model SLUG] [--away-model SLUG]
-  gh footage --match ID
+  gh footage --match ID [--mp4] [--highlight] [--full] [--clip ID] [--out PATH]
   gh footage --series ID [--compare i,j] [--json]
   gh engine-selftest
 
@@ -45,7 +46,8 @@ AAR runs after every result; default --aar-mode auto applies capped playbook pat
 series default is 7 games; gameSeed = seed + gameIndex. AAR auto-apply mutates playbooks between games (not --no-llm).
 Playbook snapshots go in data/playbook-snapshots/<seriesId>/ (before.json + after-game-N.json).
 --no-llm series uses 5s periods unless GRAPH_HOCKEY_PERIOD_SECONDS or --period-seconds is set.
-footage --match lists auto-clips + open ticks. --series prints the improvement ledger + deltas.
+footage --match lists auto-clips + open ticks. --mp4 writes a derivative H.264 file (ffmpeg required; Film Room stays the review surface).
+--series prints the improvement ledger + deltas.
 --compare i,j prints paired signatures (same play + zone, Jaccard ≥ 0.3 fallback).
 replay resimulates from seed + stored DirectiveApplied events (zero LLM).
 aar dumps stored reports or re-runs the AAR graph (--no-llm for code-only).
@@ -392,6 +394,31 @@ async function cmdFootage(argv: string[], env: EnvMap): Promise<number> {
     if (!footage) {
       console.error(`gh footage: no recording for ${matchId}`);
       return 1;
+    }
+    if (flag(argv, "mp4")) {
+      const clipId = opt(argv, "clip");
+      const full = flag(argv, "full");
+      const kind = full ? "full" : clipId ? "clip" : "highlight";
+      const outPath = opt(argv, "out") ?? defaultExportPath(matchId, kind);
+      try {
+        const result = await exportMatchMp4({
+          db,
+          matchId,
+          outPath,
+          clipId: clipId ?? undefined,
+          full,
+        });
+        if (flag(argv, "json")) console.log(JSON.stringify(result));
+        else console.log(`mp4 ${result.outPath}  frames=${result.frames}`);
+        return 0;
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        console.error(`gh footage: ${message}`);
+        if (/ffmpeg/i.test(message) || /ENOENT/i.test(message)) {
+          console.error("install ffmpeg and retry (or set FFMPEG_PATH)");
+        }
+        return 1;
+      }
     }
     const payload = {
       matchId,

@@ -55,6 +55,7 @@ export type CompileTeamGraphOpts = {
   /** Per-side company. Ignored when noLlm. Default xAI when omitted. */
   profile?: TeamLlmProfile;
   /** Specialists run only when opted in. */
+  specialists?: boolean;
 };
 
 export type TeamGraphInvokeInput = {
