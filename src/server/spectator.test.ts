@@ -3,7 +3,7 @@ import { GOAL_LINE_X } from "../engine/rink.ts";
 import { createWorld } from "../engine/world.ts";
 import { loadTeam } from "../playbook/store.ts";
 import { SpectatorFrameSchema } from "../types/ws.ts";
-import { jerseyNumber, spectatorFrame } from "./spectator.ts";
+import { jerseyNumber, maybeInspectState, spectatorFrame } from "./spectator.ts";
 
 describe("spectatorFrame", () => {
   it("keeps period-1 home net at −X (world frame, not mirrored)", () => {
@@ -36,5 +36,20 @@ describe("spectatorFrame", () => {
     expect(homeC?.number).toBe(
       home.players.find((p) => p.position === "C" && p.line === "F1")?.number,
     );
+  });
+
+  it("maybeInspectState is omitted for none and one-sided otherwise", () => {
+    const world = createWorld({
+      matchId: "inspect",
+      playId: { home: "5v5-122-forecheck", away: "5v5-212-forecheck" },
+    });
+    expect(maybeInspectState(world, "none")).toBeUndefined();
+    const home = maybeInspectState(world, "home");
+    const away = maybeInspectState(world, "away");
+    expect(home?.side).toBe("home");
+    expect(home?.playId).toBe("5v5-122-forecheck");
+    expect(JSON.stringify(home)).not.toContain("5v5-212-forecheck");
+    expect(away?.playId).toBe("5v5-212-forecheck");
+    expect(JSON.stringify(away)).not.toContain("5v5-122-forecheck");
   });
 });

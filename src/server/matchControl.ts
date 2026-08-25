@@ -4,6 +4,7 @@ import { loadConfig, scaledOtSeconds, type AppConfig } from "../config.ts";
 import { DT } from "../engine/rink.ts";
 import type { WorldState } from "../engine/world.ts";
 import type { MatchBudget } from "../llm/budgets.ts";
+import { hasInjectedChatModel } from "../llm/client.ts";
 import { MatchAborted, runMatch } from "../orchestrator/match.ts";
 import type { Db } from "../persist/db.ts";
 import { latestPlaybook } from "../persist/playbooks.ts";
@@ -11,6 +12,11 @@ import { loadPlaybook, loadTeam, SEED_TEAM_IDS } from "../playbook/store.ts";
 import type { MatchEvent } from "../types/events.ts";
 import type { Roster } from "../types/hockey.ts";
 import type { StartMatchBody } from "../types/ws.ts";
+
+/** Live LLM start: server key or test inject (FakeListChatModel). Never reads the key into WS. */
+export function llmMatchAllowed(config: Pick<AppConfig, "xaiApiKey">): boolean {
+  return Boolean(config.xaiApiKey) || hasInjectedChatModel();
+}
 
 export class MatchBusyError extends Error {
   constructor(readonly matchId: string) {
@@ -34,7 +40,7 @@ export type MatchControlEvent =
       away: { id: string; name: string };
       seed: number;
       periodSeconds: number;
-      noLlm: true;
+      noLlm: boolean;
       rosters: { home: Roster; away: Roster };
     }
   | { type: "tick"; world: WorldState; events: MatchEvent[]; budget: MatchBudget }
@@ -61,7 +67,7 @@ export type MatchStatus = {
 };
 
 export type MatchControl = {
-  start: (body: StartMatchBody) => { matchId: string; status: "running" } & StartMatchBody & { noLlm: true };
+  start: (body: StartMatchBody) => { matchId: string; status: "running" } & StartMatchBody & { noLlm: boolean };
   stop: () => Promise<{ stopped: boolean; matchId?: string }>;
   status: () => MatchStatus;
   subscribe: (fn: (event: MatchControlEvent) => void) => () => void;
@@ -123,8 +129,9 @@ export function createMatchControl(opts: CreateMatchControlOpts): MatchControl {
 
   function start(body: StartMatchBody) {
     if (live) throw new MatchBusyError(live.matchId);
-    if (body.noLlm === false) {
-      throw new MatchStartError("LLM matches are not available; send noLlm: true");
+    const noLlm = body.noLlm !== false;
+    if (!noLlm && !llmMatchAllowed(config)) {
+      throw new MatchStartError("LLM matches need XAI_API_KEY (or an injected chat model); send noLlm: true");
     }
     const home = body.home;
     const away = body.away;
@@ -156,7 +163,7 @@ export function createMatchControl(opts: CreateMatchControlOpts): MatchControl {
       away: { id: away, name: awayRoster.name },
       seed,
       periodSeconds,
-      noLlm: true,
+      noLlm,
       rosters: { home: homeRoster, away: awayRoster },
     });
 
@@ -168,13 +175,13 @@ export function createMatchControl(opts: CreateMatchControlOpts): MatchControl {
           side: "home",
           playbook: homePlaybook,
           checkpointer: new MemorySaver(),
-          noLlm: true,
+          noLlm,
         });
         const awayGraph = compileTeamGraph({
           side: "away",
           playbook: awayPlaybook,
           checkpointer: new MemorySaver(),
-          noLlm: true,
+          noLlm,
         });
         const result = await runMatch({
           matchId,
@@ -191,6 +198,10 @@ export function createMatchControl(opts: CreateMatchControlOpts): MatchControl {
           otSeconds,
           signal: controller.signal,
           paceMs,
+          noLlm,
+          models: noLlm
+            ? { home: "none", away: "none" }
+            : { home: config.coachModel, away: config.coachModel },
           onTick: (next, events, budget) => {
             liveWorld.current = next;
             lastScore = { home: next.score.home, away: next.score.away };
@@ -217,7 +228,7 @@ export function createMatchControl(opts: CreateMatchControlOpts): MatchControl {
       home,
       away,
       seed,
-      noLlm: true as const,
+      noLlm,
       periodSeconds,
     };
   }

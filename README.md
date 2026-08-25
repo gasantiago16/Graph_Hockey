@@ -99,12 +99,15 @@ $env:GRAPH_HOCKEY_PERIOD_SECONDS=5; npm test
 
 ## Watch a match (available now)
 
-`npm run web` serves the Canvas 2D rink and a `--no-llm` match API:
+`npm run web` serves the Canvas 2D rink. **Start stays `--no-llm`** (stub graphs, zero xAI) unless you check **Use LLM**.
 
-- `POST /api/match/start` `{ home, away, seed, noLlm: true, periodSeconds? }` starts `runMatch` in the background
+- `POST /api/match/start` `{ home, away, seed, noLlm, periodSeconds? }` starts `runMatch` in the background (`noLlm` defaults **true**)
+- `noLlm: false` is allowed only when `XAI_API_KEY` is set on the server (or tests inject `FakeListChatModel`)
+- Optional **Use LLM** checkbox is enabled only when `GET /api/health` reports `llmConfigured`
+- HUD: live `$` / prompt+output tokens / calls per side (`CostTick`)
 - `POST /api/match/stop` aborts the in-flight match
 - `GET /api/health` `{ ok, llmConfigured, langsmith }`
-- `WS /ws` streams 10 Hz `SpectatorFrame` snapshots (world frame: players, puck, score, clock, period, lastEvent)
+- `WS /ws` streams 10 Hz `SpectatorFrame` snapshots plus `cost` and inspect-side `inspect`
 - Inspect toggle **none / home / away** — the play **name** is sent only for the inspected side (never the opponent `playId`)
 
 The start form defaults to **5 second** periods so a demo is watchable. Engine/config default remains **1200 s** (3×20:00) unless you pass `periodSeconds` or set `GRAPH_HOCKEY_PERIOD_SECONDS`.

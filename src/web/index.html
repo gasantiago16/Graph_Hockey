@@ -61,7 +61,7 @@
 <body>
   <header>
     <h1>GRAPH_<span>HOCKEY</span> · LIVE RINK</h1>
-    <div class="sub">--no-llm spectator · 10 Hz world-frame snapshots · localhost only</div>
+    <div class="sub">default Start is --no-llm · inspect-side play · live $ / tokens / calls · localhost only</div>
     <nav class="nav" style="margin-left:auto">
       <a class="on" href="/">Live rink</a>
       <a href="/film">Film Room</a>
@@ -83,6 +83,10 @@
       </label>
       <label>Seed <input id="seed" type="number" value="42" step="1" style="width:7rem" /></label>
       <label>Period s <input id="periodSeconds" type="number" value="5" min="1" max="1200" step="1" style="width:5rem" /></label>
+      <label title="Enabled when /api/health.llmConfigured is true. Start stays --no-llm unless checked.">
+        <input id="useLlm" type="checkbox" disabled />
+        Use LLM
+      </label>
       <button id="btnStart" class="primary" type="button">Start match</button>
       <button id="btnStop" class="danger" type="button" disabled>Stop</button>
       <span class="sub">UI default 5s (watchable). Engine default remains 3×20:00.</span>
@@ -101,8 +105,8 @@
     </div>
     <div class="hud">
       <div class="score" id="scoreboard">P1  0:00.0    <span class="home">HOME 0</span> – <span class="away">0 AWAY</span></div>
-      <div class="ticker" id="ticker">Public event ticker. Start a --no-llm match.</div>
-      <div class="sub" id="cost">no-llm · $0.00</div>
+      <div class="ticker" id="ticker">Public event ticker. Start defaults to --no-llm.</div>
+      <div class="sub" id="cost">no-llm · $0.00 · 0/0 tok · home 0 · away 0 calls</div>
     </div>
   </div>
   <script type="module" src="/src/web/spectator.js"></script>

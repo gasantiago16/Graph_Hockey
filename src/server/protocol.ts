@@ -7,7 +7,7 @@ import {
 } from "../types/ws.ts";
 import { toCostTick, type MatchBudget } from "../llm/budgets.ts";
 import type { WorldState } from "../engine/world.ts";
-import { inspectState, spectatorFrame, type SpectatorOpts } from "./spectator.ts";
+import { maybeInspectState, spectatorFrame, type SpectatorOpts } from "./spectator.ts";
 
 /** Keys that must never appear on the WS wire. */
 export const DENYLIST_KEYS = [
@@ -99,9 +99,8 @@ export function tickMessages(
   opts: TickMessageOpts = {},
 ): ServerMessage[] {
   const msgs: ServerMessage[] = [spectatorFrame(world, opts)];
-  if (inspectSide === "home" || inspectSide === "away") {
-    msgs.push(inspectState(world, inspectSide));
-  }
+  const inspect = maybeInspectState(world, inspectSide);
+  if (inspect) msgs.push(inspect);
   for (const e of newEvents) {
     if (TICKER_SKIP.has(e.type)) continue;
     msgs.push({ type: "event", id: e.id, eventType: e.type, liveTick: e.liveTick });

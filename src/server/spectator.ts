@@ -1,7 +1,7 @@
 import { defaultLineFor, onIceBodies, type Body, type WorldState } from "../engine/world.ts";
 import { resolvePlay } from "../playbook/store.ts";
 import type { Position, Roster } from "../types/hockey.ts";
-import type { InspectState, SpectatorFrame } from "../types/ws.ts";
+import type { InspectSide, InspectState, SpectatorFrame } from "../types/ws.ts";
 
 const FALLBACK_NUMBER: Record<Position, number> = {
   C: 19,
@@ -58,7 +58,7 @@ export function spectatorFrame(world: WorldState, opts: SpectatorOpts = {}): Spe
   };
 }
 
-/** Inspected side only — never the opponent playId. */
+/** Inspected side only — never the opponent playId or the other book's plays. */
 export function inspectState(world: WorldState, side: "home" | "away"): InspectState {
   const playId = world.playId[side];
   const play = resolvePlay(playId, world.playbooks?.[side]);
@@ -70,4 +70,10 @@ export function inspectState(world: WorldState, side: "home" | "away"): InspectS
     pressure: world.directives[side].pressure,
     strength: world.strength,
   };
+}
+
+/** `none` → no inspect message (rink + ticker + cost only). */
+export function maybeInspectState(world: WorldState, inspectSide: InspectSide): InspectState | undefined {
+  if (inspectSide === "home" || inspectSide === "away") return inspectState(world, inspectSide);
+  return undefined;
 }

@@ -1,8 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { createWorld } from "../engine/world.ts";
+import { createBudget, recordLlmUsage, toCostTick } from "../llm/budgets.ts";
 import { loadPlaybook, loadTeam } from "../playbook/store.ts";
+import { formatCostHud } from "../web/hud.ts";
+import { formatInspectHud, PLAY_NAME_HIDDEN } from "../web/inspect.ts";
 import {
   ClientHelloSchema,
+  MatchStartSchema,
   SpectatorFrameSchema,
   StartMatchBodySchema,
 } from "../types/ws.ts";
@@ -14,7 +18,7 @@ import {
   parseClientMessage,
   tickMessages,
 } from "./protocol.ts";
-import { inspectState, spectatorFrame } from "./spectator.ts";
+import { inspectState, maybeInspectState, spectatorFrame } from "./spectator.ts";
 
 const HOME_PLAY = "5v5-122-forecheck";
 const AWAY_PLAY = "5v5-212-forecheck";
@@ -169,5 +173,84 @@ describe("WS protocol denylist", () => {
     expect(body.noLlm).toBe(true);
     expect(body.periodSeconds).toBeUndefined();
     expect(() => StartMatchBodySchema.parse({ noLlm: true, periodSeconds: 5 })).not.toThrow();
+    expect(StartMatchBodySchema.parse({ noLlm: false }).noLlm).toBe(false);
+  });
+
+  it("CostTick with live budget is numbers only (denylist empty, no playId)", () => {
+    const world = worldWithPlays();
+    const budget = createBudget();
+    recordLlmUsage(budget, "home", {
+      promptTokens: 1200,
+      completionTokens: 80,
+      reasoningTokens: 10,
+      usd: 0.01,
+      calls: 3,
+    });
+    recordLlmUsage(budget, "away", {
+      promptTokens: 400,
+      completionTokens: 20,
+      reasoningTokens: 0,
+      usd: 0.02,
+      calls: 2,
+    });
+    const msgs = tickMessages(world, "home", world.lastEvents, { budget });
+    const cost = msgs.find((m) => m.type === "cost");
+    expect(cost).toEqual(toCostTick(budget));
+    expect(cost).toMatchObject({
+      type: "cost",
+      homeCalls: 3,
+      awayCalls: 2,
+      promptTokens: 1600,
+      outputTokens: 100,
+      usd: 0.03,
+    });
+    const json = JSON.stringify(cost);
+    expect(json).not.toContain(HOME_PLAY);
+    expect(json).not.toContain(AWAY_PLAY);
+    expect(json).not.toContain("playbooks");
+    expect(json).not.toContain("XAI_API_KEY");
+    expect(denylistHits(cost)).toEqual([]);
+    expect(opponentPlayLeak(cost, "none", world.playId)).toEqual([]);
+    expect(formatCostHud(cost!, false)).toBe("$0.03 · 1600/100 tok · home 3 · away 2 calls");
+    expect(opponentPlayLeak(msgs, "home", world.playId)).toEqual([]);
+  });
+
+  it("inspect none HUD and wire omit both playIds; home inspect omits away", () => {
+    const world = worldWithPlays();
+    expect(maybeInspectState(world, "none")).toBeUndefined();
+    expect(formatInspectHud("none", inspectState(world, "home"))).toBe(PLAY_NAME_HIDDEN);
+    const noneMsgs = tickMessages(world, "none", world.lastEvents);
+    expect(noneMsgs.some((m) => m.type === "inspect")).toBe(false);
+    expect(JSON.stringify(noneMsgs)).not.toContain(HOME_PLAY);
+    expect(JSON.stringify(noneMsgs)).not.toContain(AWAY_PLAY);
+    expect(opponentPlayLeak(noneMsgs, "none", world.playId)).toEqual([]);
+
+    const homeMsgs = tickMessages(world, "home", []);
+    const inspect = homeMsgs.find((m) => m.type === "inspect");
+    expect(inspect?.type).toBe("inspect");
+    if (inspect?.type !== "inspect") throw new Error("expected inspect");
+    expect(formatInspectHud("home", inspect)).not.toContain(AWAY_PLAY);
+    expect(formatInspectHud("home", inspect)).not.toContain(HOME_PLAY);
+    expect(JSON.stringify(inspect)).not.toContain(AWAY_PLAY);
+    expect(opponentPlayLeak(homeMsgs, "home", world.playId)).toEqual([]);
+    expect(denylistHits(homeMsgs)).toEqual([]);
+  });
+
+  it("match_start may set noLlm false without leaking playbooks or keys", () => {
+    const msg = MatchStartSchema.parse({
+      type: "match_start",
+      matchId: "live-1",
+      home: { id: "original-six", name: "Harbor Originals" },
+      away: { id: "expansion", name: "Frontier Expansion" },
+      seed: 42,
+      periodSeconds: 5,
+      noLlm: false,
+    });
+    expect(msg.noLlm).toBe(false);
+    const json = JSON.stringify(msg);
+    expect(json).not.toContain("playbooks");
+    expect(json).not.toContain("XAI_API_KEY");
+    expect(json).not.toContain(HOME_PLAY);
+    expect(denylistHits(msg)).toEqual([]);
   });
 });

@@ -10,6 +10,27 @@ const errEl = document.getElementById("err");
 const costEl = document.getElementById("cost");
 const btnStart = document.getElementById("btnStart");
 const btnStop = document.getElementById("btnStop");
+const useLlmEl = document.getElementById("useLlm");
+
+const PLAY_NAME_HIDDEN = "Play name hidden";
+const ZERO_COST = { usd: 0, promptTokens: 0, outputTokens: 0, homeCalls: 0, awayCalls: 0 };
+
+function formatHudUsd(usd) {
+  const n = Number.isFinite(usd) ? usd : 0;
+  if (n === 0) return "$0.00";
+  if (Math.abs(n) < 0.01) return `$${n.toFixed(4)}`;
+  return `$${n.toFixed(2)}`;
+}
+
+function formatCostHud(tick, noLlm) {
+  const line = `${formatHudUsd(tick.usd)} · ${tick.promptTokens}/${tick.outputTokens} tok · home ${tick.homeCalls} · away ${tick.awayCalls} calls`;
+  return noLlm ? `no-llm · ${line}` : line;
+}
+
+function formatInspectHud(inspectSide, inspect) {
+  if (inspectSide === "none" || !inspect || inspect.side !== inspectSide) return PLAY_NAME_HIDDEN;
+  return `${inspect.side} · ${inspect.playName} (${inspect.pressure})`;
+}
 
 const state = {
   inspectSide: "none",
@@ -18,6 +39,7 @@ const state = {
   ticker: [],
   running: false,
   ws: null,
+  noLlm: true,
 };
 
 function setErr(msg) {
@@ -45,7 +67,7 @@ function applyInspectUi() {
   document.querySelectorAll("[data-inspect]").forEach((el) => {
     el.classList.toggle("on", el.dataset.inspect === state.inspectSide);
   });
-  if (state.inspectSide === "none") playEl.textContent = "Play name hidden";
+  playEl.textContent = formatInspectHud(state.inspectSide);
 }
 
 function sendInspect() {
@@ -62,23 +84,22 @@ function onMessage(msg) {
       .replace(state.teams.away, `<span class="away">${state.teams.away}</span>`);
     paint();
   } else if (msg.type === "inspect") {
-    if (state.inspectSide === msg.side) {
-      playEl.textContent = `${msg.side} · ${msg.playName} (${msg.pressure})`;
-    }
+    playEl.textContent = formatInspectHud(state.inspectSide, msg);
   } else if (msg.type === "event") {
     state.ticker.unshift(`${msg.eventType} @ ${msg.liveTick}`);
     state.ticker = state.ticker.slice(0, 12);
     tickerEl.textContent = state.ticker.join(" · ");
   } else if (msg.type === "match_start") {
     state.teams = { home: msg.home.name, away: msg.away.name };
+    state.noLlm = msg.noLlm !== false;
     setRunning(true);
-    costEl.textContent = "no-llm · $0.00";
+    costEl.textContent = formatCostHud(ZERO_COST, state.noLlm);
     tickerEl.textContent = `Match ${msg.matchId} · period ${msg.periodSeconds}s · seed ${msg.seed}`;
   } else if (msg.type === "match_over") {
     setRunning(false);
     tickerEl.textContent = `Final ${msg.score.home}–${msg.score.away} (${msg.result})`;
   } else if (msg.type === "cost") {
-    costEl.textContent = `no-llm · $${Number(msg.usd).toFixed(2)} · calls ${msg.homeCalls}/${msg.awayCalls}`;
+    costEl.textContent = formatCostHud(msg, state.noLlm);
   }
 }
 
@@ -106,13 +127,31 @@ function connect() {
   };
 }
 
+async function refreshLlmGate() {
+  if (!useLlmEl) return;
+  try {
+    const res = await fetch("/api/health");
+    const json = await res.json().catch(() => ({}));
+    const on = Boolean(json.llmConfigured);
+    useLlmEl.disabled = !on;
+    if (!on) useLlmEl.checked = false;
+  } catch {
+    useLlmEl.disabled = true;
+    useLlmEl.checked = false;
+  }
+}
+
+function wantLlm() {
+  return Boolean(useLlmEl && useLlmEl.checked && !useLlmEl.disabled);
+}
+
 async function startMatch() {
   setErr("");
   const body = {
     home: document.getElementById("home").value,
     away: document.getElementById("away").value,
     seed: Number(document.getElementById("seed").value),
-    noLlm: true,
+    noLlm: !wantLlm(),
     periodSeconds: Number(document.getElementById("periodSeconds").value),
   };
   const res = await fetch("/api/match/start", {
@@ -151,4 +190,5 @@ document.querySelectorAll("[data-inspect]").forEach((el) => {
 window.addEventListener("resize", paint);
 applyInspectUi();
 paint();
+void refreshLlmGate();
 connect();

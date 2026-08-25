@@ -226,7 +226,7 @@ export async function listenAndServe(opts: ListenOpts = {}): Promise<Server> {
         away: event.away,
         seed: event.seed,
         periodSeconds: event.periodSeconds,
-        noLlm: true,
+        noLlm: event.noLlm,
       });
     } else if (event.type === "tick") {
       hub.broadcastTick(event.world, event.events, event.budget);

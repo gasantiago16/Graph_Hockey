@@ -82,7 +82,7 @@ export const MatchStartSchema = z.object({
   away: z.object({ id: z.string(), name: z.string() }),
   seed: z.number(),
   periodSeconds: z.number(),
-  noLlm: z.literal(true),
+  noLlm: z.boolean(),
 });
 export type MatchStart = z.infer<typeof MatchStartSchema>;
 
