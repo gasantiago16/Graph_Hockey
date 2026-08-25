@@ -48,7 +48,8 @@ export type TeamGraphStateType = {
   epochReason: string;
   epochKind: EpochKind;
   lastDirective: TeamDirective;
-  situation?: {
+  /** Classifier output. Channel cannot be named `situation` (node/channel clash). */
+  classifiedSituation?: {
     strength: string;
     zone: "DZ" | "NZ" | "OZ";
     scoreState: "leading" | "tied" | "trailing";
@@ -75,7 +76,9 @@ export type TeamGraphOutputType = {
   specialistMemos: SpecialistMemo[];
 };
 
-export type TeamGraphNode = (state: TeamGraphStateType) => Partial<TeamGraphStateType> | Promise<Partial<TeamGraphStateType>>;
+export type TeamGraphNode = (
+  state: TeamGraphStateType,
+) => Partial<TeamGraphStateType> | Promise<Partial<TeamGraphStateType>>;
 
 /**
  * StateSchema (not Annotation.Root). Zod 3.25's Standard Schema types omit
@@ -86,7 +89,7 @@ const fields = {
   epochReason: z.string(),
   epochKind: z.enum(["macro", "micro"]),
   lastDirective: Directive,
-  situation: z
+  classifiedSituation: z
     .object({
       strength: z.string(),
       zone: z.enum(["DZ", "NZ", "OZ"]),

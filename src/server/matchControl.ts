@@ -167,11 +167,13 @@ export function createMatchControl(opts: CreateMatchControlOpts): MatchControl {
           side: "home",
           playbook: homePlaybook,
           checkpointer: new MemorySaver(),
+          noLlm: true,
         });
         const awayGraph = compileTeamGraph({
           side: "away",
           playbook: awayPlaybook,
           checkpointer: new MemorySaver(),
+          noLlm: true,
         });
         const result = await runMatch({
           matchId,

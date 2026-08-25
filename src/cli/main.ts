@@ -22,7 +22,7 @@ Usage:
   gh footage --series ID [--compare i,j] [--json]
   gh engine-selftest
 
-simulate --no-llm runs two stub StateGraphs (no xAI) and writes events to SQLite.
+simulate --no-llm skips the grok-4.5 Head Coach and writes events to SQLite.
 replay resimulates from seed + stored DirectiveApplied events (zero LLM).
 
 CI / tests may set GRAPH_HOCKEY_PERIOD_SECONDS=5 so a match is not 36,000 ticks
@@ -103,11 +103,13 @@ async function cmdSimulate(argv: string[], env: EnvMap): Promise<number> {
       side: "home",
       playbook: homePlaybook,
       checkpointer: new MemorySaver(),
+      noLlm: true,
     });
     const awayGraph = compileTeamGraph({
       side: "away",
       playbook: awayPlaybook,
       checkpointer: new MemorySaver(),
+      noLlm: true,
     });
     return runMatch({
       matchId,
