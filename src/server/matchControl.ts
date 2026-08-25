@@ -147,8 +147,10 @@ export function createMatchControl(opts: CreateMatchControlOpts): MatchControl {
     const matchId = `live-${seed}-${Date.now().toString(36)}`;
     const homeRoster = loadTeam(home);
     const awayRoster = loadTeam(away);
-    const homePlaybook = latestPlaybook(opts.db, home)?.body ?? loadPlaybook(home);
-    const awayPlaybook = latestPlaybook(opts.db, away)?.body ?? loadPlaybook(away);
+    const homeRow = latestPlaybook(opts.db, home);
+    const awayRow = latestPlaybook(opts.db, away);
+    const homePlaybook = homeRow?.body ?? loadPlaybook(home);
+    const awayPlaybook = awayRow?.body ?? loadPlaybook(away);
 
     const controller = new AbortController();
     ac = controller;
@@ -199,6 +201,8 @@ export function createMatchControl(opts: CreateMatchControlOpts): MatchControl {
           signal: controller.signal,
           paceMs,
           noLlm,
+          homePlaybookVersion: homeRow?.version ?? 1,
+          awayPlaybookVersion: awayRow?.version ?? 1,
           models: noLlm
             ? { home: "none", away: "none" }
             : { home: config.coachModel, away: config.coachModel },

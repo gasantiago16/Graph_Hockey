@@ -1,13 +1,14 @@
 #!/usr/bin/env node
 import { MemorySaver } from "@langchain/langgraph";
-import { compileAarGraph, runPostMatchAar, sideResult } from "../aar/index.ts";
+import { compileAarGraph, parseAarMode, runPostMatchAar, sideResult } from "../aar/index.ts";
 import { compileTeamGraph } from "../agents/teamGraph.ts";
 import { loadConfig, type EnvMap } from "../config.ts";
 import { formatCostSummary } from "../llm/budgets.ts";
 import { hasInjectedChatModel, hasXaiApiKey } from "../llm/client.ts";
 import { defaultDbPath, openDb, type Db } from "../persist/db.ts";
 import { getAarReport, getMatch, type MatchResultLabel } from "../persist/matches.ts";
-import { ensureSeedPlaybooks, latestPlaybook } from "../persist/playbooks.ts";
+import { ensureSeedPlaybooks, latestPlaybook, listPlaybookVersions, resetPlaybookToSeed } from "../persist/playbooks.ts";
+import { diffPlaybooks, formatPlaybookDiff } from "../playbook/diff.ts";
 import { loadPlaybook, SEED_TEAM_IDS } from "../playbook/store.ts";
 import { runMatch } from "../orchestrator/match.ts";
 import { collectReplayEvents, eventStreamHash, replayMatch } from "../sim/replay.ts";
@@ -17,10 +18,10 @@ export const USAGE = `graph-hockey — competing LangGraph teams on a hockey rin
 
 Usage:
   gh --help
-  gh simulate [--home ID] [--away ID] [--seed N] [--no-llm] [--db PATH] [--match ID]
+  gh simulate [--home ID] [--away ID] [--seed N] [--no-llm] [--aar-mode auto|propose] [--db PATH] [--match ID]
   gh replay --match ID [--to-tick N] [--db PATH]
   gh aar --match ID [--side home|away] [--aar-mode auto|propose|hitl]
-  gh playbook --team ID [--diff] [--version N]
+  gh playbook --team ID [--diff] [--version N] [--reset-playbook]
   gh series --games N --home ID --away ID [--seed N]
   gh footage --match ID
   gh footage --series ID [--compare i,j] [--json]
@@ -28,9 +29,12 @@ Usage:
 
 simulate --no-llm skips grok-4.5 / grok-4.3 and writes events to SQLite.
 Without --no-llm, live epochs call xAI (needs XAI_API_KEY) and print a cost summary.
-AAR runs after every result; --no-llm skips AAR LLM and stores a code-only digest.
+AAR runs after every result; default --aar-mode auto applies capped playbook patches.
+--aar-mode propose writes the AAR JSON and does not bump playbook versions.
+--no-llm skips AAR LLM, stores a code-only digest, and never mutates playbooks.
 replay resimulates from seed + stored DirectiveApplied events (zero LLM).
 aar dumps stored reports or re-runs the AAR graph (--no-llm for code-only).
+playbook --diff prints version N vs N-1 (latest by default). --reset-playbook restores the seed.
 
 CI / tests may set GRAPH_HOCKEY_PERIOD_SECONDS=5 so a match is not 36,000 ticks
 (default regulation is 3×1200s). GRAPH_HOCKEY_OT_SECONDS is optional; when the
@@ -100,13 +104,16 @@ async function cmdSimulate(argv: string[], env: EnvMap): Promise<number> {
   const seed = parseSeed(argv);
   const homeTeamId = parseTeam(argv, "home", "original-six");
   const awayTeamId = parseTeam(argv, "away", "expansion");
+  const aarMode = parseAarMode(opt(argv, "aar-mode"));
   const dbPath = opt(argv, "db") ?? defaultDbPath();
   const matchId = opt(argv, "match") ?? `sim-${seed}-${Date.now().toString(36)}`;
 
   const result = await withDb(dbPath, async (db) => {
     ensureSeedPlaybooks(db);
-    const homePlaybook = latestPlaybook(db, homeTeamId)?.body ?? loadPlaybook(homeTeamId);
-    const awayPlaybook = latestPlaybook(db, awayTeamId)?.body ?? loadPlaybook(awayTeamId);
+    const homeRow = latestPlaybook(db, homeTeamId);
+    const awayRow = latestPlaybook(db, awayTeamId);
+    const homePlaybook = homeRow?.body ?? loadPlaybook(homeTeamId);
+    const awayPlaybook = awayRow?.body ?? loadPlaybook(awayTeamId);
     const homeGraph = compileTeamGraph({
       side: "home",
       playbook: homePlaybook,
@@ -133,6 +140,9 @@ async function cmdSimulate(argv: string[], env: EnvMap): Promise<number> {
       periodSeconds: cfg.periodSeconds,
       otSeconds: cfg.otSeconds,
       noLlm,
+      aarMode,
+      homePlaybookVersion: homeRow?.version ?? 1,
+      awayPlaybookVersion: awayRow?.version ?? 1,
       models: noLlm ? { home: "none", away: "none" } : { home: cfg.coachModel, away: cfg.coachModel },
     });
   });
@@ -241,6 +251,7 @@ async function cmdAar(argv: string[], env: EnvMap): Promise<number> {
   }
   const noLlm = flag(argv, "no-llm");
   const dump = flag(argv, "dump");
+  const aarMode = parseAarMode(opt(argv, "aar-mode"));
   if (!noLlm && !dump && !hasXaiApiKey(env) && !hasInjectedChatModel()) {
     console.error("gh aar: live AAR needs XAI_API_KEY (or pass --no-llm / --dump)");
     return 1;
@@ -274,6 +285,7 @@ async function cmdAar(argv: string[], env: EnvMap): Promise<number> {
       homePlaybook,
       awayPlaybook,
       noLlm,
+      aarMode,
       graph: noLlm ? undefined : compileAarGraph({ db, checkpointer: new MemorySaver(), noLlm: false }),
     });
     const picked = sides.map((side) => ({ side, result: sideResult(asMatchResultLabel(row.result), side), report: both[side] }));
@@ -285,6 +297,81 @@ async function cmdAar(argv: string[], env: EnvMap): Promise<number> {
         const dropped = p.report.rejectedOps?.length ?? 0;
         console.log(`aar ${matchId} ${p.side} ${p.result} ops=${ops} rejected=${dropped}`);
         if (p.report.actualSummary) console.log(p.report.actualSummary);
+      }
+    }
+    return 0;
+  });
+}
+
+async function cmdPlaybook(argv: string[], env: EnvMap): Promise<number> {
+  loadConfig(env);
+  const teamId = opt(argv, "team");
+  if (!teamId) {
+    console.error("gh playbook: --team ID is required");
+    return 1;
+  }
+  if (!(SEED_TEAM_IDS as readonly string[]).includes(teamId)) {
+    console.error(`gh playbook: unknown team '${teamId}' (expected ${SEED_TEAM_IDS.join("|")})`);
+    return 1;
+  }
+  const dbPath = opt(argv, "db") ?? defaultDbPath();
+  const versionRaw = opt(argv, "version");
+  const wantDiff = flag(argv, "diff");
+  const wantReset = flag(argv, "reset-playbook");
+  const asJson = flag(argv, "json");
+
+  return withDb(dbPath, async (db) => {
+    ensureSeedPlaybooks(db);
+    if (wantReset) {
+      const row = resetPlaybookToSeed(db, teamId);
+      if (asJson) console.log(JSON.stringify({ teamId, version: row.version, reset: true }));
+      else console.log(`playbook ${teamId} reset to seed v${row.version}`);
+      return 0;
+    }
+    const versions = listPlaybookVersions(db, teamId);
+    const latest = versions.at(-1);
+    if (!latest) {
+      console.error(`gh playbook: no playbook for ${teamId}`);
+      return 1;
+    }
+    let target = latest;
+    if (versionRaw !== undefined) {
+      const v = Number.parseInt(versionRaw, 10);
+      const hit = versions.find((r) => r.version === v);
+      if (!hit) {
+        console.error(`gh playbook: no ${teamId} version ${versionRaw}`);
+        return 1;
+      }
+      target = hit;
+    }
+    if (wantDiff) {
+      const from = versions.find((r) => r.version === target.version - 1) ?? versions[0]!;
+      const diff = diffPlaybooks(from.body, target.body);
+      diff.fromVersion = from.version;
+      diff.toVersion = target.version;
+      if (asJson) console.log(JSON.stringify(diff, null, 2));
+      else console.log(formatPlaybookDiff(diff));
+      return 0;
+    }
+    const payload = {
+      teamId: target.body.teamId,
+      version: target.version,
+      parentVersion: target.parentVersion,
+      aarMatchId: target.aarMatchId,
+      plays: target.body.plays.map((p) => ({
+        id: p.id,
+        name: p.name,
+        status: p.status,
+        version: p.version,
+        origin: p.origin,
+        stats: p.stats,
+      })),
+    };
+    if (asJson) console.log(JSON.stringify(payload, null, 2));
+    else {
+      console.log(`playbook ${payload.teamId} v${payload.version}  plays=${payload.plays.length}`);
+      for (const p of payload.plays) {
+        console.log(`  ${p.status.padEnd(12)} ${p.id}  ${p.name}`);
       }
     }
     return 0;
@@ -311,6 +398,8 @@ export async function main(argv: string[], env: EnvMap = process.env): Promise<n
         return await cmdReplay(rest, env);
       case "aar":
         return await cmdAar(rest, env);
+      case "playbook":
+        return await cmdPlaybook(rest, env);
       default:
         console.error(`gh ${cmd}: not implemented yet`);
         return 1;

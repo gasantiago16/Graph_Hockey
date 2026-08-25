@@ -42,7 +42,9 @@ export {
   insertPlaybook,
   insertScoutNote,
   latestPlaybook,
+  listPlaybookVersions,
   listScoutNotes,
+  resetPlaybookToSeed,
   type PlaybookRow,
 } from "./playbooks.ts";
 export { getRecording, insertClip, insertRecording, listClips, type RecordingRow } from "./clips.ts";

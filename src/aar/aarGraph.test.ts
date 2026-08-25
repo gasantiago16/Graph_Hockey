@@ -14,7 +14,6 @@ import {
   lensRouter,
   type CompiledAarGraph,
 } from "./aarGraph.ts";
-import { applyAarRevision } from "./apply.ts";
 
 const book = loadPlaybook("original-six");
 
@@ -169,15 +168,5 @@ describe("compileAarGraph", () => {
     expect(factory).not.toHaveBeenCalled();
     expect(out.actualSummary).toBeTruthy();
     expect(out.revision?.ops ?? []).toEqual([]);
-  });
-});
-
-describe("apply stub", () => {
-  it("does not mutate playbooks", () => {
-    const rev: PlaybookRevision = {
-      summary: "x",
-      ops: [{ op: "boost", playId: "5v5-122-forecheck", reason: "r", eventIds: ["m:3"] }],
-    };
-    expect(applyAarRevision(rev)).toEqual({ applied: false, ops: rev.ops, revision: rev });
   });
 });

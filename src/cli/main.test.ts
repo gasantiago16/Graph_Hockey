@@ -23,6 +23,8 @@ describe("gh CLI", () => {
       expect(printed).toContain("playbook");
       expect(printed).toContain("series");
       expect(printed).toContain("footage");
+      expect(printed).toContain("--aar-mode");
+      expect(printed).toContain("--reset-playbook");
       expect(printed).toContain("GRAPH_HOCKEY_PERIOD_SECONDS");
       expect(USAGE).toContain("xAI only");
     } finally {
@@ -147,6 +149,46 @@ describe("gh CLI", () => {
       expect(aarOut.reports).toHaveLength(2);
       expect(aarOut.reports[0]?.report?.body.noLlm).toBe(true);
       expect(aarOut.reports[0]?.report?.body.actualSummary).toBeTruthy();
+
+      log.mockClear();
+      const bookCode = await main(
+        ["playbook", "--team", "original-six", "--db", dbPath, "--json"],
+        env,
+      );
+      expect(bookCode).toBe(0);
+      const bookOut = JSON.parse(String(log.mock.calls.at(-1)?.[0])) as { version: number; teamId: string };
+      expect(bookOut.teamId).toBe("original-six");
+      expect(bookOut.version).toBe(1);
+
+      log.mockClear();
+      const diffCode = await main(
+        ["playbook", "--team", "original-six", "--diff", "--db", dbPath, "--json"],
+        env,
+      );
+      expect(diffCode).toBe(0);
+      const diffOut = JSON.parse(String(log.mock.calls.at(-1)?.[0])) as {
+        fromVersion: number;
+        toVersion: number;
+        changed: unknown[];
+      };
+      expect(diffOut.fromVersion).toBe(1);
+      expect(diffOut.toVersion).toBe(1);
+      expect(diffOut.changed).toEqual([]);
+    } finally {
+      log.mockRestore();
+    }
+  });
+
+  it("playbook --reset-playbook restores seed version 1", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "gh-pr14-"));
+    const dbPath = join(dir, "graph-hockey.sqlite");
+    const log = vi.spyOn(console, "log").mockImplementation(() => {});
+    try {
+      expect(await main(["playbook", "--team", "original-six", "--db", dbPath, "--json"], {})).toBe(0);
+      expect(await main(["playbook", "--team", "original-six", "--reset-playbook", "--db", dbPath, "--json"], {})).toBe(0);
+      const out = JSON.parse(String(log.mock.calls.at(-1)?.[0])) as { version: number; reset: boolean };
+      expect(out.version).toBe(1);
+      expect(out.reset).toBe(true);
     } finally {
       log.mockRestore();
     }

@@ -1,4 +1,5 @@
 import { setTimeout as delay } from "node:timers/promises";
+import type { AarMode } from "../aar/apply.ts";
 import { runPostMatchAar } from "../aar/runAar.ts";
 import type { CompiledTeamGraph } from "../agents/teamGraph.ts";
 import { DEFAULT_COACH_MODEL, DEFAULT_FAST_MODEL } from "../config.ts";
@@ -44,6 +45,8 @@ export type MatchOptions = {
   paceMs?: number;
   /** When true, persist model "none" and skip cost-bearing labels. */
   noLlm?: boolean;
+  /** Default auto-apply with caps. propose writes AAR JSON and does not bump playbooks. */
+  aarMode?: AarMode;
   models?: { home: string; away: string };
 };
 
@@ -216,6 +219,7 @@ export async function runMatch(opts: MatchOptions): Promise<MatchResult> {
     awayPlaybook: opts.awayPlaybook,
     events,
     noLlm,
+    aarMode: opts.aarMode,
     budget,
     signal: opts.signal,
   });

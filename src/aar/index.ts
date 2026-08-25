@@ -9,7 +9,16 @@ export {
   type AarGraphInvokeInput,
 } from "./aarGraph.ts";
 export { AarGraphInput, AarGraphOutput, AarGraphState } from "./state.ts";
-export { applyAarRevision, persistAarReport } from "./apply.ts";
+export {
+  AAR_MODES,
+  applyAarRevision,
+  applyRevision,
+  parseAarMode,
+  persistAarReport,
+  shouldApplyRevision,
+  type AarMode,
+  type ApplyAarResult,
+} from "./apply.ts";
 export {
   codeOnlyAarReport,
   runAarForSide,

@@ -39,3 +39,26 @@ export {
   playSimilarity,
   tooSimilar,
 } from "./similarity.ts";
+export {
+  AAR_MUTATION_REJECTED,
+  BOOST_XG,
+  MAX_LOSER_TWEAK_ASSIGNMENT,
+  MAX_MINTS_PER_AAR,
+  MAX_MUTATIONS_PER_AAR,
+  MAX_RETIRES_PER_AAR,
+  NERF_XG,
+  PLAY_NAME_RE,
+  RETIRE_CATASTROPHIC_SECONDS,
+  RETIRE_CATASTROPHIC_XG,
+  RETIRE_MIN_GAMES,
+  applyPlaybookRevision,
+  dedupMint,
+  mintAllowed,
+  retireAllowed,
+  slugifyPlayId,
+  type MutateContext,
+  type MutateMintCluster,
+  type MutatePlayUsage,
+  type MutateResult,
+} from "./mutate.ts";
+export { diffPlaybooks, formatPlaybookDiff, type PlaybookDiff, type PlaybookDiffEntry } from "./diff.ts";

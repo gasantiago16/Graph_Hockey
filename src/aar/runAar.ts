@@ -8,7 +8,7 @@ import type { MatchEvent } from "../types/events.ts";
 import type { Side } from "../types/hockey.ts";
 import type { Playbook, PlaybookRevision } from "../types/play.ts";
 import { AAR_RECURSION_LIMIT, aarThreadId, compileAarGraph, type CompiledAarGraph } from "./aarGraph.ts";
-import { persistAarReport } from "./apply.ts";
+import { applyAarRevision, persistAarReport, shouldApplyRevision, type AarMode } from "./apply.ts";
 import { computeActual } from "./nodes/actual.ts";
 import { codeIntentSummary } from "./nodes/intent.ts";
 
@@ -88,6 +88,8 @@ export type PostMatchAarOpts = {
   awayPlaybook: Playbook;
   events?: MatchEvent[];
   noLlm?: boolean;
+  /** Default auto. propose/hitl persist the report and do not bump playbook versions. */
+  aarMode?: AarMode;
   budget?: MatchBudget;
   graph?: CompiledAarGraph;
   signal?: AbortSignal;
@@ -119,9 +121,36 @@ export async function runAarForSide(
   return reportFromOutput({ matchId: opts.matchId, side: opts.side, result }, out, { noLlm: opts.noLlm });
 }
 
+function finalizeSide(
+  opts: PostMatchAarOpts,
+  playbook: Playbook,
+  report: AarReport,
+  events: MatchEvent[],
+): AarReport {
+  const noLlm = opts.noLlm === true;
+  if (!shouldApplyRevision({ noLlm, aarMode: opts.aarMode })) {
+    persistAarReport(opts.db, report, false);
+    return report;
+  }
+  const out = applyAarRevision({
+    db: opts.db,
+    teamId: playbook.teamId,
+    playbook,
+    report,
+    mode: opts.aarMode ?? "auto",
+    events,
+    noLlm,
+  });
+  return {
+    ...report,
+    revision: out.revision,
+    rejectedOps: out.rejectedOps,
+  };
+}
+
 /**
  * Invoked twice after every result. `--no-llm` skips grok-4.5 and writes a code digest.
- * Does not apply PlaybookRevision (PR 14).
+ * Auto-apply (default) writes playbook version N+1 unless `--aar-mode propose` / noLlm.
  */
 export async function runPostMatchAar(opts: PostMatchAarOpts): Promise<{ home: AarReport; away: AarReport }> {
   const events = opts.events ?? listEvents(opts.db, opts.matchId);
@@ -151,7 +180,8 @@ export async function runPostMatchAar(opts: PostMatchAarOpts): Promise<{ home: A
   const graph = opts.graph ?? compileAarGraph({ db: opts.db, checkpointer: new MemorySaver(), noLlm: false });
   const home = await runAarForSide({ ...opts, side: "home", playbook: opts.homePlaybook, graph, events });
   const away = await runAarForSide({ ...opts, side: "away", playbook: opts.awayPlaybook, graph, events });
-  persistAarReport(opts.db, home, false);
-  persistAarReport(opts.db, away, false);
-  return { home, away };
+  return {
+    home: finalizeSide(opts, opts.homePlaybook, home, events),
+    away: finalizeSide(opts, opts.awayPlaybook, away, events),
+  };
 }

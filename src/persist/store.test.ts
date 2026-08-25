@@ -6,7 +6,7 @@ import { openMemoryDb } from "./db.ts";
 import { insertEvents, listEvents, listEpochInvocations, loadDirectivesByTick, persistEpoch } from "./events.ts";
 import { insertImprovementRow, listImprovement } from "./improvement.ts";
 import { getMatch, insertAarReport, insertMatch, loadOpeningSnapshot } from "./matches.ts";
-import { ensureSeedPlaybooks, getPlaybook } from "./playbooks.ts";
+import { ensureSeedPlaybooks, getPlaybook, insertPlaybook, latestPlaybook, listPlaybookVersions, resetPlaybookToSeed } from "./playbooks.ts";
 import { makeOpeningSnapshot } from "./snapshot.ts";
 
 describe("persist matches/events", () => {
@@ -100,6 +100,28 @@ describe("persist matches/events", () => {
       expect(book?.body.plays[0]?.id).toBe("5v5-122-forecheck");
       ensureSeedPlaybooks(db);
       expect(getPlaybook(db, "original-six", 1)?.version).toBe(1);
+    } finally {
+      db.close();
+    }
+  });
+
+  it("resetPlaybookToSeed drops later versions", async () => {
+    const db = await openMemoryDb();
+    try {
+      ensureSeedPlaybooks(db);
+      const seed = getPlaybook(db, "original-six", 1)!;
+      insertPlaybook(db, {
+        teamId: "original-six",
+        version: 2,
+        body: { ...seed.body, version: 2 },
+        parentVersion: 1,
+        aarMatchId: "m1",
+      });
+      expect(listPlaybookVersions(db, "original-six")).toHaveLength(2);
+      const restored = resetPlaybookToSeed(db, "original-six");
+      expect(restored.version).toBe(1);
+      expect(latestPlaybook(db, "original-six")?.version).toBe(1);
+      expect(listPlaybookVersions(db, "original-six")).toHaveLength(1);
     } finally {
       db.close();
     }

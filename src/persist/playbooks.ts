@@ -57,6 +57,31 @@ export function latestPlaybook(db: Db, teamId: string): PlaybookRow | undefined 
   return row ? rowToPlaybook(row) : undefined;
 }
 
+export function listPlaybookVersions(db: Db, teamId: string): PlaybookRow[] {
+  return db
+    .prepare("SELECT * FROM playbooks WHERE team_id = ? ORDER BY version ASC")
+    .all<PlaybookSqlRow>(teamId)
+    .map(rowToPlaybook);
+}
+
+/** Drop versions and restore seed JSON as version 1. */
+export function resetPlaybookToSeed(db: Db, teamId: string): PlaybookRow {
+  if (!(SEED_TEAM_IDS as readonly string[]).includes(teamId)) {
+    throw new Error(`unknown team '${teamId}'`);
+  }
+  db.prepare("DELETE FROM playbooks WHERE team_id = ?").run(teamId);
+  const body = loadPlaybook(teamId);
+  const row: PlaybookRow = {
+    teamId,
+    version: 1,
+    body: { ...body, version: 1 },
+    parentVersion: null,
+    aarMatchId: null,
+  };
+  insertPlaybook(db, row);
+  return row;
+}
+
 /** Copy JSON seeds into `playbooks(team, version=1)` when missing. */
 export function ensureSeedPlaybooks(db: Db): void {
   for (const teamId of SEED_TEAM_IDS) {
