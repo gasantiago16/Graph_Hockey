@@ -4,14 +4,14 @@ Two **LangGraph.js** teams compete in a realistic hockey game. After every win, 
 
 This is a **localhost Node.js browser game**. The server owns physics, rules, both team graphs, and LLM calls. The browser is a Canvas 2D spectator — it never scores a goal, never sees the opponent's playbook, and **never receives `*_API_KEY`**.
 
-**Status:** private repo + approved design + **watchable `--no-llm` rink** + Film Room demo. Implementation follows the PR plan in [`docs/DESIGN.md`](docs/DESIGN.md).
+**Status:** private repo, **`main` is playable**. Ice F1 actually shoots. Live Head Coach finishes the epoch (HC → assemble). AAR applies even if the LLM times out. Film Room is resimulation; `gh footage --mp4` is a derivative for a human inbox. Handbook: [`docs/FORgasan.md`](docs/FORgasan.md). Way forward is in that file, section 10.
 
 ## What you are looking at
 
 | Layer | Job |
 | --- | --- |
 | Deterministic engine | 10 Hz NHL-sized 2D rink, 5v5 + goalie, faceoffs, icing, offside, penalties, PP/PK |
-| Two team LangGraphs | Head Coach + OC / DC / special teams / goalie / scout / captain |
+| Two team LangGraphs | Head Coach (live macro) + compiled specialists (opt-in). Captain still runs micro. |
 | Match orchestrator | Ticks the world, hides private state, collects tactical directives |
 | AAR graph | Military-style review after **every** result; cited playbook mutations with caps |
 | Browser | Watch the rink, scoreboard, event ticker, AAR, playbook diffs, start a 7-game series |
@@ -36,6 +36,7 @@ See the design doc for the full tree. High level:
 
 ```
 src/engine/         deterministic world + rules
+src/ice/            F1/F2/F3 roles every tick (code, not a graph)
 src/agents/         team StateGraphs (home vs away)
 src/aar/            post-game AAR graph
 src/playbook/       structured plays + capped mutations
@@ -44,7 +45,7 @@ src/sim/            LLM-free replay (resimulation)
 src/orchestrator/   match loop
 src/server/         Fastify + WS
 src/web/            Canvas 2D rink + HUD + Film Room
-src/film/           auto-clips, pairing, improvement ledger
+src/film/           auto-clips, pairing, improvement ledger, optional MP4 export
 src/cli/            `gh` headless CLI
 src/config.ts       env defaults (boots without keys)
 ```
@@ -142,7 +143,7 @@ npm run gh -- series --games 7 --no-llm --seed 100 --home original-six --away ex
 
 ## Review footage (available now)
 
-Every finished match is **auto-recorded** as deterministic game film (resimulation — no MP4). `--no-record` skips the clip index (CI goldens). The Film Room:
+Every finished match is **auto-recorded** as deterministic game film (**resimulation** is canonical). `--no-record` skips the clip index (CI goldens). Optional derivative: `gh footage --match ID --mp4` writes `data/film-export/` (gitignored; needs `ffmpeg`). The Film Room:
 
 - builds clips around goals, chances, turnovers, penalties, and AAR citations
 - plays them on the same Canvas rink (scrub, 0.25×–2×)
@@ -159,8 +160,13 @@ npm run film
 # after a match: http://127.0.0.1:8787/film?match=ID
 # after a series: http://127.0.0.1:8787/film?series=ID
 npx tsx src/cli/main.ts footage --match ID
+npx tsx src/cli/main.ts footage --match ID --mp4
 npx tsx src/cli/main.ts footage --series ID --compare 0,6
 ```
+
+## Way forward
+
+Live-52 (Grok vs Muse, 3×60s): **Expansion 3–1**, opening plays `5v5-122-forecheck` vs `stretch-pass-nz`, **211/212 epochs ok**, AAR applied (books v3/v5). Next: shot cooldown, captain-micro timeouts, offside rate, goalie-as-scorer audit, then a 7-game LLM series. Details: [`docs/FORgasan.md`](docs/FORgasan.md#where-to-go-next).
 
 ## Implementation order
 

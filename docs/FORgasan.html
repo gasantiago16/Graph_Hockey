@@ -197,7 +197,7 @@
         <div>
           <span class="badge">FORME</span>
           <span class="badge">Graph_Hockey</span>
-          <span class="badge">v1 M4</span>
+          <span class="badge">main playable</span>
         </div>
         <h1>FORgasan — Graph_Hockey</h1>
         <p class="lede" style="color:#c5d0db;margin:0">Two LangGraphs, one referee that is not an LLM, and a film room that records whether they actually got better.</p>
@@ -208,9 +208,9 @@
 
     <div class="stat-row">
       <div class="stat"><span class="v">10 Hz</span><span class="l">engine tick</span></div>
-      <div class="stat"><span class="v">297</span><span class="l">tests, no live xAI</span></div>
-      <div class="stat"><span class="v">3</span><span class="l">compiled graphs</span></div>
-      <div class="stat"><span class="v">7</span><span class="l">game series default</span></div>
+      <div class="stat"><span class="v">365</span><span class="l">tests, no live vendor</span></div>
+      <div class="stat"><span class="v">3–1</span><span class="l">live-52 Muse win</span></div>
+      <div class="stat"><span class="v">211/212</span><span class="l">epochs ok</span></div>
       <div class="stat"><span class="v">8787</span><span class="l">localhost port</span></div>
     </div>
 
@@ -239,7 +239,7 @@
           <div class="vcard"><span class="tag">Law</span><h4>Engine is the referee</h4><p><code>advanceWorld</code> is the only mutator of puck and bodies.</p></div>
           <div class="vcard"><span class="tag">Law</span><h4>Graphs are staff</h4><p>Head Coach + OC / DC / ST / goalie / scout / captain — not the six skaters.</p></div>
           <div class="vcard"><span class="tag">Law</span><h4>Learning is data</h4><p>Plays are JSON. AAR emits capped patches, not a longer prompt.</p></div>
-          <div class="vcard"><span class="tag">Law</span><h4>Film is resimulation</h4><p>Same seed + stored directives. No MP4 pipeline.</p></div>
+          <div class="vcard"><span class="tag">Law</span><h4>Film is resimulation</h4><p>Same seed + stored directives. MP4 is mail, not the log.</p></div>
         </div>
       </section>
 
@@ -248,7 +248,8 @@
         <p>Think basement → ice → benches → film room, not a dump of paths. LangGraph is the skill; the folders force the lesson: <strong>graphs propose, code disposes.</strong></p>
         <div class="card-grid cols-3">
           <div class="vcard"><span class="tag">Basement</span><h4><code>src/engine/</code></h4><p>200×85 ft, 10 Hz Euler, icing/offside/goals, fatigue. Not a StateGraph.</p></div>
-          <div class="vcard"><span class="tag">Benches</span><h4><code>src/agents/</code></h4><p>Two compiles. <code>Send</code> fan-out. Per-epoch <code>thread_id</code>.</p></div>
+          <div class="vcard"><span class="tag">Skaters</span><h4><code>src/ice/</code></h4><p>F1/F2/F3/Ds/Dw/G every tick. Shoot / pass / clear. Code, not a graph.</p></div>
+          <div class="vcard"><span class="tag">Benches</span><h4><code>src/agents/</code></h4><p>Two compiles. Live macro: Head Coach → assemble. Specialists opt-in.</p></div>
           <div class="vcard"><span class="tag">Referee</span><h4><code>src/orchestrator/</code></h4><p>Tick, mirrored observe, invoke. Never an LLM.</p></div>
           <div class="vcard"><span class="tag">Memory</span><h4><code>playbook/</code> + <code>persist/</code></h4><p>Seed books, sql.js events, replay resimulation.</p></div>
           <div class="vcard"><span class="tag">After hours</span><h4><code>src/aar/</code></h4><p>Third graph. Actual is code. <code>cite_check</code> drops vibes.</p></div>
@@ -276,7 +277,7 @@
             <text x="546" y="55" fill="#e8eef5" text-anchor="middle" font-size="12" font-family="Segoe UI, sans-serif">advanceWorld</text>
             <rect x="80" y="120" width="160" height="56" rx="8" fill="#151d28" stroke="#fbbf24"/>
             <text x="160" y="144" fill="#e8eef5" text-anchor="middle" font-size="12" font-family="Segoe UI, sans-serif">homeTeamGraph</text>
-            <text x="160" y="160" fill="#93a1b0" text-anchor="middle" font-size="10" font-family="Segoe UI, sans-serif">HC + Send specialists</text>
+            <text x="160" y="160" fill="#93a1b0" text-anchor="middle" font-size="10" font-family="Segoe UI, sans-serif">HC → assemble (live)</text>
             <rect x="400" y="120" width="160" height="56" rx="8" fill="#151d28" stroke="#fbbf24"/>
             <text x="480" y="144" fill="#e8eef5" text-anchor="middle" font-size="12" font-family="Segoe UI, sans-serif">awayTeamGraph</text>
             <text x="480" y="160" fill="#93a1b0" text-anchor="middle" font-size="10" font-family="Segoe UI, sans-serif">private playbook</text>
@@ -292,7 +293,7 @@
           </svg>
           <p class="diagram-caption">Two team graphs never share a thread. AAR is a third compile that may only patch what the log can cite.</p>
         </div>
-        <p>Team compile path: <code>START → ingest → situation → retrieve_plays → (macro) head_coach ⇉ Send specialists → assemble → validate → END</code>. Micro skips <code>grok-4.5</code> and hits Captain only. Empty specialist list still assembles — there is no <code>route_specialists</code> node.</p>
+        <p>Team compile path: <code>START → ingest → situation → retrieve_plays → (macro) head_coach → assemble → validate → END</code>. Live macro does not <code>Send[]</code> specialists (opt-in). Micro still hits Captain only. There is no <code>route_specialists</code> node.</p>
       </section>
 
       <section id="tech">
@@ -308,6 +309,7 @@
             <tr><td>sql.js WASM</td><td>No VS Build Tools / native CI addons</td><td>Adapter in <code>src/persist/db.ts</code></td></tr>
             <tr><td>Node <code>http</code> + <code>ws</code></td><td>Localhost only</td><td>Origin-locked loopback</td></tr>
             <tr><td>Canvas 2D</td><td>No second clock (Phaser)</td><td>Plot circles on ice</td></tr>
+            <tr><td><code>@napi-rs/canvas</code> + ffmpeg</td><td>Boss-inbox MP4</td><td>Derivative; Film Room stays canonical</td></tr>
           </tbody>
         </table>
         <p>We did not pick Unity, OpenAI-as-provider, or RL. Those hide LangGraph or bankrupt the token budget.</p>
@@ -315,13 +317,13 @@
 
       <section id="talk">
         <h2><span class="n">5</span> How the parts talk to each other</h2>
-        <div class="flow-step"><div class="flow-dot">1</div><div class="flow-body"><strong>advanceWorld</strong> — integrate, steer from the current play, maybe whistle. Sole mutator.</div></div>
+        <div class="flow-step"><div class="flow-dot">1</div><div class="flow-body"><strong>advanceWorld</strong> — ice F1/F2/F3, steer, maybe release a pass/shot/clear, maybe whistle. Sole mutator.</div></div>
         <div class="flow-step"><div class="flow-dot">2</div><div class="flow-body"><strong>shouldDecide</strong> — per side: macro stoppage, micro (80 live ticks), or <code>playStillValid</code> skip. Valid play ⇒ that side pays zero tokens.</div></div>
         <div class="flow-step"><div class="flow-dot">3</div><div class="flow-body"><strong>observe</strong> — mirror so you attack +X. Home + away <code>puck.x</code> ≈ 0. No opponent <code>playId</code>.</div></div>
-        <div class="flow-step"><div class="flow-dot">4</div><div class="flow-body"><strong>invokeTeam</strong> — never throws. Own 8s abort. Thread <code>match:{id}:team:{side}:epoch:{n}</code>.</div></div>
+        <div class="flow-step"><div class="flow-dot">4</div><div class="flow-body"><strong>invokeTeam</strong> — never throws. Live 12s abort (8s <code>--no-llm</code>). Timeout on <code>default-structure</code> seeds the book 5v5 play.</div></div>
         <div class="flow-step"><div class="flow-dot">5</div><div class="flow-body"><strong>validateDirective</strong> — playId from retrieved list only. Illegal extra attacker rejected.</div></div>
-        <div class="flow-step"><div class="flow-dot">6</div><div class="flow-body"><strong>AAR both sides</strong> — actual is code; <code>cite_check</code> drops uncited ops; auto-apply max 3. <code>--no-llm</code> does not mutate the book.</div></div>
-        <div class="flow-step"><div class="flow-dot">7</div><div class="flow-body"><strong>Film + series</strong> — auto clips; <code>gameSeed = seed + i</code>; ledger + paired G0 vs last on <code>/film?series=</code>.</div></div>
+        <div class="flow-step"><div class="flow-dot">6</div><div class="flow-body"><strong>AAR both sides</strong> — live timeout still <code>codeDraft</code>+cite and auto-applies. <code>--no-llm</code> still does not mutate.</div></div>
+        <div class="flow-step"><div class="flow-dot">7</div><div class="flow-body"><strong>Film</strong> — resimulation is canonical. <code>gh footage --mp4</code> is a derivative. Clip windows carry period because <code>liveTick</code> resets.</div></div>
       </section>
 
       <section id="scars">
@@ -363,6 +365,35 @@
           <div class="meta"><span class="k">What</span><span>Jaccard ≥ 0.7 refused Goal-against vs later Save on the same play — the film you wanted.</span></div>
           <div class="meta"><span class="k fix">Fix</span><span>Same playId + zone first; Jaccard prefer 0.7, fallback 0.3.</span></div>
         </div>
+        <div class="scar">
+          <h3>Scar 7 — Graphs that never shot</h3>
+          <div class="meta"><span class="k">What</span><span>live-50: 2–2, xG 0.00. Seed <code>shoot</code> ignored. Hunters stuffed the puck through their own net.</span></div>
+          <div class="meta"><span class="k">Root</span><span><code>maybeReleasePuck</code> needed an LLM overlay. Hunt walked the crease.</span></div>
+          <div class="meta"><span class="k fix">Fix</span><span><code>src/ice/</code> F1 hunt/pass/shoot/clear. Own crease is the goalie’s. Pass/clear are not Shot/xG.</span></div>
+          <div class="meta"><span class="k lesson">Lesson</span><span>If AAR needs xG, the environment must shoot without a coach.</span></div>
+        </div>
+        <div class="scar">
+          <h3>Scar 8 — AAR timeout learned nothing</h3>
+          <div class="meta"><span class="k">What</span><span>Live <code>applied: false</code> because 45s AAR died and wrote <code>ops: []</code>.</span></div>
+          <div class="meta"><span class="k fix">Fix</span><span>Timeout runs <code>codeDraft</code> + cite. Live auto-applies. <code>--no-llm</code> still persist-only.</span></div>
+          <div class="meta"><span class="k lesson">Lesson</span><span>Empty-ops fallback is a silent no-op, not a fallback.</span></div>
+        </div>
+        <div class="scar">
+          <h3>Scar 9 — Head Coach froze on <code>default-structure</code></h3>
+          <div class="meta"><span class="k">What</span><span>live-51: 1–0, 13 shots, all 24 epochs <code>default-structure</code>. Ice scored. Staff watched.</span></div>
+          <div class="meta"><span class="k">Root</span><span>Coach 6s + specialist Send[] ate the 12s abort. JSON retry. Timeout returned opening last forever.</span></div>
+          <div class="meta"><span class="k fix">Fix</span><span>HC → assemble. One structured call + signal. Timeout seeds the book 5v5 play. Specialists opt-in.</span></div>
+          <div class="meta"><span class="k lesson">Lesson</span><span>Fan-out that cannot finish inside abort is a DoS on your own coach.</span></div>
+        </div>
+        <div class="scar">
+          <h3>Scar 10 — 211 ok epochs, still a machine-gun</h3>
+          <div class="meta"><span class="k">What</span><span>live-52: Muse 3–1, real plays, 211/212 ok — and 118 Shot rows, 166 offsides, a HOME GOAL tagged <code>h-G</code>.</span></div>
+          <div class="meta"><span class="k lesson">Lesson</span><span>“The graph ran” is not hockey. Count distinct chances. Captain micro is the next 12s trap.</span></div>
+        </div>
+        <figure class="figure">
+          <img src="forme/f1-ice.jpg" alt="Night rink with one glowing F1 attacker and four dimmer support roles" />
+          <figcaption>F1 is code on every tick. The LangGraph is the bench. If F1 cannot shoot, AAR has nothing to cite.</figcaption>
+        </figure>
       </section>
 
       <section id="pitfalls">
@@ -370,7 +401,10 @@
         <div class="pitfall"><strong>Don’t</strong> LLM every tick. 36,000 × 12 is not a small experiment.</div>
         <div class="pitfall"><strong>Don’t</strong> return <code>Send[]</code> from a random node. Conditional edge or <code>Command.goto</code>, list <code>ends</code>, empty list still assembles.</div>
         <div class="pitfall"><strong>Don’t</strong> keep <code>MessagesValue</code> on a match-long thread. Per-epoch <code>thread_id</code> or period 3 is the whole game.</div>
-        <div class="pitfall"><strong>Don’t</strong> store 36k JSON frames. Replay is the footage; clips are the catalog.</div>
+        <div class="pitfall"><strong>Don’t</strong> store 36k JSON frames. Replay is the footage; MP4 is mail.</div>
+        <div class="pitfall"><strong>Don’t</strong> <code>Send[]</code> specialists on a 12s live epoch. Head Coach first, or abort freezes <code>default-structure</code>.</div>
+        <div class="pitfall"><strong>Don’t</strong> treat AAR timeout as empty ops. Live still has to apply a cited patch.</div>
+        <div class="pitfall"><strong>Don’t</strong> count Shot rows as skill until F1 cannot fire every tick at the same xG.</div>
         <div class="pitfall"><strong>Don’t</strong> mix lockfiles. This clone uses npm because pnpm died on corepack.</div>
         <div class="pitfall"><strong>Don’t</strong> bind <code>0.0.0.0</code> “for a demo.” Loopback is the product.</div>
         <div class="pitfall"><strong>Don’t</strong> name a node the same as a state channel in LangGraph.js.</div>
@@ -382,7 +416,7 @@
         <div class="habit-grid">
           <div class="habit"><strong>Referee in code</strong><span>Fairness is testable without an API key.</span></div>
           <div class="habit"><strong>Two compiles</strong><span>Not <code>side</code> on one graph. Hiding is structural.</span></div>
-          <div class="habit"><strong>297 tests, all faked LLM</strong><span><code>setCreateChatModel</code> / <code>FakeListChatModel</code>.</span></div>
+          <div class="habit"><strong>365 tests, all faked LLM</strong><span><code>setCreateChatModel</code> / <code>FakeListChatModel</code>.</span></div>
           <div class="habit"><strong>PR slices</strong><span>Engine → stubs → rink → coaches → AAR → series.</span></div>
           <div class="habit"><strong>Caps on learning</strong><span>Max 3 AAR ops, cited events, winner cannot retire a working play from one bounce.</span></div>
           <div class="habit"><strong>Golden hashes</strong><span><code>GRAPH_HOCKEY_PERIOD_SECONDS=5</code> keeps CI honest.</span></div>
@@ -403,20 +437,20 @@
         </div>
         <figure class="figure">
           <img src="forme/dual-film.jpg" alt="Dark film room with two monitors overlooking ice" />
-          <figcaption>Film Room is not a video encoder. It is the event log, resimulated, so AAR can point at ice instead of vibes.</figcaption>
+          <figcaption>Film Room is the event log, resimulated. <code>gh footage --mp4</code> is a derivative for a human inbox.</figcaption>
         </figure>
       </section>
 
       <section id="next">
         <h2><span class="n">10</span> Where to go next</h2>
         <ol class="next">
-          <li>Merge the playable branch <code>execute-plan/ffa7c1ff-pr-15b-…</code> to <code>main</code> when you want the default clone to be the game.</li>
-          <li>Put <code>XAI_API_KEY</code> in <code>.env</code> and check <strong>Use LLM</strong> — watch the cost HUD and AAR mint counters.</li>
-          <li>Run <code>npm run gh -- series --games 7</code> with the key; open <code>/film?series=</code> and see if 1-2-2 still dies to crash-net.</li>
-          <li>PR 16 stretch: LangGraph <code>interrupt()</code> HITL, off the default compile path.</li>
-          <li>Optional native <code>better-sqlite3</code> behind <code>src/persist/db.ts</code> once Build Tools exist.</li>
-          <li>Optional canvas interpolation (engine stays 10 Hz).</li>
-          <li>Keep <code>AGENTS.md</code> honest when you add nodes — new files should map to a Graph API concept.</li>
+          <li><strong>Stop the machine-gun.</strong> Cooldown or “one shot until a new possession.” live-52’s 118 Shot rows are not 118 chances.</li>
+          <li><strong>Captain micro budget.</strong> Offside/icing still times out captain. Skip the specialist or code-fallback; no JSON retry.</li>
+          <li><strong>Offside rate.</strong> 166 offsides in three 60s periods. Tune F1 dump/pass vs tagged-up F2.</li>
+          <li><strong>Goal attribution.</strong> live-52 HOME GOAL actor <code>h-G</code> in OZ. Audit <code>maybeGoal</code> + last contact.</li>
+          <li><strong>7-game series, Use LLM.</strong> <code>gh series --games 7 --home-provider xai --away-provider muse --period-seconds 60</code>. Open <code>/film?series=</code>.</li>
+          <li><strong>HITL later</strong> — LangGraph <code>interrupt()</code>, off the 12s clock.</li>
+          <li>Keep <code>AGENTS.md</code> honest: <code>src/ice/</code> is environment. MP4 is derivative.</li>
         </ol>
         <div class="callout">
           <strong>Glossary:</strong> Epoch = we bother the LLM. Directive = legal action sheet. Playbook = versioned JSON. <code>cite_check</code> = drop uncited ops. Resimulation = replay by running the engine again. Inspect = see one team’s play name.
@@ -425,7 +459,7 @@
     </main>
 
     <footer>
-      Generated 2026-08-25 · Source: <a href="FORgasan.md">FORgasan.md</a> · Visuals: <code>docs/forme/</code> · 297 tests · HITL not in v1
+      Generated 2026-08-25 · Source: <a href="FORgasan.md">FORgasan.md</a> · Visuals: <code>docs/forme/</code> · 365 tests · live-52 Muse 3–1 · HITL not in v1
     </footer>
   </div>
 </body>

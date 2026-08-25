@@ -1926,7 +1926,7 @@ Phaser would own a scene graph and invite a second clock. Canvas 2D is ~200 line
 
 Hockey coaches do not “read that we got better.” They **watch film**. Graph_Hockey records every match as deterministic game film and exposes a **Film Room** so AAR patches are attached to ice, not to a paragraph.
 
-This is a v1 gate (with the browser rink). It does **not** encode MP4s. Footage is the existing replay (`seed` + `directive_applied`) plus a **clip index**. That keeps storage small and keeps golden hashes as the source of truth.
+This is a v1 gate (with the browser rink). Footage is the existing replay (`seed` + `directive_applied`) plus a **clip index**. That keeps storage small and keeps golden hashes as the source of truth. **Operator MP4 export** (`gh footage --match ID --mp4`) is optional and derivative — it does not replace the clip index.
 
 #### Recording policy
 
@@ -2590,7 +2590,7 @@ This is not SaaS. “Rollout” = milestones on `main`.
 
 18. **Icing race overrides the two racers’ targets to the dot** at max speed; 4.0 s timeout → icing called.
 
-21. **Review footage is resimulation + clip index, not video files.** Every match is auto-recorded. Auto-clips + AAR `eventId` deep-links + series improvement ledger (paired clips, metric deltas) are the way we watch and record improvement. No ffmpeg/MP4 in v1.
+21. **Review footage is resimulation + clip index.** Every match is auto-recorded. Auto-clips + AAR `eventId` deep-links + series improvement ledger are the way we watch improvement. Optional `gh footage --mp4` is a derivative for a human inbox; it is not the source of truth.
 
 ---
 
