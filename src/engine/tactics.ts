@@ -205,6 +205,9 @@ export function passReceiver(world: WorldState, carrier: Body): Body | undefined
     if (inOwnCrease(world, carrier.side, mate.pos)) continue;
     const dir = world.attackingDir[carrier.side];
     if ((mate.pos.x - carrier.pos.x) * dir < -10) continue;
+    const carrierAlong = carrier.pos.x * dir;
+    const mateAlong = mate.pos.x * dir;
+    if (carrierAlong <= BLUE_LINE_X && mateAlong > BLUE_LINE_X) continue;
     const score = role && RECEIVE_ROLES.has(role) ? d : d + 20;
     if (score < bestScore) {
       bestScore = score;
@@ -333,6 +336,9 @@ export function inOwnCrease(world: WorldState, side: Side, pos: Vec2): boolean {
 export function routeClearOfOwnNet(world: WorldState, body: Body, dest: Vec2): Vec2 {
   const dir = world.attackingDir[body.side];
   const net = defendingNet(world, body.side);
+  const destAlong = (dest.x - net.x) * dir;
+  const destNearOurNet = destAlong < CREASE_RADIUS + 16 && hypot(sub(dest, net)) < CREASE_RADIUS + 16;
+  if (destNearOurNet) return dest;
   const nearOwn = hypot(sub(body.pos, net)) < CREASE_RADIUS + 10 || (body.pos.x - net.x) * dir < CREASE_RADIUS + 8;
   if (!nearOwn) return dest;
   const hashY = body.pos.y >= 0 ? HASH_OFFSET_Y : -HASH_OFFSET_Y;

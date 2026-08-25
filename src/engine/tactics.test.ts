@@ -11,6 +11,7 @@ import {
   nearestSkaterToPuck,
   passReceiver,
   playForSide,
+  routeClearOfOwnNet,
   softmax,
   steeringTarget,
   UTILITY_TEMPERATURE,
@@ -184,6 +185,28 @@ describe("pass / shoot release", () => {
     const target = steeringTarget(world, c);
     expect(Math.hypot(target.x - 22, target.y - 10)).toBeLessThan(0.01);
     expect(Math.hypot(target.x - GOAL_LINE_X, target.y)).toBeGreaterThan(50);
+  });
+
+  it("does not pass to a teammate already past the blue when the carrier is in the NZ", () => {
+    const book = loadPlaybook("expansion");
+    const world = createWorld({
+      playId: { home: "stretch-pass-nz", away: DEFAULT_PLAY_ID },
+      playbooks: { home: book, away: book },
+      directives: {
+        home: { playId: "stretch-pass-nz", pressure: "neutral", playParams: { shotPolicy: "pass" } },
+        away: defaultDirective(),
+      },
+      puck: { pos: { x: 0, y: 0 }, possessor: "h-C" },
+      bodies: {
+        "h-C": { pos: { x: 0, y: 0 }, heading: 0 },
+        "h-LW": { pos: { x: 40, y: 8 }, heading: 0 },
+        "h-RW": { pos: { x: 18, y: -8 }, heading: 0 },
+      },
+    });
+    const c = findBySlot(world, "home", "C")!;
+    const recv = passReceiver(world, c);
+    expect(recv?.id).toBe("h-RW");
+    expect(recv?.pos.x).toBeLessThanOrEqual(BLUE_LINE_X);
   });
 
   it("dump policy still aims a corner", () => {
@@ -416,6 +439,22 @@ describe("pass / shoot release", () => {
     expect(world.iceIntents.home.f1Action).toBe("shoot");
     expect(maybeReleasePuck(world)).toBe(false);
     expect(world.puck.possessor).toBe("h-C");
+  });
+});
+
+describe("routeClearOfOwnNet", () => {
+  it("does not yank a collapsed Ds off a crease dest onto the hash", () => {
+    const world = createWorld({
+      puck: { pos: { x: -80, y: 2 }, possessor: "a-C" },
+      bodies: {
+        "h-LD": { pos: { x: -76, y: 2 } },
+      },
+    });
+    const ld = findBySlot(world, "home", "LD")!;
+    const dest = { x: -75, y: 2 };
+    const out = routeClearOfOwnNet(world, ld, dest);
+    expect(out.x).toBeCloseTo(-75, 0);
+    expect(Math.abs(out.y)).toBeLessThan(10);
   });
 });
 
