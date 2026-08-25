@@ -8,14 +8,29 @@ describe("Film Room query + playhead", () => {
       clipId: "abc:clip:0",
       eventId: undefined,
       tick: 40,
+      seriesId: undefined,
+      compare: undefined,
     });
     expect(parseFilmQuery("event=abc:12")).toEqual({
       matchId: undefined,
       clipId: undefined,
       eventId: "abc:12",
       tick: undefined,
+      seriesId: undefined,
+      compare: undefined,
+    });
+    expect(parseFilmQuery("?series=ser-1&compare=0,6")).toEqual({
+      matchId: undefined,
+      clipId: undefined,
+      eventId: undefined,
+      tick: undefined,
+      seriesId: "ser-1",
+      compare: { early: 0, late: 6 },
     });
     expect(filmHref({ matchId: "m1", tick: 9 })).toBe("/film?match=m1&t=9");
+    expect(filmHref({ seriesId: "ser-1", compare: { early: 0, late: 6 } })).toBe(
+      "/film?series=ser-1&compare=0%2C6",
+    );
     expect(filmHref({})).toBe("/film");
   });
 

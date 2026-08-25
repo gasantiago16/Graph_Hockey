@@ -6,10 +6,14 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { loadConfig } from "../config.ts";
+import { EMPTY_AGGREGATES, recordGameImprovement } from "../film/improvement.ts";
+import { insertClip, insertRecording } from "../persist/clips.ts";
 import { openMemoryDb } from "../persist/db.ts";
 import { insertAarReport, insertMatch } from "../persist/matches.ts";
 import { ensureSeedPlaybooks } from "../persist/playbooks.ts";
 import { makeOpeningSnapshot } from "../persist/snapshot.ts";
+import type { AarReport } from "../types/aar.ts";
+import type { Clip } from "../types/film.ts";
 import { handleHockeyRequest, resolveStatic } from "./http.ts";
 import { StartSeriesBodySchema } from "../types/ws.ts";
 import { createMatchControl } from "./matchControl.ts";
@@ -44,6 +48,8 @@ describe("static AAR + Film Room routes", () => {
   it("serves /aar and still serves /film", () => {
     expect(resolveStatic("/aar", ROOT)?.replace(/\\/g, "/")).toMatch(/src\/web\/aar.html$/);
     expect(resolveStatic("/film", ROOT)?.replace(/\\/g, "/")).toMatch(/src\/web\/film.html$/);
+    expect(resolveStatic("/film/series/ser-1", ROOT)?.replace(/\\/g, "/")).toMatch(/src\/web\/film.html$/);
+    expect(resolveStatic("/film/series/ser-1/", ROOT)?.replace(/\\/g, "/")).toMatch(/src\/web\/film.html$/);
     expect(resolveStatic("/", ROOT)?.replace(/\\/g, "/")).toMatch(/src\/web\/index.html$/);
   });
 });
@@ -93,9 +99,99 @@ describe("REST /api/aar and /api/playbook", () => {
         expect(film.status).toBe(200);
         expect(await film.text()).toContain("FILM ROOM");
 
+        const seriesPage = await fetch(`${base}/film/series/ser-1`);
+        expect(seriesPage.status).toBe(200);
+        expect(await seriesPage.text()).toContain("FILM ROOM");
+
         const rink = await fetch(`${base}/`);
         expect(rink.status).toBe(200);
         expect(await rink.text()).toContain("Start series (7)");
+      } finally {
+        await close();
+      }
+    } finally {
+      db.close();
+    }
+  });
+});
+
+describe("REST /api/series/:id/improvement", () => {
+  it("returns 404 then ledger + paired clips without live xAI", async () => {
+    const db = await openMemoryDb();
+    try {
+      ensureSeedPlaybooks(db);
+      const { base, close } = await serve(db);
+      try {
+        const missing = await fetch(`${base}/api/series/nope/improvement`);
+        expect(missing.status).toBe(404);
+
+        for (const gameIndex of [0, 1] as const) {
+          const matchId = `ser-http-g${gameIndex}`;
+          insertMatch(
+            db,
+            makeOpeningSnapshot({ matchId, seed: 4 + gameIndex, seriesId: "ser-http", gameIndex }),
+          );
+          insertRecording(db, {
+            matchId,
+            seriesId: "ser-http",
+            gameIndex,
+            recordedAt: "2026-08-24T00:00:00.000Z",
+            durationLiveTicks: 50,
+          });
+          const clip: Clip = {
+            id: `${matchId}:clip:0`,
+            matchId,
+            seriesId: "ser-http",
+            gameIndex,
+            startLiveTick: 1,
+            endLiveTick: 40,
+            anchorEventId: `${matchId}:1`,
+            relatedEventIds: [`${matchId}:1`],
+            kind: gameIndex === 0 ? "goal" : "save",
+            title: gameIndex === 0 ? "GOAL" : "Save",
+            source: "auto",
+            playId: "dz-collapse",
+            signature: gameIndex === 0 ? "dz-collapse|DZ|Goal,Shot" : "dz-collapse|DZ|Save,Shot",
+            xG: 0.2,
+          };
+          insertClip(db, clip);
+          const home: AarReport = {
+            matchId,
+            side: "home",
+            result: "tie",
+            aggregates: { ...EMPTY_AGGREGATES, xgFor: gameIndex, goalsFor: gameIndex },
+            revision: { summary: "ok", ops: [] },
+          };
+          recordGameImprovement({
+            db,
+            seriesId: "ser-http",
+            gameIndex,
+            matchId,
+            homeTeamId: "original-six",
+            awayTeamId: "expansion",
+            matchResult: "tie",
+            playbookVersionBefore: { home: 1, away: 1 },
+            aar: { home, away: { ...home, side: "away" } },
+          });
+        }
+
+        const res = await fetch(`${base}/api/series/ser-http/improvement`);
+        expect(res.status).toBe(200);
+        const body = (await res.json()) as {
+          seriesId: string;
+          games: unknown[];
+          pairs: { playId: string }[];
+          ledger: unknown[];
+        };
+        expect(body.seriesId).toBe("ser-http");
+        expect(body.games).toHaveLength(2);
+        expect(body.ledger).toHaveLength(4);
+        expect(body.pairs[0]?.playId).toBe("dz-collapse");
+
+        const pairs = await fetch(`${base}/api/series/ser-http/pairs?compare=0,1`);
+        expect(pairs.status).toBe(200);
+        const pairList = (await pairs.json()) as { playId: string }[];
+        expect(pairList[0]?.playId).toBe("dz-collapse");
       } finally {
         await close();
       }

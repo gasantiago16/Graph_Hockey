@@ -3,7 +3,9 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { scaledOtSeconds } from "../config.ts";
+import { loadSeriesImprovement } from "../film/improvement.ts";
 import { getRecording } from "../persist/clips.ts";
+import { listImprovement } from "../persist/improvement.ts";
 import { openMemoryDb } from "../persist/db.ts";
 import { getMatch } from "../persist/matches.ts";
 import {
@@ -113,6 +115,13 @@ describe("runSeries --no-llm", () => {
       expect(g1?.snapshot.gameIndex).toBe(1);
       expect(getRecording(db, "ser-test-100-g0")?.seriesId).toBe("ser-test-100");
       expect(getRecording(db, "ser-test-100-g1")?.gameIndex).toBe(1);
+
+      expect(listImprovement(db, "ser-test-100")).toHaveLength(4);
+      const board = loadSeriesImprovement(db, "ser-test-100");
+      expect(board?.games).toHaveLength(2);
+      expect(board?.home.id).toBe("original-six");
+      expect(board?.away.id).toBe("expansion");
+      expect(board?.deltas.home).toBeDefined();
 
       expect(result.snapshotPaths).toEqual([
         join(dir, "before.json"),

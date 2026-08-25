@@ -29,7 +29,7 @@ function asInt(v: unknown): number {
 
 export function insertImprovementRow(db: Db, row: ImprovementRow): void {
   db.prepare(
-    `INSERT INTO improvement_ledger (
+    `INSERT OR REPLACE INTO improvement_ledger (
       series_id, team_id, game_index, match_id,
       playbook_version_before, playbook_version_after, result,
       metrics_json, aar_ops_json, paired_clip_ids_json

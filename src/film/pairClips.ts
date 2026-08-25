@@ -31,16 +31,7 @@ function metricHint(early: Clip, late: Clip): string {
   return `${e} → ${l}`;
 }
 
-/**
- * Pair an early-game clip with a late-game clip of the same play + zone.
- * Jaccard on the event-type bag picks the best late clip. Prefer ≥ 0.7;
- * fall back to ≥ 0.3 so a Goal-against vs later Save still pairs (that is the film).
- */
-export function pairClips(clips: Clip[], gameCount: number, prefer = 0.7, fallback = 0.3): PairedClip[] {
-  const earlyMax = gameCount <= 2 ? 0 : 1;
-  const lateMin = gameCount <= 2 ? gameCount - 1 : Math.max(0, gameCount - 2);
-  const early = clips.filter((c) => (c.gameIndex ?? 0) <= earlyMax && c.signature);
-  const late = clips.filter((c) => (c.gameIndex ?? 0) >= lateMin && c.signature);
+function pairEarlyLate(early: Clip[], late: Clip[], prefer: number, fallback: number): PairedClip[] {
   const pairs: PairedClip[] = [];
   const usedLate = new Set<string>();
 
@@ -70,4 +61,30 @@ export function pairClips(clips: Clip[], gameCount: number, prefer = 0.7, fallba
     });
   }
   return pairs;
+}
+
+/**
+ * Pair an early-game clip with a late-game clip of the same play + zone.
+ * Jaccard on the event-type bag picks the best late clip. Prefer ≥ 0.7;
+ * fall back to ≥ 0.3 so a Goal-against vs later Save still pairs (that is the film).
+ */
+export function pairClips(clips: Clip[], gameCount: number, prefer = 0.7, fallback = 0.3): PairedClip[] {
+  const earlyMax = gameCount <= 2 ? 0 : 1;
+  const lateMin = gameCount <= 2 ? gameCount - 1 : Math.max(0, gameCount - 2);
+  const early = clips.filter((c) => (c.gameIndex ?? 0) <= earlyMax && c.signature);
+  const late = clips.filter((c) => (c.gameIndex ?? 0) >= lateMin && c.signature);
+  return pairEarlyLate(early, late, prefer, fallback);
+}
+
+/** Pair clips from two explicit game indexes (CLI `--compare i,j`, dual-rink G0 vs last). */
+export function pairClipsForGames(
+  clips: Clip[],
+  earlyGame: number,
+  lateGame: number,
+  prefer = 0.7,
+  fallback = 0.3,
+): PairedClip[] {
+  const early = clips.filter((c) => (c.gameIndex ?? 0) === earlyGame && c.signature);
+  const late = clips.filter((c) => (c.gameIndex ?? 0) === lateGame && c.signature);
+  return pairEarlyLate(early, late, prefer, fallback);
 }

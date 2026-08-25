@@ -44,6 +44,16 @@ function asNullableNumber(v: unknown): number | undefined {
   return undefined;
 }
 
+function rowToRecording(row: Record<string, unknown>): RecordingRow {
+  return {
+    matchId: String(row.match_id),
+    seriesId: row.series_id === null || row.series_id === undefined ? null : String(row.series_id),
+    gameIndex: row.game_index === null || row.game_index === undefined ? null : asInt(row.game_index),
+    recordedAt: String(row.recorded_at),
+    durationLiveTicks: asInt(row.duration_live_ticks),
+  };
+}
+
 export function insertRecording(db: Db, row: RecordingRow): void {
   db.prepare(
     `INSERT INTO recordings (match_id, series_id, game_index, recorded_at, duration_live_ticks)
@@ -53,14 +63,14 @@ export function insertRecording(db: Db, row: RecordingRow): void {
 
 export function getRecording(db: Db, matchId: string): RecordingRow | undefined {
   const row = db.prepare("SELECT * FROM recordings WHERE match_id = ?").get<Record<string, unknown>>(matchId);
-  if (!row) return undefined;
-  return {
-    matchId: String(row.match_id),
-    seriesId: row.series_id === null || row.series_id === undefined ? null : String(row.series_id),
-    gameIndex: row.game_index === null || row.game_index === undefined ? null : asInt(row.game_index),
-    recordedAt: String(row.recorded_at),
-    durationLiveTicks: asInt(row.duration_live_ticks),
-  };
+  return row ? rowToRecording(row) : undefined;
+}
+
+export function listRecordingsBySeries(db: Db, seriesId: string): RecordingRow[] {
+  return db
+    .prepare("SELECT * FROM recordings WHERE series_id = ? ORDER BY game_index ASC, match_id ASC")
+    .all<Record<string, unknown>>(seriesId)
+    .map(rowToRecording);
 }
 
 export function insertClip(db: Db, clip: Clip, createdAt: string = new Date().toISOString()): void {
@@ -113,16 +123,36 @@ function rowToClip(row: ClipSqlRow): Clip {
   };
 }
 
+function attachRecordingMeta(clip: Clip, rec: RecordingRow | undefined): Clip {
+  if (!rec) return clip;
+  return {
+    ...clip,
+    seriesId: clip.seriesId ?? rec.seriesId ?? undefined,
+    gameIndex: clip.gameIndex ?? rec.gameIndex ?? undefined,
+  };
+}
+
 export function listClips(db: Db, matchId: string): Clip[] {
+  const rec = getRecording(db, matchId);
   return db
     .prepare("SELECT * FROM clips WHERE match_id = ? ORDER BY start_live_tick ASC")
     .all<ClipSqlRow>(matchId)
-    .map(rowToClip);
+    .map((row) => attachRecordingMeta(rowToClip(row), rec));
 }
 
 export function getClip(db: Db, clipId: string): Clip | undefined {
   const row = db.prepare("SELECT * FROM clips WHERE id = ?").get<ClipSqlRow>(clipId);
-  return row ? rowToClip(row) : undefined;
+  if (!row) return undefined;
+  const clip = rowToClip(row);
+  return attachRecordingMeta(clip, getRecording(db, clip.matchId));
+}
+
+export function listClipsBySeries(db: Db, seriesId: string): Clip[] {
+  const out: Clip[] = [];
+  for (const rec of listRecordingsBySeries(db, seriesId)) {
+    out.push(...listClips(db, rec.matchId));
+  }
+  return out;
 }
 
 export function insertClips(db: Db, clips: readonly Clip[], createdAt: string = new Date().toISOString()): void {

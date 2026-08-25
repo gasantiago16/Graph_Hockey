@@ -69,6 +69,8 @@ export {
   insertClips,
   insertRecording,
   listClips,
+  listClipsBySeries,
+  listRecordingsBySeries,
   recordMatchFilm,
   type FootageIndex,
   type RecordingRow,

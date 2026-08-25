@@ -34,6 +34,13 @@ export * from "./orchestrator/index.ts";
 export { aarCiteEventIds, autoClips, toClipEvents } from "./film/clipper.ts";
 export { framesForClip, framesForWindow, materializeClipFrames } from "./film/frames.ts";
 export {
+  formatDelta,
+  loadSeriesImprovement,
+  recordGameImprovement,
+  seriesImprovement,
+} from "./film/improvement.ts";
+export { jaccard, pairClips, pairClipsForGames } from "./film/pairClips.ts";
+export {
   UsageTap,
   createBudget,
   emptyUsage,

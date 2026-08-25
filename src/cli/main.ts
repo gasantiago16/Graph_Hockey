@@ -6,6 +6,8 @@ import { compileTeamGraph } from "../agents/teamGraph.ts";
 import { loadConfig, scaledOtSeconds, type EnvMap } from "../config.ts";
 import { formatCostSummary } from "../llm/budgets.ts";
 import { hasInjectedChatModel, hasXaiApiKey } from "../llm/client.ts";
+import { formatDelta, loadSeriesImprovement } from "../film/improvement.ts";
+import { pairClipsForGames } from "../film/pairClips.ts";
 import { getFootage } from "../persist/clips.ts";
 import { defaultDbPath, openDb, type Db } from "../persist/db.ts";
 import { getAarReport, getMatch, type MatchResultLabel } from "../persist/matches.ts";
@@ -40,7 +42,8 @@ AAR runs after every result; default --aar-mode auto applies capped playbook pat
 series default is 7 games; gameSeed = seed + gameIndex. AAR auto-apply mutates playbooks between games (not --no-llm).
 Playbook snapshots go in data/playbook-snapshots/<seriesId>/ (before.json + after-game-N.json).
 --no-llm series uses 5s periods unless GRAPH_HOCKEY_PERIOD_SECONDS or --period-seconds is set.
-footage --match lists auto-clips + open ticks. --series is PR15b.
+footage --match lists auto-clips + open ticks. --series prints the improvement ledger + deltas.
+--compare i,j prints paired signatures (same play + zone, Jaccard ≥ 0.3 fallback).
 replay resimulates from seed + stored DirectiveApplied events (zero LLM).
 aar dumps stored reports or re-runs the AAR graph (--no-llm for code-only).
 playbook --diff prints version N vs N-1 (latest by default). --reset-playbook restores the seed.
@@ -98,6 +101,13 @@ function parseGames(argv: string[]): number {
   const raw = opt(argv, "games");
   if (raw === undefined) return parseSeriesGames(undefined);
   return parseSeriesGames(Number.parseInt(raw, 10));
+}
+
+function parseCompare(raw: string | undefined): { early: number; late: number } | undefined {
+  if (raw === undefined) return undefined;
+  const m = /^(\d+)\s*,\s*(\d+)$/.exec(raw.trim());
+  if (!m) throw new Error(`invalid --compare ${raw} (expected i,j)`);
+  return { early: Number.parseInt(m[1]!, 10), late: Number.parseInt(m[2]!, 10) };
 }
 
 /** --no-llm series stays off 36,000 ticks unless the operator sets a period. */
@@ -266,8 +276,66 @@ async function cmdFootage(argv: string[], env: EnvMap): Promise<number> {
   loadConfig(env);
   const seriesId = opt(argv, "series");
   if (seriesId) {
-    console.error("gh footage: --series is not implemented yet (PR15b)");
-    return 1;
+    const dbPath = opt(argv, "db") ?? defaultDbPath();
+    const compare = parseCompare(opt(argv, "compare"));
+    return withDb(dbPath, async (db) => {
+      const view = loadSeriesImprovement(db, seriesId);
+      if (!view) {
+        console.error(`gh footage: no series ${seriesId}`);
+        return 1;
+      }
+      const pairs = compare ? pairClipsForGames(view.clips, compare.early, compare.late) : view.pairs;
+      const payload = {
+        seriesId: view.seriesId,
+        home: view.home,
+        away: view.away,
+        games: view.games,
+        deltas: view.deltas,
+        pairs: pairs.map((p) => ({
+          signature: p.signature,
+          playId: p.playId,
+          zone: p.zone,
+          metricHint: p.metricHint,
+          early: {
+            id: p.early.id,
+            matchId: p.early.matchId,
+            gameIndex: p.early.gameIndex,
+            kind: p.early.kind,
+            title: p.early.title,
+          },
+          late: {
+            id: p.late.id,
+            matchId: p.late.matchId,
+            gameIndex: p.late.gameIndex,
+            kind: p.late.kind,
+            title: p.late.title,
+          },
+        })),
+        ledger: view.ledger,
+        compare: compare ?? undefined,
+      };
+      if (flag(argv, "json")) {
+        console.log(JSON.stringify(payload, null, 2));
+      } else {
+        console.log(`footage series ${seriesId}  games=${view.games.length}`);
+        console.log(formatDelta("home", view));
+        console.log(formatDelta("away", view));
+        for (const g of view.games) {
+          console.log(
+            `  g${g.gameIndex}  ${g.matchId}  ${g.score.home}-${g.score.away}  home ${g.result.home}  pb v${g.playbookVersion.home}`,
+          );
+        }
+        if (compare) console.log(`compare ${compare.early},${compare.late}  pairs=${pairs.length}`);
+        else console.log(`pairs ${pairs.length}`);
+        for (const p of pairs) {
+          console.log(
+            `  ${p.signature}  g${p.early.gameIndex ?? "?"} ${p.early.kind} → g${p.late.gameIndex ?? "?"} ${p.late.kind}  ${p.metricHint}`,
+          );
+        }
+        if (pairs.length === 0) console.log("  (no paired clips)");
+      }
+      return 0;
+    });
   }
   const matchId = opt(argv, "match");
   if (!matchId) {

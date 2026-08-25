@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { autoClips, toClipEvents } from "./clipper.ts";
-import { jaccard, pairClips } from "./pairClips.ts";
+import { jaccard, pairClips, pairClipsForGames } from "./pairClips.ts";
 import { formatDelta, seriesImprovement } from "./improvement.ts";
 import type { Clip, ClipEvent, MatchAggregates, SeriesGameRow } from "../types/film.ts";
 
@@ -157,6 +157,42 @@ describe("pairClips", () => {
     expect(pairs).toHaveLength(1);
     expect(pairs[0]!.playId).toBe("dz-collapse");
     expect(pairs[0]!.metricHint).toContain("Goal against");
+    expect(pairClipsForGames(clips, 0, 6)).toHaveLength(1);
+  });
+
+  it("does not pair same play+zone when Jaccard is below the 0.3 fallback", () => {
+    const clips: Clip[] = [
+      {
+        id: "g0:c0",
+        matchId: "g0",
+        gameIndex: 0,
+        startLiveTick: 1,
+        endLiveTick: 50,
+        anchorEventId: "g0:1",
+        relatedEventIds: ["g0:1"],
+        kind: "goal",
+        title: "GOAL",
+        source: "auto",
+        signature: "dz-collapse|DZ|Goal,Shot,Block,Hit",
+        playId: "dz-collapse",
+      },
+      {
+        id: "g6:c0",
+        matchId: "g6",
+        gameIndex: 6,
+        startLiveTick: 1,
+        endLiveTick: 50,
+        anchorEventId: "g6:1",
+        relatedEventIds: ["g6:1"],
+        kind: "icing",
+        title: "Icing",
+        source: "auto",
+        signature: "dz-collapse|DZ|Icing,Offside,Penalty",
+        playId: "dz-collapse",
+      },
+    ];
+    expect(jaccard(["Goal", "Shot", "Block", "Hit"], ["Icing", "Offside", "Penalty"])).toBeLessThan(0.3);
+    expect(pairClips(clips, 7)).toHaveLength(0);
   });
 
   it("jaccard is 1 for identical bags", () => {

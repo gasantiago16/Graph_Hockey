@@ -111,10 +111,12 @@ function onMessage(msg) {
     setRunning(seriesOngoing);
     state.lastMatchId = msg.matchId;
     const href = `/film?match=${encodeURIComponent(msg.matchId)}`;
+    const seriesHref = msg.seriesId ? `/film?series=${encodeURIComponent(msg.seriesId)}` : "";
     const aar = aarHref({ matchId: msg.matchId });
-    tickerEl.innerHTML = `Final ${msg.score.home}–${msg.score.away} (${msg.result}) · <a href="${href}">Review footage</a> · <a href="${aar}">AAR / playbook</a>`;
+    const seriesLink = seriesHref ? ` · <a href="${seriesHref}">Series board</a>` : "";
+    tickerEl.innerHTML = `Final ${msg.score.home}–${msg.score.away} (${msg.result}) · <a href="${href}">Review footage</a>${seriesLink} · <a href="${aar}">AAR / playbook</a>`;
     const review = document.getElementById("reviewFootage");
-    if (review) review.setAttribute("href", href);
+    if (review) review.setAttribute("href", msg.seriesComplete && seriesHref ? seriesHref : href);
     const openAar = document.getElementById("openAar");
     if (openAar) openAar.setAttribute("href", aar);
     const post = document.getElementById("postMatch");

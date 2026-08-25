@@ -24,6 +24,8 @@ describe("gh CLI", () => {
       expect(printed).toContain("series");
       expect(printed).toContain("--games 7");
       expect(printed).toContain("footage");
+      expect(printed).toContain("--series");
+      expect(printed).toContain("--compare");
       expect(printed).toContain("--no-record");
       expect(printed).toContain("--aar-mode");
       expect(printed).toContain("--reset-playbook");
@@ -246,4 +248,64 @@ describe("gh CLI", () => {
       log.mockRestore();
     }
   });
+
+  it("footage --series prints ledger after a --no-llm series", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "gh-pr15b-"));
+    const dbPath = join(dir, "graph-hockey.sqlite");
+    const snap = join(dir, "snaps");
+    const log = vi.spyOn(console, "log").mockImplementation(() => {});
+    const err = vi.spyOn(console, "error").mockImplementation(() => {});
+    const env = { GRAPH_HOCKEY_PERIOD_SECONDS: "5" };
+    try {
+      expect(
+        await main(
+          [
+            "series",
+            "--no-llm",
+            "--games",
+            "2",
+            "--seed",
+            "100",
+            "--id",
+            "ser-cli-15b",
+            "--db",
+            dbPath,
+            "--snapshot-dir",
+            snap,
+            "--json",
+          ],
+          env,
+        ),
+      ).toBe(0);
+
+      log.mockClear();
+      expect(await main(["footage", "--series", "ser-cli-15b", "--db", dbPath, "--json"], env)).toBe(0);
+      const out = JSON.parse(String(log.mock.calls.at(-1)?.[0])) as {
+        seriesId: string;
+        games: unknown[];
+        ledger: unknown[];
+        deltas: { home: { xgFor?: number } };
+      };
+      expect(out.seriesId).toBe("ser-cli-15b");
+      expect(out.games).toHaveLength(2);
+      expect(out.ledger).toHaveLength(4);
+      expect(out.deltas.home).toBeDefined();
+
+      log.mockClear();
+      expect(
+        await main(["footage", "--series", "ser-cli-15b", "--compare", "0,1", "--db", dbPath, "--json"], env),
+      ).toBe(0);
+      const cmp = JSON.parse(String(log.mock.calls.at(-1)?.[0])) as { compare: { early: number; late: number } };
+      expect(cmp.compare).toEqual({ early: 0, late: 1 });
+
+      expect(await main(["footage", "--series", "missing", "--db", dbPath], env)).toBe(1);
+      expect(String(err.mock.calls.at(-1)?.[0])).toContain("no series");
+      err.mockClear();
+      expect(await main(["footage", "--series", "ser-cli-15b", "--compare", "nope", "--db", dbPath], env)).toBe(1);
+      expect(String(err.mock.calls.at(-1)?.[0])).toContain("--compare");
+    } finally {
+      log.mockRestore();
+      err.mockRestore();
+    }
+  }, 60_000);
 });

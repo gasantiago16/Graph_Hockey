@@ -123,7 +123,7 @@ The start form defaults to **5 second** periods so a demo is watchable. Engine/c
 npm run gh -- series --games 7 --no-llm --seed 100 --home original-six --away expansion
 ```
 
-`--no-llm` series uses **5 second** periods unless you set `GRAPH_HOCKEY_PERIOD_SECONDS` or `--period-seconds`. Each game’s seed is `seed + gameIndex` (game 0 uses `seed`). Recordings store `series_id` + `game_index` for the later improvement board.
+`--no-llm` series uses **5 second** periods unless you set `GRAPH_HOCKEY_PERIOD_SECONDS` or `--period-seconds`. Each game’s seed is `seed + gameIndex` (game 0 uses `seed`). After each game’s AAR, both teams get an `improvement_ledger` row. Open `/film?series=ID` (or `/film/series/ID`) for the dual-rink board.
 
 ## Review footage (available now)
 
@@ -132,8 +132,9 @@ Every finished match is **auto-recorded** as deterministic game film (resimulati
 - builds clips around goals, chances, turnovers, penalties, and AAR citations
 - plays them on the same Canvas rink (scrub, 0.25×–2×)
 - `/film` is the scripted demo series; `/film?match=ID` plays real match clips
+- `/film?series=ID` and `/film/series/ID` are the series improvement board (dual-rink G0 vs last)
 - `/aar?match=ID` is the post-game AAR + playbook version diff (`GET /api/aar/:matchId/:side`, `GET /api/playbook/:team?diff=1`)
-- series pairing / improvement board is a later PR (`recordings.series_id` is stored now)
+- `GET /api/series/:id/improvement` returns ledger + deltas + paired clips (same play + zone, Jaccard ≥ 0.3 fallback)
 
 ```bash
 npm install
@@ -141,7 +142,9 @@ npm test
 npm run film
 # open http://127.0.0.1:8787/film
 # after a match: http://127.0.0.1:8787/film?match=ID
+# after a series: http://127.0.0.1:8787/film?series=ID
 npx tsx src/cli/main.ts footage --match ID
+npx tsx src/cli/main.ts footage --series ID --compare 0,6
 ```
 
 ## Implementation order

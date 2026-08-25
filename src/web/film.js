@@ -18,12 +18,38 @@ function parseQuery(search) {
   const q = new URLSearchParams(search.startsWith("?") ? search.slice(1) : search);
   const tRaw = q.get("t");
   const tick = tRaw !== null && tRaw !== "" ? Number.parseInt(tRaw, 10) : Number.NaN;
+  const compareRaw = q.get("compare");
+  const cm = compareRaw ? /^(\d+)\s*,\s*(\d+)$/.exec(compareRaw.trim()) : null;
   return {
     matchId: q.get("match") || undefined,
     clipId: q.get("clip") || undefined,
     eventId: q.get("event") || undefined,
     tick: Number.isFinite(tick) ? tick : undefined,
+    seriesId: q.get("series") || undefined,
+    compare: cm ? { early: Number.parseInt(cm[1], 10), late: Number.parseInt(cm[2], 10) } : undefined,
   };
+}
+
+function parseSeriesPath(pathname) {
+  const path = (pathname.split("?")[0] || pathname).replace(/\/+$/, "") || "/";
+  const m = /^\/film\/series\/([^/]+)$/.exec(path);
+  return m ? decodeURIComponent(m[1]) : undefined;
+}
+
+async function fetchClipFrames(clip) {
+  if (!clip?.matchId) return [];
+  const isFull = !clip.id || String(clip.id).endsWith(":clip:full") || clip.id === "full";
+  const url = isFull
+    ? `/api/footage/${encodeURIComponent(clip.matchId)}/clips/full/frames`
+    : `/api/footage/${encodeURIComponent(clip.matchId)}/clips/${encodeURIComponent(clip.id)}/frames`;
+  const out = await fetch(url).then((r) => r.json()).catch(() => ({ frames: [] }));
+  return Array.isArray(out.frames) ? out.frames : [];
+}
+
+function pairRinkLabel(clip, fallbackPlay) {
+  const g = clip.gameIndex ?? 0;
+  const name = clip.playId || fallbackPlay || clip.title;
+  return `G${g} ${name}`;
 }
 
 function fullClipId(matchId) {
@@ -545,8 +571,350 @@ async function bootMatch(query) {
   await loadClip(start, query.tick);
 }
 
+async function bootSeries(seriesId, query) {
+  const res = await fetch(`/api/series/${encodeURIComponent(seriesId)}/improvement`);
+  if (!res.ok) {
+    const tb = document.getElementById("toolbar");
+    tb.innerHTML = `<span class="sub">No series ${seriesId}.</span>
+      <a class="chip" href="/film">Demo series</a>`;
+    document.getElementById("note").textContent = "Run gh series (without --no-record), then open /film?series=ID or /film/series/ID.";
+    return;
+  }
+  const data = await res.json();
+  const games = Array.isArray(data.games) ? data.games : [];
+  const pairs = Array.isArray(data.pairs) ? data.pairs : [];
+  const lastGame = games.length ? games[games.length - 1].gameIndex : 0;
+  const compareDefault = games.length >= 2 ? { early: 0, late: lastGame } : null;
+
+  const state = {
+    mode: "single",
+    clip: null,
+    compare: null,
+    frames: [],
+    framesEarly: [],
+    framesLate: [],
+    index: 0,
+    u: 0,
+    playing: false,
+    acc: 0,
+    last: performance.now(),
+    canvases: [],
+    selectedGame: lastGame,
+  };
+
+  function signed(n, invert) {
+    const v = invert ? -n : n;
+    const cls = v > 0.0001 ? "up" : v < -0.0001 ? "down" : "";
+    const s = n > 0 ? `+${n}` : `${n}`;
+    return `<span class="${cls}">${s}</span>`;
+  }
+
+  function renderBoard() {
+    const g0 = games[0];
+    const gN = games[games.length - 1];
+    const teamName = data.home?.name || "home";
+    if (!g0 || !gN) {
+      document.getElementById("deltas").innerHTML = `<p class="sub">No games yet.</p>`;
+      document.getElementById("table").innerHTML = "";
+      document.getElementById("pairs").innerHTML = "";
+      return;
+    }
+    const d = data.deltas?.home ?? {};
+    document.getElementById("deltas").innerHTML = `
+      <p style="margin:0 0 8px"><b>${teamName} · G${g0.gameIndex} → G${gN.gameIndex}</b></p>
+      <div>xG for ${signed(d.xgFor ?? 0)}</div>
+      <div>xG against ${signed(d.xgAgainst ?? 0, true)}</div>
+      <div>Goals ${signed(d.goalsFor ?? 0)} / ${signed(d.goalsAgainst ?? 0, true)}</div>
+      <div>CF% ${signed(d.cfPct ?? 0)}</div>
+      <div>OZ time ${signed(d.zoneTimeOZ ?? 0)}</div>
+      <div>Playbook v${g0.playbookVersion.home} → v${gN.playbookVersion.home}</div>`;
+    document.getElementById("table").innerHTML = `
+      <table>
+        <tr><th>G</th><th>Score</th><th>xGF</th><th>xGA</th><th>CF%</th><th>Gls</th><th>PB</th><th></th></tr>
+        ${games.map((g) => {
+          const h = g.aggregates.home;
+          return `<tr>
+            <td>G${g.gameIndex}</td>
+            <td>${g.score.home}–${g.score.away}</td>
+            <td>${h.xgFor.toFixed(1)}</td>
+            <td>${h.xgAgainst.toFixed(1)}</td>
+            <td>${h.cfPct.toFixed(1)}</td>
+            <td>${h.goalsFor}</td>
+            <td>v${g.playbookVersion.home}</td>
+            <td>${g.result.home}</td>
+          </tr>`;
+        }).join("")}
+      </table>`;
+    document.getElementById("pairs").innerHTML = pairs.length
+      ? pairs.map((p, i) =>
+          `<button class="chip pair" type="button" data-pair="${i}">${p.playId} · ${p.zone}<br><small>G${p.early.gameIndex ?? 0} ${p.early.kind} → G${p.late.gameIndex ?? 0} ${p.late.kind} · ${p.metricHint}</small></button>`,
+        ).join("")
+      : `<p class="sub">No paired clips yet (same play + zone, Jaccard ≥ 0.3).</p>`;
+    document.querySelectorAll("[data-pair]").forEach((btn) => {
+      btn.onclick = () => {
+        const pair = pairs[Number(btn.dataset.pair)];
+        if (pair) void playPair(pair.early, pair.late, pair.playId, pair.metricHint);
+      };
+    });
+
+    const cv = document.getElementById("chart");
+    const ctx = cv.getContext("2d");
+    ctx.clearRect(0, 0, cv.width, cv.height);
+    const n = games.length;
+    const xs = games.map((_, i) => (n <= 1 ? cv.width / 2 : 20 + i * ((cv.width - 40) / (n - 1))));
+    const plot = (key, color, scale) => {
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      games.forEach((g, i) => {
+        const y = 100 - g.aggregates.home[key] * scale;
+        if (i === 0) ctx.moveTo(xs[i], y);
+        else ctx.lineTo(xs[i], y);
+      });
+      ctx.stroke();
+    };
+    plot("xgFor", "#3ecf8e", 18);
+    plot("xgAgainst", "#e85d5d", 18);
+    ctx.fillStyle = "#8aa0b5";
+    ctx.font = "10px sans-serif";
+    ctx.fillText("xGF", 8, 14);
+    ctx.fillStyle = "#e85d5d";
+    ctx.fillText("xGA", 40, 14);
+  }
+
+  function clipsForGame(gameIndex) {
+    return (data.clips ?? []).filter((c) => (c.gameIndex ?? 0) === gameIndex);
+  }
+
+  function fullClipForGame(gameIndex) {
+    const rec = (data.recordings ?? []).find((r) => r.gameIndex === gameIndex);
+    const game = games.find((g) => g.gameIndex === gameIndex);
+    const matchId = rec?.matchId || game?.matchId;
+    if (!matchId) return null;
+    return {
+      id: `${matchId}:clip:full`,
+      matchId,
+      gameIndex,
+      startLiveTick: 0,
+      endLiveTick: rec?.durationLiveTicks ?? 0,
+      kind: "user",
+      title: `G${gameIndex} full recording`,
+      source: "user",
+    };
+  }
+
+  function renderClips() {
+    const host = document.getElementById("clipList");
+    const list = clipsForGame(state.selectedGame);
+    const full = fullClipForGame(state.selectedGame);
+    const items = full ? [full, ...list] : list;
+    const activeId = state.mode === "compare"
+      ? `${state.compare?.early?.id}|${state.compare?.late?.id}`
+      : state.clip?.id;
+    host.innerHTML = items.map((c) => `
+      <div class="clip ${c.id === activeId ? "on" : ""}" data-id="${c.id}">
+        <div class="k">${c.kind} · ${c.source ?? "auto"} · G${c.gameIndex ?? state.selectedGame}</div>
+        <div class="t">${c.title}</div>
+        <div class="n">${c.playId ? c.playId : (c.note ?? "")}</div>
+      </div>`).join("") || `<p class="sub">No clips for G${state.selectedGame}.</p>`;
+    host.querySelectorAll(".clip").forEach((n) => {
+      n.onclick = () => {
+        const clip = items.find((c) => c.id === n.dataset.id);
+        if (clip) void loadSingle(clip);
+      };
+    });
+  }
+
+  function renderRinkSlots() {
+    const el = document.getElementById("rinks");
+    el.innerHTML = "";
+    state.canvases = [];
+    const slots = state.mode === "compare" && state.compare
+      ? [
+          { clip: state.compare.early, label: pairRinkLabel(state.compare.early, state.compare.playId), frames: state.framesEarly },
+          { clip: state.compare.late, label: pairRinkLabel(state.compare.late, state.compare.playId), frames: state.framesLate },
+        ]
+      : [{ clip: state.clip, label: state.clip ? pairRinkLabel(state.clip) : "Film", frames: state.frames }];
+    for (const s of slots) {
+      const wrap = document.createElement("div");
+      wrap.className = "rink-wrap";
+      wrap.innerHTML = `<h2>${s.label}</h2>`;
+      const cv = document.createElement("canvas");
+      cv.className = "rink";
+      wrap.appendChild(cv);
+      el.appendChild(wrap);
+      state.canvases.push({ cv, frames: s.frames });
+    }
+    paint();
+  }
+
+  function frameAt(frames, u) {
+    if (!frames.length) return null;
+    const i = frames.length <= 1 ? 0 : Math.round(Math.max(0, Math.min(1, u)) * (frames.length - 1));
+    return frames[i];
+  }
+
+  function paint() {
+    for (const { cv, frames } of state.canvases) {
+      sizeRinkCanvas(cv);
+      drawSpectatorFrame(cv.getContext("2d"), frameAt(frames, state.u));
+    }
+    document.getElementById("btnPlay").textContent = state.playing ? "Pause" : "Play";
+    document.getElementById("scrub").value = String(Math.round(state.u * 1000));
+    const frames = state.mode === "compare" ? state.framesEarly : state.frames;
+    const clip = state.mode === "compare" ? state.compare?.early : state.clip;
+    const frame = frameAt(frames, state.u);
+    const tick = frame ? frame.liveTick : clip?.startLiveTick ?? 0;
+    document.getElementById("clock").textContent = `t${tick}`;
+  }
+
+  function loop(now) {
+    const dt = (now - state.last) / 1000;
+    state.last = now;
+    if (state.playing) {
+      const spd = Number(document.getElementById("speed").value);
+      const frames = state.mode === "compare" ? state.framesEarly : state.frames;
+      const dur = Math.max(0.5, (frames.length - 1) * 0.1);
+      state.u = Math.min(1, state.u + (dt * spd) / dur);
+      if (state.u >= 1) state.playing = false;
+    }
+    paint();
+    requestAnimationFrame(loop);
+  }
+
+  async function loadSingle(clip) {
+    state.mode = "single";
+    state.clip = clip;
+    state.compare = null;
+    state.u = 0;
+    state.playing = false;
+    document.getElementById("note").textContent = "Resimulating clip window…";
+    renderClips();
+    state.frames = await fetchClipFrames(clip);
+    state.framesEarly = [];
+    state.framesLate = [];
+    state.playing = state.frames.length > 0;
+    document.getElementById("note").textContent = state.frames.length
+      ? (clip.note || `${clip.kind} · G${clip.gameIndex ?? "?"} · ticks ${clip.startLiveTick}–${clip.endLiveTick}`)
+      : "No frames in this window.";
+    renderRinkSlots();
+  }
+
+  async function playPair(early, late, playId, hint) {
+    state.mode = "compare";
+    state.compare = { early, late, playId };
+    state.clip = late;
+    state.u = 0;
+    state.playing = false;
+    document.getElementById("note").textContent = "Resimulating before/after…";
+    renderClips();
+    const [fe, fl] = await Promise.all([fetchClipFrames(early), fetchClipFrames(late)]);
+    state.framesEarly = fe;
+    state.framesLate = fl;
+    state.frames = fe;
+    state.playing = fe.length > 0 || fl.length > 0;
+    const labels = `${pairRinkLabel(early, playId)} vs ${pairRinkLabel(late, playId)}`;
+    document.getElementById("note").textContent = hint ? `${labels}. ${hint}` : labels;
+    renderRinkSlots();
+  }
+
+  async function compareGames(earlyIdx, lateIdx) {
+    const exact = pairs.find((p) => (p.early.gameIndex ?? 0) === earlyIdx && (p.late.gameIndex ?? 0) === lateIdx);
+    const pair = exact || pairs[0];
+    if (pair) {
+      await playPair(pair.early, pair.late, pair.playId, pair.metricHint);
+      return;
+    }
+    const early = fullClipForGame(earlyIdx);
+    const late = fullClipForGame(lateIdx);
+    if (early && late) await playPair(early, late, undefined, `G${earlyIdx} vs G${lateIdx} full recordings`);
+  }
+
+  function renderToolbar() {
+    const tb = document.getElementById("toolbar");
+    tb.innerHTML = `<span class="sub">${data.home?.name ?? "home"} vs ${data.away?.name ?? "away"} · series ${seriesId}</span>`;
+    for (const g of games) {
+      const b = document.createElement("button");
+      b.className = "chip";
+      b.textContent = `G${g.gameIndex} ${g.score.home}–${g.score.away}`;
+      b.onclick = () => {
+        state.selectedGame = g.gameIndex;
+        const clip = clipsForGame(g.gameIndex)[0] || fullClipForGame(g.gameIndex);
+        renderClips();
+        if (clip) void loadSingle(clip);
+      };
+      tb.appendChild(b);
+    }
+    if (compareDefault) {
+      const cmp = document.createElement("button");
+      cmp.className = "chip pair";
+      cmp.textContent = `Compare G${compareDefault.early} vs G${compareDefault.late}`;
+      cmp.onclick = () => void compareGames(compareDefault.early, compareDefault.late);
+      tb.appendChild(cmp);
+    }
+    const demo = document.createElement("a");
+    demo.className = "chip";
+    demo.href = "/film";
+    demo.textContent = "Demo series";
+    tb.appendChild(demo);
+  }
+
+  document.getElementById("btnPlay").onclick = () => {
+    if (state.u >= 1) {
+      state.u = 0;
+      state.playing = true;
+      return;
+    }
+    state.playing = !state.playing;
+  };
+  document.getElementById("btnBack").onclick = () => {
+    state.u = Math.max(0, state.u - 0.15);
+    state.playing = false;
+  };
+  document.getElementById("btnFwd").onclick = () => {
+    state.u = Math.min(1, state.u + 0.15);
+    state.playing = false;
+  };
+  document.getElementById("scrub").oninput = (e) => {
+    state.u = Number(e.target.value) / 1000;
+    state.playing = false;
+  };
+  window.addEventListener("keydown", (e) => {
+    if (e.code === "Space") {
+      e.preventDefault();
+      document.getElementById("btnPlay").click();
+    }
+    if (e.key === "j" || e.key === "J") document.getElementById("btnBack").click();
+    if (e.key === "k" || e.key === "K") document.getElementById("btnFwd").click();
+    if (["1", "2", "3", "4"].includes(e.key)) {
+      document.getElementById("speed").value = { 1: "0.25", 2: "0.5", 3: "1", 4: "2" }[e.key];
+    }
+  });
+  window.addEventListener("resize", paint);
+
+  renderToolbar();
+  renderBoard();
+  renderClips();
+  renderRinkSlots();
+  requestAnimationFrame(loop);
+
+  if (query.compare && games.length >= 2) {
+    await compareGames(query.compare.early, query.compare.late);
+  } else if (compareDefault) {
+    await compareGames(compareDefault.early, compareDefault.late);
+  } else {
+    const clip = clipsForGame(state.selectedGame)[0] || fullClipForGame(state.selectedGame);
+    if (clip) await loadSingle(clip);
+  }
+}
+
 export async function bootFilmRoom() {
   const q = parseQuery(location.search);
+  const seriesId = parseSeriesPath(location.pathname) || q.seriesId;
+  if (seriesId) {
+    await bootSeries(seriesId, q);
+    return;
+  }
   if (q.eventId && !q.matchId) {
     try {
       const evRes = await fetch(`/api/footage/event/${encodeURIComponent(q.eventId)}`);

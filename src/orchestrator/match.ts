@@ -9,6 +9,7 @@ import { advanceWorld } from "../engine/step.ts";
 import { defaultDirective, type WorldState } from "../engine/world.ts";
 import { copyBudget, createBudget, EPOCH_TIMEOUT_MS, type MatchBudget } from "../llm/budgets.ts";
 import { aarCiteEventIds } from "../film/clipper.ts";
+import { recordGameImprovement } from "../film/improvement.ts";
 import { recordMatchFilm } from "../persist/clips.ts";
 import type { Db } from "../persist/db.ts";
 import { insertEvents, persistEpoch } from "../persist/events.ts";
@@ -240,6 +241,24 @@ export async function runMatch(opts: MatchOptions): Promise<MatchResult> {
       seriesId: opts.seriesId,
       gameIndex: opts.gameIndex,
       aarEventIds: aarCiteEventIds([aar.home, aar.away]),
+    });
+  }
+
+  if (opts.seriesId) {
+    recordGameImprovement({
+      db: opts.db,
+      seriesId: opts.seriesId,
+      gameIndex: opts.gameIndex ?? 0,
+      matchId: opts.matchId,
+      homeTeamId: opts.homeTeamId,
+      awayTeamId: opts.awayTeamId,
+      matchResult: result,
+      playbookVersionBefore: {
+        home: opts.homePlaybookVersion ?? snap.homePlaybookVersion,
+        away: opts.awayPlaybookVersion ?? snap.awayPlaybookVersion,
+      },
+      aar,
+      events,
     });
   }
 

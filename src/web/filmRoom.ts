@@ -6,6 +6,8 @@ export type FilmQuery = {
   clipId?: string;
   eventId?: string;
   tick?: number;
+  seriesId?: string;
+  compare?: { early: number; late: number };
 };
 
 function emptyToUndef(v: string | null): string | undefined {
@@ -13,26 +15,36 @@ function emptyToUndef(v: string | null): string | undefined {
   return v;
 }
 
-/** Parse `/film?match=&clip=&event=&t=` (AAR Watch links use `event=`). */
+/** Parse `/film?match=&clip=&event=&t=&series=&compare=` (AAR Watch links use `event=`). */
 export function parseFilmQuery(search: string): FilmQuery {
   const raw = search.startsWith("?") ? search.slice(1) : search;
   const q = new URLSearchParams(raw);
   const tRaw = q.get("t");
   const tick = tRaw !== null && tRaw !== "" ? Number.parseInt(tRaw, 10) : Number.NaN;
+  const compareRaw = q.get("compare");
+  let compare: FilmQuery["compare"];
+  if (compareRaw) {
+    const m = /^(\d+)\s*,\s*(\d+)$/.exec(compareRaw.trim());
+    if (m) compare = { early: Number.parseInt(m[1]!, 10), late: Number.parseInt(m[2]!, 10) };
+  }
   return {
     matchId: emptyToUndef(q.get("match")),
     clipId: emptyToUndef(q.get("clip")),
     eventId: emptyToUndef(q.get("event")),
     tick: Number.isFinite(tick) ? tick : undefined,
+    seriesId: emptyToUndef(q.get("series")),
+    compare,
   };
 }
 
 export function filmHref(query: FilmQuery): string {
   const q = new URLSearchParams();
+  if (query.seriesId) q.set("series", query.seriesId);
   if (query.matchId) q.set("match", query.matchId);
   if (query.clipId) q.set("clip", query.clipId);
   if (query.eventId) q.set("event", query.eventId);
   if (query.tick !== undefined) q.set("t", String(query.tick));
+  if (query.compare) q.set("compare", `${query.compare.early},${query.compare.late}`);
   const s = q.toString();
   return s ? `/film?${s}` : "/film";
 }

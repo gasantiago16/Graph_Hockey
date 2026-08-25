@@ -10,6 +10,8 @@ import {
   resolveClip,
   resolveEventFootage,
 } from "../film/frames.ts";
+import { loadSeriesImprovement } from "../film/improvement.ts";
+import { pairClipsForGames } from "../film/pairClips.ts";
 import { getFootage, getRecording } from "../persist/clips.ts";
 import type { Clip } from "../types/film.ts";
 import { defaultDbPath, openDb, type Db } from "../persist/db.ts";
@@ -125,6 +127,7 @@ export function resolveStatic(urlPath: string, root: string): string | null {
   }
   if (u === "/" || u === "") return path.join(root, "src/web/index.html");
   if (u === "/film" || u === "/film/") return path.join(root, "src/web/film.html");
+  if (/^\/film\/series\/[^/]+\/?$/.test(u)) return path.join(root, "src/web/film.html");
   if (u === "/aar" || u === "/aar/") return path.join(root, "src/web/aar.html");
   const rel = u.replace(/^\/+/, "");
   if (forbiddenRel(rel)) return null;
@@ -212,6 +215,36 @@ export async function handleHockeyRequest(
   if (method === "GET" && url.pathname === "/api/series") {
     sendJson(res, 200, ctx.control.status());
     return;
+  }
+
+  if (method === "GET") {
+    const seriesImp = /^\/api\/series\/([^/]+)\/improvement$/.exec(url.pathname);
+    if (seriesImp) {
+      const seriesId = decodeURIComponent(seriesImp[1] ?? "");
+      const view = seriesId ? loadSeriesImprovement(ctx.db, seriesId) : undefined;
+      if (!view) {
+        sendJson(res, 404, { error: `no series ${seriesId}` });
+        return;
+      }
+      sendJson(res, 200, view);
+      return;
+    }
+    const seriesPairs = /^\/api\/series\/([^/]+)\/pairs$/.exec(url.pathname);
+    if (seriesPairs) {
+      const seriesId = decodeURIComponent(seriesPairs[1] ?? "");
+      const view = seriesId ? loadSeriesImprovement(ctx.db, seriesId) : undefined;
+      if (!view) {
+        sendJson(res, 404, { error: `no series ${seriesId}` });
+        return;
+      }
+      const compareRaw = url.searchParams.get("compare");
+      const m = compareRaw ? /^(\d+)\s*,\s*(\d+)$/.exec(compareRaw.trim()) : null;
+      const pairs = m
+        ? pairClipsForGames(view.clips, Number.parseInt(m[1]!, 10), Number.parseInt(m[2]!, 10))
+        : view.pairs;
+      sendJson(res, 200, pairs);
+      return;
+    }
   }
 
   if (method === "POST" && url.pathname === "/api/series/start") {
@@ -502,6 +535,7 @@ export async function listenAndServe(opts: ListenOpts = {}): Promise<Server> {
   const origins = corsOrigins(port).join(", ");
   console.log(`Graph_Hockey  http://${host}:${port}/`);
   console.log(`Film Room     http://${host}:${port}/film`);
+  console.log(`Series board  http://${host}:${port}/film/series/:id`);
   console.log(`AAR           http://${host}:${port}/aar`);
   console.log(`WebSocket     ws://${host}:${port}/ws`);
   console.log(`CORS/WS origin allowlist: ${origins}`);
