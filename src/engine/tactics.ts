@@ -162,6 +162,9 @@ export function passReceiver(world: WorldState, carrier: Body): Body | undefined
     if (role === "crease" || role === "gap") continue;
     const d = hypot(sub(mate.pos, carrier.pos));
     if (d < PASS_MIN_SEP || d > PASS_MAX_SEP) continue;
+    if (inOwnCrease(world, carrier.side, mate.pos)) continue;
+    const dir = world.attackingDir[carrier.side];
+    if ((mate.pos.x - carrier.pos.x) * dir < -10) continue;
     const score = role && RECEIVE_ROLES.has(role) ? d : d + 20;
     if (score < bestScore) {
       bestScore = score;
@@ -177,7 +180,7 @@ function possessorTarget(world: WorldState, body: Body, play: Play): Vec2 {
   const policy = overlay ?? play.assignments.shotPolicy;
   const dumpSpot = play.assignments.dumpSpot ?? "strong-corner";
   if (policy === "dump" || policy === "cycle") {
-    return dumpTarget(world, body.side, dumpSpot);
+    return routeClearOfOwnNet(world, body, dumpTarget(world, body.side, dumpSpot));
   }
   if (policy === "hold") {
     const slot = play.formation.slots[body.position];
@@ -188,9 +191,9 @@ function possessorTarget(world: WorldState, body: Body, play: Play): Vec2 {
   }
   if (overlay === "pass") {
     const recv = passReceiver(world, body);
-    if (recv) return { x: recv.pos.x, y: recv.pos.y };
+    if (recv) return routeClearOfOwnNet(world, body, { x: recv.pos.x, y: recv.pos.y });
   }
-  return { x: dir * GOAL_LINE_X, y: 0 };
+  return routeClearOfOwnNet(world, body, { x: dir * GOAL_LINE_X, y: 0 });
 }
 
 function facingRelease(body: Body, dest: Vec2): Vec2 | undefined {
@@ -232,6 +235,8 @@ export function maybeReleasePuck(world: WorldState): boolean {
 
   const n = facingRelease(body, dest);
   if (!n) return false;
+  if (n.x * world.attackingDir[body.side] < 0) return false;
+  if (inOwnCrease(world, body.side, dest)) return false;
   const launch = STICK_REACH + 1.1;
   world.puck.possessor = null;
   world.puck.pos = { x: body.pos.x + n.x * launch, y: body.pos.y + n.y * launch };
@@ -266,16 +271,39 @@ export function nearestSkaterToPuck(world: WorldState, side: Side): Body | undef
  * Loose puck: nearest skater retrieves. Opponent possession: nearest skater
  * pressure the carrier. Everyone else keeps formation.
  */
+function defendingNet(world: WorldState, side: Side): Vec2 {
+  return { x: -world.attackingDir[side] * GOAL_LINE_X, y: 0 };
+}
+
+export function inOwnCrease(world: WorldState, side: Side, pos: Vec2): boolean {
+  const net = defendingNet(world, side);
+  const along = (pos.x - net.x) * world.attackingDir[side];
+  if (along < -1 || along > CREASE_RADIUS + 2) return false;
+  return hypot(sub(pos, net)) <= CREASE_RADIUS + 2;
+}
+
+/** Never skate through our own net: first step is out to the hash, then the real dest. */
+function routeClearOfOwnNet(world: WorldState, body: Body, dest: Vec2): Vec2 {
+  const dir = world.attackingDir[body.side];
+  const net = defendingNet(world, body.side);
+  const nearOwn = hypot(sub(body.pos, net)) < CREASE_RADIUS + 10 || (body.pos.x - net.x) * dir < CREASE_RADIUS + 8;
+  if (!nearOwn) return dest;
+  const hashY = body.pos.y >= 0 ? HASH_OFFSET_Y : -HASH_OFFSET_Y;
+  return { x: net.x + dir * (CREASE_RADIUS + 10), y: hashY };
+}
+
 function puckHuntTarget(world: WorldState, body: Body): Vec2 | undefined {
   if (isGoalie(body)) return undefined;
   const nearest = nearestSkaterToPuck(world, body.side);
   if (nearest?.id !== body.id) return undefined;
   const possessorId = world.puck.possessor;
   if (!possessorId) {
+    if (inOwnCrease(world, body.side, world.puck.pos)) return undefined;
     return { x: world.puck.pos.x, y: world.puck.pos.y };
   }
   const holder = world.bodies[possessorId];
   if (holder && holder.side !== body.side) {
+    if (inOwnCrease(world, body.side, holder.pos)) return undefined;
     return { x: holder.pos.x, y: holder.pos.y };
   }
   return undefined;

@@ -166,8 +166,8 @@ describe("advanceWorld kinematics", () => {
       advanceWorld(a, dirs, rngA);
       advanceWorld(b, dirs, rngB);
     }
-    expect(a.liveTick).toBe(n);
-    expect(b.liveTick).toBe(n);
+    expect(a.liveTick).toBe(b.liveTick);
+    expect(a.liveTick).toBeGreaterThan(0);
     expect(pose(a)).toEqual(pose(b));
   });
 

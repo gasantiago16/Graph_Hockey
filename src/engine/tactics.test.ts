@@ -119,6 +119,32 @@ describe("puck awareness", () => {
     expect(Math.hypot(cTarget.x - 40, cTarget.y)).toBeGreaterThan(10);
   });
 
+  it("does not hunt a loose puck sitting in our crease (goalie)", () => {
+    const netX = -GOAL_LINE_X;
+    const world = createWorld({
+      puck: { pos: { x: netX + 2, y: 0 }, possessor: null },
+      bodies: {
+        "h-LD": { pos: { x: netX + 12, y: 8 } },
+        "h-C": { pos: { x: 0, y: 0 } },
+      },
+    });
+    const ld = findBySlot(world, "home", "LD")!;
+    const target = steeringTarget(world, ld);
+    expect(Math.hypot(target.x - (netX + 2), target.y)).toBeGreaterThan(6);
+  });
+
+  it("carrier in our crease is steered out to the hash, not through the net", () => {
+    const netX = -GOAL_LINE_X;
+    const world = createWorld({
+      puck: { pos: { x: netX + 2, y: 0 }, possessor: "h-C" },
+      bodies: { "h-C": { pos: { x: netX + 2, y: 0 }, heading: Math.PI } },
+    });
+    const c = findBySlot(world, "home", "C")!;
+    const target = steeringTarget(world, c);
+    expect(target.x).toBeGreaterThan(netX + 8);
+    expect(Math.abs(target.y)).toBeGreaterThan(10);
+  });
+
   it("nearest defender pressures the opponent puck-carrier", () => {
     const world = createWorld({
       puck: { pos: { x: 20, y: 0 }, possessor: "a-C" },
