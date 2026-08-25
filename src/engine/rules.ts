@@ -27,6 +27,7 @@ import {
 import type { Rng } from "./rng.ts";
 import { shotXg } from "./xg.ts";
 import {
+  boxSkaterCounts,
   extraAttackerId,
   findBySlot,
   isGoalie,
@@ -75,7 +76,7 @@ export function skaterCounts(strength: Strength): { home: number; away: number }
 }
 
 export function isShorthanded(world: WorldState, side: Side): boolean {
-  const { home, away } = skaterCounts(world.strength);
+  const { home, away } = boxSkaterCounts(world);
   return side === "home" ? home < away : away < home;
 }
 
@@ -351,11 +352,9 @@ export function servingPenalty(world: WorldState, id: PlayerId): boolean {
 }
 
 export function rosterCap(world: WorldState, side: Side): number {
-  const base = world.period === "OT" ? 3 : 5;
-  const down = world.penalties[side].filter((p) => p.remaining > 0).length;
-  let n = Math.max(0, base - down);
-  if (!world.goalieInNet[side]) n += 1;
-  return n;
+  const box = boxSkaterCounts(world);
+  const n = side === "home" ? box.home : box.away;
+  return n + (world.goalieInNet[side] ? 0 : 1);
 }
 
 export function strengthFromSkaterCounts(home: number, away: number, world?: WorldState): Strength {
@@ -370,16 +369,13 @@ export function strengthFromSkaterCounts(home: number, away: number, world?: Wor
   return "5v5";
 }
 
-/** PP/PK/EN from the box and goalie, not from a possibly scripted on-ice subset. */
+/** On-ice skater counts including EN extra attacker. PP/SH use boxSkaterCounts. */
 export function situationSkaterCounts(world: WorldState): { home: number; away: number } {
-  const base = world.period === "OT" ? 3 : 5;
-  const home =
-    Math.max(0, base - world.penalties.home.filter((p) => p.remaining > 0).length) +
-    (world.goalieInNet.home ? 0 : 1);
-  const away =
-    Math.max(0, base - world.penalties.away.filter((p) => p.remaining > 0).length) +
-    (world.goalieInNet.away ? 0 : 1);
-  return { home, away };
+  const box = boxSkaterCounts(world);
+  return {
+    home: box.home + (world.goalieInNet.home ? 0 : 1),
+    away: box.away + (world.goalieInNet.away ? 0 : 1),
+  };
 }
 
 export function syncStrength(world: WorldState): void {
@@ -388,7 +384,7 @@ export function syncStrength(world: WorldState): void {
 }
 
 export function hasExtraSkater(world: WorldState, side: Side): boolean {
-  const { home, away } = situationSkaterCounts(world);
+  const { home, away } = boxSkaterCounts(world);
   return side === "home" ? home > away : away > home;
 }
 
@@ -515,58 +511,71 @@ function ensureExtraAttacker(world: WorldState, side: Side): Body {
   return body;
 }
 
-function applyPullGoalie(world: WorldState, side: Side, emit: RuleEmit): void {
-  const want = world.directives[side].pullGoalie;
-  if (want === true) {
-    if (!world.goalieInNet[side]) return;
-    if (!pullGoalieLegal(world, side)) return;
-    const gId = world.onIce[side].find((id) => {
+function restoreGoalie(world: WorldState, side: Side): void {
+  const extraId = extraAttackerId(side);
+  if (world.onIce[side].includes(extraId)) moveToBench(world, side, extraId);
+  const gId =
+    world.bench[side].find((id) => {
       const b = world.bodies[id];
       return Boolean(b && isGoalie(b));
-    });
-    if (gId) moveToBench(world, side, gId);
+    }) ?? Object.values(world.bodies).find((b) => b.side === side && isGoalie(b))?.id;
+  if (!gId) return;
+  world.goalieInNet[side] = true;
+  const next = world.onIce[side].includes(gId) ? world.onIce[side] : [...world.onIce[side], gId];
+  if (!iceListLegal(world, side, next)) {
     world.goalieInNet[side] = false;
-    const extra = ensureExtraAttacker(world, side);
-    if (!world.onIce[side].includes(extra.id)) {
-      if (!iceListLegal(world, side, [...world.onIce[side], extra.id])) {
-        emit({
-          type: "IllegalChangeRejected",
-          actor: extra.id,
-          payload: { side, reason: "too_many_skaters" },
-        });
-        if (gId) {
-          moveToIce(world, side, gId);
-          world.goalieInNet[side] = true;
-        }
-        return;
-      }
-      moveToIce(world, side, extra.id);
-      placeAtBenchDoor(extra, side);
-    }
-    emit({ type: "GoaliePull", actor: extra.id, payload: { side, extraAttackerId: extra.id } });
     return;
   }
-  if (want === false && !world.goalieInNet[side]) {
-    const extraId = extraAttackerId(side);
-    if (world.onIce[side].includes(extraId)) moveToBench(world, side, extraId);
-    const gId =
-      world.bench[side].find((id) => {
-        const b = world.bodies[id];
-        return Boolean(b && isGoalie(b));
-      }) ??
-      Object.values(world.bodies).find((b) => b.side === side && isGoalie(b))?.id;
-    if (!gId) return;
-    if (!iceListLegal(world, side, [...world.onIce[side].filter((id) => id !== extraId), gId])) return;
-    moveToIce(world, side, gId);
-    const g = world.bodies[gId];
-    if (g) {
-      g.pos.x = -world.attackingDir[side] * GOAL_LINE_X;
-      g.pos.y = 0;
-      g.vel.x = 0;
-      g.vel.y = 0;
-    }
-    world.goalieInNet[side] = true;
+  if (!world.onIce[side].includes(gId)) moveToIce(world, side, gId);
+  const g = world.bodies[gId];
+  if (g) {
+    g.pos.x = -world.attackingDir[side] * GOAL_LINE_X;
+    g.pos.y = 0;
+    g.vel.x = 0;
+    g.vel.y = 0;
   }
+}
+
+export function restoreGoaliesOutsideWindow(world: WorldState): void {
+  for (const side of ["home", "away"] as const) {
+    if (world.goalieInNet[side]) continue;
+    if (pullGoalieLegal(world, side)) continue;
+    restoreGoalie(world, side);
+  }
+  syncStrength(world);
+}
+
+function applyPullGoalie(world: WorldState, side: Side, emit: RuleEmit): void {
+  const want = world.directives[side].pullGoalie;
+  if (!world.goalieInNet[side]) {
+    if (want === false || !pullGoalieLegal(world, side)) restoreGoalie(world, side);
+    return;
+  }
+  if (want !== true || !pullGoalieLegal(world, side)) return;
+  const gId = world.onIce[side].find((id) => {
+    const b = world.bodies[id];
+    return Boolean(b && isGoalie(b));
+  });
+  if (gId) moveToBench(world, side, gId);
+  world.goalieInNet[side] = false;
+  const extra = ensureExtraAttacker(world, side);
+  if (!world.onIce[side].includes(extra.id)) {
+    if (!iceListLegal(world, side, [...world.onIce[side], extra.id])) {
+      emit({
+        type: "IllegalChangeRejected",
+        actor: extra.id,
+        payload: { side, reason: "too_many_skaters" },
+      });
+      if (gId) {
+        moveToIce(world, side, gId);
+        world.goalieInNet[side] = true;
+      }
+      return;
+    }
+    moveToIce(world, side, extra.id);
+    placeAtBenchDoor(extra, side);
+  }
+  emit({ type: "GoaliePull", actor: extra.id, payload: { side, extraAttackerId: extra.id } });
 }
 
 function playersOnLine(world: WorldState, side: Side, line: LineTag): PlayerId[] {
@@ -862,13 +871,12 @@ const OT_KEEP = ["C", "LW", "LD", "G"] as const;
 function pickOtPlayer(world: WorldState, side: Side, position: (typeof OT_KEEP)[number]): PlayerId | undefined {
   const prefer: LineTag = position === "G" ? "G1" : position === "LD" ? "D1" : "F1";
   const pool = [...world.onIce[side], ...world.bench[side]];
-  const match = pool.filter((id) => world.bodies[id]?.position === position);
+  const match = pool.filter((id) => world.bodies[id]?.position === position && !servingPenalty(world, id));
   return match.find((id) => world.bodies[id]?.line === prefer) ?? match[0];
 }
 
-/** 2F + 1D + G from F1 C / F1 LW / D1 LD / G1. */
+/** 2F + 1D + G from F1 C / F1 LW / D1 LD / G1. Boxed players stay off the ice. */
 export function applyOtRoster(world: WorldState): void {
-  world.strength = "3v3";
   for (const side of ["home", "away"] as const) {
     const chosen: PlayerId[] = [];
     for (const position of OT_KEEP) {
@@ -877,14 +885,14 @@ export function applyOtRoster(world: WorldState): void {
     }
     const all = new Set([...world.onIce[side], ...world.bench[side]]);
     const ice = new Set(chosen);
-    world.onIce[side] = chosen;
-    world.bench[side] = [...all].filter((id) => !ice.has(id));
-    world.goalieInNet[side] = chosen.some((id) => {
+    world.onIce[side] = chosen.filter((id) => !servingPenalty(world, id));
+    world.bench[side] = [...all].filter((id) => !ice.has(id) || servingPenalty(world, id));
+    world.goalieInNet[side] = world.onIce[side].some((id) => {
       const b = world.bodies[id];
       return Boolean(b && isGoalie(b));
     });
   }
-  syncStrength(world);
+  fillToRosterCap(world);
 }
 
 function clearLiveFlags(world: WorldState): void {
@@ -915,6 +923,7 @@ function blowWhistle(
   }
   const infraction = (extra.payload as { infraction?: MinorInfraction } | undefined)?.infraction;
   settleDelayedPenalty(world, emit, infraction);
+  restoreGoaliesOutsideWindow(world);
   fillToRosterCap(world);
 }
 
@@ -936,6 +945,7 @@ function awardGoal(world: WorldState, emit: RuleEmit, scoring: Side, actor: Play
   world.delayedOffside = null;
   world.phase = world.period === "OT" ? "game_over" : "whistle";
   settleDelayedPenalty(world, emit);
+  restoreGoaliesOutsideWindow(world);
   fillToRosterCap(world);
 }
 
@@ -1243,6 +1253,8 @@ export function applyLiveRules(
 }
 
 export function prepareFaceoff(world: WorldState, emit: RuleEmit): void {
+  applyPersonnel(world, emit);
+  fillToRosterCap(world);
   if (world.whistle === "period_end") {
     if (world.period === "OT" || (world.period === 3 && world.score.home !== world.score.away)) {
       world.phase = "game_over";
@@ -1251,8 +1263,6 @@ export function prepareFaceoff(world: WorldState, emit: RuleEmit): void {
     }
     return;
   }
-  applyPersonnel(world, emit);
-  fillToRosterCap(world);
   if (!world.faceoffSpot) {
     world.faceoffSpot = faceoffSpotFor(world.whistle ?? "freeze", world);
   }

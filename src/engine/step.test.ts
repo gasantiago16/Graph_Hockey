@@ -123,6 +123,24 @@ describe("advanceWorld stop-time", () => {
       expect(positions).toEqual(["C", "LD", "LW"]);
     }
   });
+
+  it("starts OT 3v2 when a minor carries over and does not ice the boxed player", () => {
+    const world = createWorld({
+      phase: "intermission",
+      period: 3,
+      clockRemaining: 0,
+      liveTick: 99,
+      score: { home: 1, away: 1 },
+      penalties: { home: [], away: [{ playerId: "a-C", remaining: 90, kind: "minor" }] },
+    });
+    advanceWorld(world, dirs, createRng(1));
+    expect(world.period).toBe("OT");
+    expect(world.strength).toBe("3v2");
+    expect(world.onIce.away).not.toContain("a-C");
+    expect(world.penalties.away.some((p) => p.playerId === "a-C")).toBe(true);
+    const awaySkaters = world.onIce.away.map((id) => world.bodies[id]).filter((b) => b && b.position !== "G");
+    expect(awaySkaters).toHaveLength(2);
+  });
 });
 
 describe("advanceWorld kinematics", () => {

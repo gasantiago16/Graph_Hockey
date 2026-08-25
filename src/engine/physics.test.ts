@@ -4,9 +4,14 @@ import {
   collideBodies,
   collidePuckPlayers,
   collideRink,
+  cruiseOf,
+  FATIGUE_SPEED_FLOOR,
+  maxSpeedOf,
   PUCK_BOARD_RESTITUTION,
   PUCK_GOALIE_RESTITUTION,
   PUCK_RADIUS,
+  SKATER_CRUISE,
+  SKATER_MAX_SPEED,
   STICK_REACH,
   updatePossession,
 } from "./physics.ts";
@@ -49,6 +54,30 @@ describe("physics collisions", () => {
     const vel = { x: 20, y: 20 };
     collideRink(pos, vel, SKATER_RADIUS, BODY_RESTITUTION);
     expect(isInsideRink(pos, SKATER_RADIUS)).toBe(true);
+  });
+});
+
+describe("fatigue speed", () => {
+  it("scales maxSpeed and cruise toward a floor as fatigue → 1", () => {
+    const body = skater({ id: "h-C" });
+    expect(maxSpeedOf(body, 0)).toBe(SKATER_MAX_SPEED);
+    expect(cruiseOf(body, 0)).toBe(SKATER_CRUISE);
+    expect(maxSpeedOf(body, 1)).toBeCloseTo(SKATER_MAX_SPEED * FATIGUE_SPEED_FLOOR, 10);
+    expect(cruiseOf(body, 1)).toBeCloseTo(SKATER_CRUISE * FATIGUE_SPEED_FLOOR, 10);
+    expect(maxSpeedOf(body, 1)).toBeLessThan(maxSpeedOf(body, 0));
+  });
+
+  it("still slows a locked-line skater with high fatigue", () => {
+    const world = createWorld({
+      fatigue: { "h-C": 1 },
+      directives: {
+        home: { playId: "default-structure", pressure: "neutral", lockLines: true },
+        away: { playId: "default-structure", pressure: "neutral" },
+      },
+    });
+    const body = world.bodies["h-C"];
+    expect(body).toBeTruthy();
+    expect(maxSpeedOf(body!, world.fatigue["h-C"])).toBeLessThan(SKATER_MAX_SPEED);
   });
 });
 

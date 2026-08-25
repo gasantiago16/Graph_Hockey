@@ -50,7 +50,7 @@ const play = {
 
 describe("core hockey schemas", () => {
   it("uses world Strength without playbook EN", () => {
-    for (const s of ["5v5", "5v4", "5v3", "4v4", "4v3", "3v3", "6v5", "5v6"] as const) {
+    for (const s of ["5v5", "5v4", "5v3", "4v4", "4v3", "3v3", "3v2", "2v3", "6v5", "5v6"] as const) {
       expect(STRENGTHS).toContain(s);
       expect(StrengthSchema.parse(s)).toBe(s);
     }

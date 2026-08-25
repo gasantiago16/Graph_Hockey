@@ -1,7 +1,7 @@
 import type { Side, Vec2 } from "../types/hockey.ts";
 import { dist, dot, hypotVec, sub } from "./physics.ts";
 import { GOAL_LINE_X } from "./rink.ts";
-import { isGoalie, onIceBodies, type Body, type WorldState } from "./world.ts";
+import { boxSkaterCounts, isGoalie, onIceBodies, type Body, type WorldState } from "./world.ts";
 
 export type XgFeatures = {
   distanceFt: number;
@@ -34,11 +34,6 @@ function distToSegment(p: Vec2, a: Vec2, b: Vec2): number {
   if (len2 < 1e-12) return dist(p, a);
   const t = clamp(dot(sub(p, a), ab) / len2, 0, 1);
   return dist(p, { x: a.x + ab.x * t, y: a.y + ab.y * t });
-}
-
-function skaterCounts(strength: string): { home: number; away: number } {
-  const parts = strength.split("v");
-  return { home: Number(parts[0]), away: Number(parts[1]) };
 }
 
 export function attackingNet(world: WorldState, side: Side): Vec2 {
@@ -100,7 +95,7 @@ export function shotFeatures(
   const rush: 0 | 1 =
     entryTick !== null && world.liveTick - entryTick <= RUSH_TICKS ? 1 : 0;
 
-  const counts = skaterCounts(world.strength);
+  const counts = boxSkaterCounts(world);
   const us = shooter.side === "home" ? counts.home : counts.away;
   const them = shooter.side === "home" ? counts.away : counts.home;
   const pp: 0 | 1 = us > them ? 1 : 0;

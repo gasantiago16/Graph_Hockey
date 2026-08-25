@@ -149,8 +149,9 @@ describe("icing", () => {
   });
 
   it("does not ice a shorthanded dump (4v5 home SH)", () => {
-    expect(isShorthanded(createWorld({ strength: "4v5" }), "home")).toBe(true);
-    expect(isShorthanded(createWorld({ strength: "4v5" }), "away")).toBe(false);
+    const pk = { home: [{ playerId: "h-LW" as const, remaining: 80, kind: "minor" as const }], away: [] };
+    expect(isShorthanded(createWorld({ strength: "4v5", penalties: pk }), "home")).toBe(true);
+    expect(isShorthanded(createWorld({ strength: "4v5", penalties: pk }), "away")).toBe(false);
     const world = createWorld({
       phase: "live",
       strength: "4v5",
@@ -166,6 +167,63 @@ describe("icing", () => {
     expect(world.icingTrack).toBeNull();
     expect(world.phase).toBe("live");
     expect(world.lastEvents.some((e) => e.type === "Icing")).toBe(false);
+  });
+
+  it("still waives a PK dump when the PK goalie is pulled", () => {
+    const pulled = {
+      home: { ...defaultDirective(), pullGoalie: true },
+      away: defaultDirective(),
+    };
+    const world = createWorld({
+      phase: "live",
+      period: 3,
+      clockRemaining: 60,
+      score: { home: 1, away: 2 },
+      penalties: { home: [{ playerId: "h-LW", remaining: 80, kind: "minor" }], away: [] },
+      goalieInNet: { home: false, away: true },
+      onIce: { home: ["h-C", "h-F4"], away: ["a-C"] },
+      bench: { home: ["h-G"], away: [] },
+      bodies: {
+        ...farBodies(),
+        "h-F4": { side: "home", position: "C", line: "F4", pos: { x: 0, y: 30 }, vel: { x: 0, y: 0 }, heading: 0 },
+      },
+      puck: { pos: { x: 88, y: 20 }, vel: { x: 40, y: 0 }, possessor: null },
+      icingTrack: { sideDumping: "home", shooterId: "h-C" },
+      directives: pulled,
+    });
+    expect(isShorthanded(world, "home")).toBe(true);
+    advanceWorld(world, pulled, createRng(3));
+    expect(world.whistle).not.toBe("icing");
+    expect(world.icingRace).toBeNull();
+    expect(world.lastEvents.some((e) => e.type === "Icing")).toBe(false);
+    expect(world.goalieInNet.home).toBe(false);
+  });
+
+  it("ices an even-strength empty-net dump (6v5 is not SH)", () => {
+    const pulled = {
+      home: { ...defaultDirective(), pullGoalie: true },
+      away: defaultDirective(),
+    };
+    const world = createWorld({
+      phase: "live",
+      period: 3,
+      clockRemaining: 60,
+      score: { home: 1, away: 2 },
+      goalieInNet: { home: false, away: true },
+      onIce: { home: ["h-C", "h-F4"], away: ["a-C", "a-LW"] },
+      bench: { home: ["h-G"], away: [] },
+      bodies: {
+        ...farBodies(),
+        "h-F4": { side: "home", position: "C", line: "F4", pos: { x: 0, y: 30 }, vel: { x: 0, y: 0 }, heading: 0 },
+      },
+      puck: { pos: { x: -88, y: 20 }, vel: { x: -40, y: 0 }, possessor: null },
+      icingTrack: { sideDumping: "away", shooterId: "a-C" },
+      directives: pulled,
+    });
+    expect(isShorthanded(world, "away")).toBe(false);
+    advanceWorld(world, pulled, createRng(3));
+    expect(world.icingTrack).toBeNull();
+    expect(world.icingRace !== null || world.whistle === "icing").toBe(true);
   });
 
   it("calls icing when the defender reaches the dot first", () => {
@@ -501,6 +559,61 @@ describe("penalties / special teams", () => {
     expect(world.strength).toBe("5v4");
   });
 
+  it("ends the minor on a PP goal even if the PK goalie is pulled", () => {
+    const pulled = {
+      home: defaultDirective(),
+      away: { ...defaultDirective(), pullGoalie: true },
+    };
+    const world = createWorld({
+      phase: "live",
+      period: 3,
+      clockRemaining: 60,
+      score: { home: 2, away: 1 },
+      penalties: { home: [], away: [{ playerId: "a-C", remaining: 90, kind: "minor" }] },
+      goalieInNet: { home: true, away: false },
+      onIce: {
+        home: ["h-C", "h-LW", "h-RW", "h-LD", "h-RD", "h-G"],
+        away: ["a-LW", "a-RW", "a-LD", "a-RD", "a-F4"],
+      },
+      bench: { home: [], away: ["a-C", "a-G"] },
+      bodies: {
+        ...farBodies(),
+        "a-F4": { side: "away", position: "C", line: "F4", pos: { x: 0, y: -30 }, vel: { x: 0, y: 0 }, heading: Math.PI },
+      },
+      puck: { pos: { x: 88.4, y: 0 }, vel: { x: 20, y: 0 }, possessor: null },
+      lastPuckContact: { kind: "stick-puck", playerId: "h-C", stickHeight: 3 },
+      directives: pulled,
+    });
+    expect(isShorthanded(world, "away")).toBe(true);
+    advanceWorld(world, pulled, createRng(1));
+    expect(world.score.home).toBe(3);
+    expect(world.penalties.away).toHaveLength(0);
+
+    const sh = createWorld({
+      phase: "live",
+      period: 3,
+      clockRemaining: 60,
+      score: { home: 2, away: 1 },
+      penalties: { home: [], away: [{ playerId: "a-C", remaining: 90, kind: "minor" }] },
+      goalieInNet: { home: true, away: false },
+      onIce: {
+        home: ["h-C", "h-LW", "h-RW", "h-LD", "h-RD", "h-G"],
+        away: ["a-LW", "a-RW", "a-LD", "a-RD", "a-F4"],
+      },
+      bench: { home: [], away: ["a-C", "a-G"] },
+      bodies: {
+        ...farBodies(),
+        "a-F4": { side: "away", position: "C", line: "F4", pos: { x: 0, y: -30 }, vel: { x: 0, y: 0 }, heading: Math.PI },
+      },
+      puck: { pos: { x: -88.4, y: 0 }, vel: { x: -20, y: 0 }, possessor: null },
+      lastPuckContact: { kind: "stick-puck", playerId: "a-LW", stickHeight: 3 },
+      directives: pulled,
+    });
+    advanceWorld(sh, pulled, createRng(1));
+    expect(sh.score.away).toBe(2);
+    expect(sh.penalties.away).toHaveLength(1);
+  });
+
   it("ends the minor when the PP team scores, not on a shorthanded goal", () => {
     const pp = createWorld({
       phase: "live",
@@ -688,5 +801,106 @@ describe("too many skaters / empty net", () => {
     expect(window.goalieInNet.home).toBe(false);
     expect(countOnIceSkaters(window, "home")).toBe(6);
     expect(window.lastEvents.some((e) => e.type === "GoaliePull")).toBe(true);
+  });
+
+  it("puts the goalie back when a delayed extra attacker is no longer legal", () => {
+    const pulled = {
+      home: { ...defaultDirective(), pullGoalie: true },
+      away: defaultDirective(),
+    };
+    const world = createWorld({
+      phase: "delayed_penalty",
+      delayedPenalty: { against: "away", playerId: "a-C" },
+      period: 1,
+      clockRemaining: 500,
+      score: { home: 0, away: 0 },
+      bodies: farBodies(),
+      puck: { pos: { x: 0, y: 0 }, vel: { x: 0, y: 0 }, possessor: "h-C" },
+    });
+    advanceWorld(world, pulled, createRng(1));
+    expect(world.goalieInNet.home).toBe(false);
+    expect(world.onIce.home).toContain("h-F4");
+    world.puck.possessor = "a-C";
+    const ac = world.bodies["a-C"];
+    if (ac) {
+      ac.pos = { x: 0, y: 0 };
+      ac.heading = 0;
+    }
+    world.puck.pos = { x: 3, y: 0 };
+    advanceWorld(world, pulled, createRng(1));
+    expect(world.delayedPenalty).toBeNull();
+    expect(world.penalties.away.some((p) => p.playerId === "a-C")).toBe(true);
+    expect(world.goalieInNet.home).toBe(true);
+    expect(world.onIce.home).not.toContain("h-F4");
+    expect(world.onIce.home).toContain("h-G");
+    expect(world.strength).toBe("5v4");
+  });
+
+  it("puts the goalie back after a last-2:00 pull when the score ties", () => {
+    const pulled = {
+      home: { ...defaultDirective(), pullGoalie: true },
+      away: defaultDirective(),
+    };
+    const world = createWorld({
+      phase: "live",
+      period: 3,
+      clockRemaining: 60,
+      score: { home: 1, away: 2 },
+      goalieInNet: { home: false, away: true },
+      onIce: {
+        home: ["h-C", "h-LW", "h-RW", "h-LD", "h-RD", "h-F4"],
+        away: ["a-C", "a-LW", "a-RW", "a-LD", "a-RD", "a-G"],
+      },
+      bench: { home: ["h-G"], away: [] },
+      bodies: {
+        ...farBodies(),
+        "h-F4": { side: "home", position: "C", line: "F4", pos: { x: 0, y: 30 }, vel: { x: 0, y: 0 }, heading: 0 },
+      },
+      puck: { pos: { x: 88.4, y: 0 }, vel: { x: 20, y: 0 }, possessor: null },
+      lastPuckContact: { kind: "stick-puck", playerId: "h-C", stickHeight: 3 },
+      directives: pulled,
+    });
+    advanceWorld(world, pulled, createRng(1));
+    expect(world.score.home).toBe(2);
+    expect(world.score.away).toBe(2);
+    expect(world.goalieInNet.home).toBe(true);
+    expect(world.onIce.home).not.toContain("h-F4");
+    expect(world.onIce.home).toContain("h-G");
+  });
+});
+
+describe("period-end line changes", () => {
+  it("auto-changes tired skaters on the period-end whistle unless lockLines", () => {
+    const world = createWorld({
+      phase: "whistle",
+      whistle: "period_end",
+      period: 1,
+      clockRemaining: 0,
+      fatigue: { "h-C": 0.7 },
+    });
+    addBenchLine(world, "home", "F2");
+    advanceWorld(world, dirs, createRng(1));
+    expect(world.phase).toBe("intermission");
+    expect(world.onIce.home).not.toContain("h-C");
+    expect(world.onIce.home).toContain("h-F2-C");
+
+    const locked = createWorld({
+      phase: "whistle",
+      whistle: "period_end",
+      period: 1,
+      clockRemaining: 0,
+      fatigue: { "h-C": 0.7 },
+      directives: {
+        home: { ...defaultDirective(), lockLines: true },
+        away: defaultDirective(),
+      },
+    });
+    addBenchLine(locked, "home", "F2");
+    advanceWorld(
+      locked,
+      { home: { ...defaultDirective(), lockLines: true }, away: defaultDirective() },
+      createRng(1),
+    );
+    expect(locked.onIce.home).toContain("h-C");
   });
 });

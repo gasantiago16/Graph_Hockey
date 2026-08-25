@@ -173,6 +173,15 @@ export function extraAttackerId(side: Side): PlayerId {
   return `${side === "home" ? "h" : "a"}-F4`;
 }
 
+/** Skaters from the box only — EN extra attacker is not PP/SH. */
+export function boxSkaterCounts(world: WorldState): { home: number; away: number } {
+  const base = world.period === "OT" ? 3 : 5;
+  return {
+    home: Math.max(0, base - world.penalties.home.filter((p) => p.remaining > 0).length),
+    away: Math.max(0, base - world.penalties.away.filter((p) => p.remaining > 0).length),
+  };
+}
+
 export function defaultLineFor(position: Position): LineTag {
   if (position === "G") return "G1";
   if (position === "LD" || position === "RD") return "D1";

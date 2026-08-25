@@ -92,12 +92,22 @@ export function isFacing(body: Body, target: Vec2, maxRad = FACING_RAD): boolean
   return Math.abs(shortestAngle(body.heading, a)) <= maxRad;
 }
 
-export function maxSpeedOf(body: Body): number {
-  return isGoalie(body) ? GOALIE_MAX_SPEED : SKATER_MAX_SPEED;
+/** Tired skating floor: fatigue 1 → 70% of max/cruise. */
+export const FATIGUE_SPEED_FLOOR = 0.7;
+
+export function fatigueSpeedFactor(fatigue: number): number {
+  const f = Math.max(0, Math.min(1, fatigue));
+  return 1 - (1 - FATIGUE_SPEED_FLOOR) * f;
 }
 
-export function cruiseOf(body: Body): number {
-  return isGoalie(body) ? GOALIE_CRUISE : SKATER_CRUISE;
+export function maxSpeedOf(body: Body, fatigue = 0): number {
+  const base = isGoalie(body) ? GOALIE_MAX_SPEED : SKATER_MAX_SPEED;
+  return base * fatigueSpeedFactor(fatigue);
+}
+
+export function cruiseOf(body: Body, fatigue = 0): number {
+  const base = isGoalie(body) ? GOALIE_CRUISE : SKATER_CRUISE;
+  return base * fatigueSpeedFactor(fatigue);
 }
 
 export function maxAccelOf(body: Body): number {
@@ -256,12 +266,13 @@ export function stickBodyContacts(world: WorldState): ContactEvent[] {
 }
 
 export function desiredVelocity(world: WorldState, body: Body): Vec2 {
+  const fatigue = world.fatigue[body.id] ?? 0;
   const race = world.icingRace;
   if (race && (body.id === race.defenderId || body.id === race.attackerId)) {
     const delta = sub(race.dot, body.pos);
     const d = hypotVec(delta);
     if (d < 0.5) return { x: 0, y: 0 };
-    const speed = maxSpeedOf(body);
+    const speed = maxSpeedOf(body, fatigue);
     return { x: (delta.x / d) * speed, y: (delta.y / d) * speed };
   }
   const dir = world.attackingDir[body.side];
@@ -270,11 +281,11 @@ export function desiredVelocity(world: WorldState, body: Body): Vec2 {
   let cap: number;
   if (possessor) {
     target = { x: dir * GOAL_LINE_X, y: 0 };
-    cap = maxSpeedOf(body);
+    cap = maxSpeedOf(body, fatigue);
   } else {
     const slot = DEFAULT_SLOTS[body.position];
     target = { x: slot.x * dir, y: slot.y };
-    cap = cruiseOf(body);
+    cap = cruiseOf(body, fatigue);
   }
   const delta = sub(target, body.pos);
   const d = hypotVec(delta);
@@ -284,11 +295,12 @@ export function desiredVelocity(world: WorldState, body: Body): Vec2 {
 }
 
 export function integrateBody(world: WorldState, body: Body, dt: number = DT): void {
+  const fatigue = world.fatigue[body.id] ?? 0;
   const desired = desiredVelocity(world, body);
   const accel = clampMag(scale(sub(desired, body.vel), 1 / dt), maxAccelOf(body));
   body.vel.x += accel.x * dt;
   body.vel.y += accel.y * dt;
-  body.vel = clampMag(body.vel, maxSpeedOf(body));
+  body.vel = clampMag(body.vel, maxSpeedOf(body, fatigue));
 
   const fwd = headingVec(body.heading);
   const along = dot(body.vel, fwd);

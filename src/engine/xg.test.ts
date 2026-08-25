@@ -89,6 +89,7 @@ describe("xG logistic §4.5", () => {
   it("sets sh=1 when the shooter is shorthanded (4v5)", () => {
     const world = createWorld({
       strength: "4v5",
+      penalties: { home: [{ playerId: "h-LW", remaining: 80, kind: "minor" }], away: [] },
       onIce: { home: ["h-C"], away: ["a-C"] },
       bodies: {
         "h-C": { pos: { x: 50, y: 0 }, heading: 0 },
@@ -100,5 +101,23 @@ describe("xG logistic §4.5", () => {
     const f = shotFeatures(world, shooter!, { x: 80, y: 0 }, { x: 50, y: 0 });
     expect(f.sh).toBe(1);
     expect(f.pp).toBe(0);
+  });
+
+  it("does not treat even-strength empty-net 6v5 as PP/SH", () => {
+    const world = createWorld({
+      strength: "6v5",
+      goalieInNet: { home: false, away: true },
+      onIce: { home: ["h-C"], away: ["a-C"] },
+      bodies: {
+        "h-C": { pos: { x: 50, y: 0 }, heading: 0 },
+        "a-C": { pos: { x: 0, y: 30 }, heading: 0 },
+      },
+    });
+    const home = shotFeatures(world, world.bodies["h-C"]!, { x: 80, y: 0 }, { x: 50, y: 0 });
+    const away = shotFeatures(world, world.bodies["a-C"]!, { x: -80, y: 0 }, { x: 50, y: 0 });
+    expect(home.pp).toBe(0);
+    expect(home.sh).toBe(0);
+    expect(away.pp).toBe(0);
+    expect(away.sh).toBe(0);
   });
 });
