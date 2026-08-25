@@ -1,3 +1,6 @@
+import { BaseCallbackHandler } from "@langchain/core/callbacks/base";
+import type { ChatGeneration, Generation, LLMResult } from "@langchain/core/outputs";
+import { DEFAULT_COACH_MODEL } from "../config.ts";
 import type { Side } from "../types/hockey.ts";
 
 export const MAX_CALLS_PER_TEAM = 150;
@@ -21,12 +24,31 @@ export type MatchBudget = {
   game: SideBudget;
 };
 
+export type ModelPrice = { inputPerMTok: number; outputPerMTok: number };
+
+/** DESIGN §11 / xAI pricing < 200k prompt (per 1M tokens). */
+export const MODEL_PRICES = {
+  "grok-4.6": { inputPerMTok: 2.0, outputPerMTok: 6.0 },
+  "grok-4.5": { inputPerMTok: 2.0, outputPerMTok: 6.0 },
+  "grok-4.3": { inputPerMTok: 1.25, outputPerMTok: 2.5 },
+} as const satisfies Record<string, ModelPrice>;
+
 function zeros(): TokenUsage {
   return { promptTokens: 0, completionTokens: 0, reasoningTokens: 0, usd: 0, calls: 0 };
 }
 
 export function emptyUsage(): TokenUsage {
   return zeros();
+}
+
+export function copyUsage(u: TokenUsage): TokenUsage {
+  return {
+    promptTokens: u.promptTokens,
+    completionTokens: u.completionTokens,
+    reasoningTokens: u.reasoningTokens,
+    usd: u.usd,
+    calls: u.calls,
+  };
 }
 
 export function createBudget(): MatchBudget {
@@ -53,8 +75,152 @@ function add(into: TokenUsage, u: TokenUsage): void {
   into.calls += u.calls;
 }
 
-/** Called from a ChatXAI callback (handleLLMEnd) in later PRs, never from graph.invoke output. */
+/** Called from a ChatXAI callback (handleLLMEnd), never from graph.invoke output. */
 export function recordLlmUsage(b: MatchBudget, side: Side, u: TokenUsage): void {
   add(b[side], u);
   add(b.game, u);
+}
+
+export function priceForModel(model: string): ModelPrice {
+  if (model.startsWith("grok-4.6")) return MODEL_PRICES["grok-4.6"];
+  if (model.startsWith("grok-4.3")) return MODEL_PRICES["grok-4.3"];
+  return MODEL_PRICES["grok-4.5"];
+}
+
+/** Billed output already includes reasoning — do not add reasoningTokens again. */
+export function estimateUsd(model: string, promptTokens: number, completionTokens: number): number {
+  const p = priceForModel(model);
+  return (promptTokens / 1_000_000) * p.inputPerMTok + (completionTokens / 1_000_000) * p.outputPerMTok;
+}
+
+function num(v: unknown): number {
+  return typeof v === "number" && Number.isFinite(v) ? v : 0;
+}
+
+function reasoningFromDetails(details: unknown): number {
+  if (!details || typeof details !== "object") return 0;
+  const d = details as Record<string, unknown>;
+  return num(d.reasoning ?? d.reasoning_tokens);
+}
+
+function fromTokenBag(bag: Record<string, unknown> | undefined): {
+  promptTokens: number;
+  completionTokens: number;
+  reasoningTokens: number;
+} | undefined {
+  if (!bag) return undefined;
+  const promptTokens = num(bag.promptTokens ?? bag.prompt_tokens ?? bag.input_tokens);
+  const completionTokens = num(bag.completionTokens ?? bag.completion_tokens ?? bag.output_tokens);
+  const details = bag.completion_tokens_details ?? bag.output_token_details ?? bag.completionTokensDetails;
+  const reasoningTokens = reasoningFromDetails(details) || num(bag.reasoning_tokens ?? bag.reasoningTokens);
+  if (promptTokens === 0 && completionTokens === 0 && reasoningTokens === 0) {
+    if (!("promptTokens" in bag || "prompt_tokens" in bag || "input_tokens" in bag || "completionTokens" in bag || "completion_tokens" in bag || "output_tokens" in bag)) {
+      return undefined;
+    }
+  }
+  return { promptTokens, completionTokens, reasoningTokens };
+}
+
+function asRecord(v: unknown): Record<string, unknown> | undefined {
+  return v && typeof v === "object" ? (v as Record<string, unknown>) : undefined;
+}
+
+function generationMessage(g: Generation): { usage_metadata?: unknown; response_metadata?: unknown } | undefined {
+  if (!g || typeof g !== "object" || !("message" in g)) return undefined;
+  const msg = (g as ChatGeneration).message;
+  if (!msg || typeof msg !== "object") return undefined;
+  return msg as { usage_metadata?: unknown; response_metadata?: unknown };
+}
+
+export function modelFromLlmResult(output: LLMResult, extraParams?: Record<string, unknown>): string | undefined {
+  const inv = asRecord(extraParams?.invocation_params);
+  if (typeof inv?.model === "string") return inv.model;
+  const llmOut = asRecord(output.llmOutput);
+  if (typeof llmOut?.model === "string") return llmOut.model;
+  if (typeof llmOut?.model_name === "string") return llmOut.model_name;
+  const gen = output.generations?.[0]?.[0];
+  const msg = gen ? generationMessage(gen) : undefined;
+  const rm = asRecord(msg?.response_metadata);
+  if (typeof rm?.model === "string") return rm.model;
+  if (typeof rm?.model_name === "string") return rm.model_name;
+  return undefined;
+}
+
+/**
+ * Prefer AIMessage.usage_metadata (LangChain maps xAI completion_tokens_details.reasoning_tokens).
+ * completionTokens is billed output and already includes reasoning.
+ */
+export function usageFromLlmResult(output: LLMResult, model: string): TokenUsage {
+  let promptTokens = 0;
+  let completionTokens = 0;
+  let reasoningTokens = 0;
+  let found = false;
+
+  for (const row of output.generations ?? []) {
+    for (const g of row) {
+      const msg = generationMessage(g);
+      const um = asRecord(msg?.usage_metadata);
+      if (um) {
+        found = true;
+        promptTokens += num(um.input_tokens ?? um.prompt_tokens);
+        completionTokens += num(um.output_tokens ?? um.completion_tokens);
+        reasoningTokens += reasoningFromDetails(um.output_token_details) || num(um.reasoning_tokens);
+        continue;
+      }
+      const rm = asRecord(msg?.response_metadata);
+      const bag = fromTokenBag(asRecord(rm?.tokenUsage ?? rm?.token_usage ?? rm?.usage));
+      if (bag) {
+        found = true;
+        promptTokens += bag.promptTokens;
+        completionTokens += bag.completionTokens;
+        reasoningTokens += bag.reasoningTokens;
+      }
+    }
+  }
+
+  if (!found) {
+    const llmOut = asRecord(output.llmOutput);
+    const bag = fromTokenBag(asRecord(llmOut?.tokenUsage ?? llmOut?.token_usage ?? llmOut?.usage));
+    if (bag) {
+      promptTokens = bag.promptTokens;
+      completionTokens = bag.completionTokens;
+      reasoningTokens = bag.reasoningTokens;
+    }
+  }
+
+  return {
+    promptTokens,
+    completionTokens,
+    reasoningTokens,
+    usd: estimateUsd(model, promptTokens, completionTokens),
+    calls: 1,
+  };
+}
+
+/**
+ * ChatXAI / FakeListChatModel callback. Writes MatchBudget; usage is not a graph-state field.
+ */
+export class UsageTap extends BaseCallbackHandler {
+  name = "UsageTap";
+  usage: TokenUsage;
+
+  constructor(
+    readonly side: Side,
+    readonly budget: MatchBudget,
+    readonly defaultModel: string = DEFAULT_COACH_MODEL,
+  ) {
+    super();
+    this.usage = emptyUsage();
+  }
+
+  get calls(): number {
+    return this.usage.calls;
+  }
+
+  handleLLMEnd(output: LLMResult, _runId?: string, _parentRunId?: string, _tags?: string[], extraParams?: Record<string, unknown>): void {
+    const model = modelFromLlmResult(output, extraParams) ?? this.defaultModel;
+    const u = usageFromLlmResult(output, model);
+    add(this.usage, u);
+    recordLlmUsage(this.budget, this.side, u);
+  }
 }

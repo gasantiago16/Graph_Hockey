@@ -12,7 +12,8 @@
     "test": "vitest run",
     "gh": "tsx src/cli/main.ts",
     "web": "tsx src/server/http.ts",
-    "film": "tsx src/server/http.ts"
+    "film": "tsx src/server/http.ts",
+    "smoke:xai": "tsx scripts/smoke-xai-reasoning.ts"
   },
   "devDependencies": {
     "@types/node": "^20.17.10",
@@ -24,6 +25,7 @@
   "dependencies": {
     "@langchain/core": "1.2.9",
     "@langchain/langgraph": "1.4.12",
+    "@langchain/xai": "1.4.10",
     "sql.js": "^1.14.2",
     "ws": "^8.21.3",
     "zod": "3.25.76"

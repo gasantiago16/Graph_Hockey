@@ -3,6 +3,8 @@ import type { TeamObservation } from "../types/observation.ts";
 import type { Side } from "../types/hockey.ts";
 import {
   EPOCH_TIMEOUT_MS,
+  UsageTap,
+  copyUsage,
   createBudget,
   emptyUsage,
   gameTripped,
@@ -23,6 +25,7 @@ export type InvokableTeamGraph = {
       configurable?: { thread_id?: string };
       signal?: AbortSignal;
       recursionLimit?: number;
+      callbacks?: unknown[];
     },
   ) => Promise<unknown>;
 };
@@ -71,11 +74,12 @@ export async function invokeTeam(args: {
   signal?: AbortSignal;
 }): Promise<TeamInvokeResult> {
   const threadId = epochThreadId(args.matchId, args.side, args.epochIndex);
-  const usage = emptyUsage();
 
   if (teamTripped(args.budget, args.side) || gameTripped(args.budget)) {
-    return { ok: false, directive: args.last, reason: "circuit", billed: false, usage, threadId };
+    return { ok: false, directive: args.last, reason: "circuit", billed: false, usage: emptyUsage(), threadId };
   }
+
+  const tap = new UsageTap(args.side, args.budget);
 
   const ac = new AbortController();
   const onExternalAbort = () => ac.abort();
@@ -100,14 +104,17 @@ export async function invokeTeam(args: {
         configurable: { thread_id: threadId },
         signal: ac.signal,
         recursionLimit: 12,
+        callbacks: [tap],
       },
     );
+    const usage = copyUsage(tap.usage);
     const parsed = parseDirective(out, args.last);
     if (!parsed.ok) {
-      return { ok: false, directive: args.last, reason: "parse", billed: false, usage, threadId };
+      return { ok: false, directive: args.last, reason: "parse", billed: usage.calls > 0, usage, threadId };
     }
     return { ok: true, directive: parsed.directive, usage, billed: usage.calls > 0, threadId };
   } catch (err) {
+    const usage = copyUsage(tap.usage);
     const reason = ac.signal.aborted || isAbortError(err) ? "timeout" : "error";
     return { ok: false, directive: args.last, reason, billed: usage.calls > 0, usage, threadId };
   } finally {
