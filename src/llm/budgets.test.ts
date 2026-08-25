@@ -14,9 +14,11 @@ import {
   UsageTap,
   createBudget,
   estimateUsd,
+  formatCostSummary,
   gameTripped,
   recordLlmUsage,
   teamTripped,
+  toCostTick,
   usageFromLlmResult,
 } from "./budgets.ts";
 
@@ -75,6 +77,31 @@ const obs = {
 } as TeamObservation;
 
 describe("circuit breaker", () => {
+  it("toCostTick is numbers only (no playbook)", () => {
+    const b = createBudget();
+    recordLlmUsage(b, "home", {
+      promptTokens: 10,
+      completionTokens: 4,
+      reasoningTokens: 2,
+      usd: 0.01,
+      calls: 1,
+    });
+    const tick = toCostTick(b);
+    expect(tick).toEqual({
+      type: "cost",
+      homeCalls: 1,
+      awayCalls: 0,
+      promptTokens: 10,
+      outputTokens: 4,
+      usd: 0.01,
+    });
+    const json = JSON.stringify(tick);
+    expect(json).not.toContain("playId");
+    expect(json).not.toContain("playbooks");
+    expect(formatCostSummary(b)).toContain("reasoning=2");
+    expect(formatCostSummary(b)).toContain("$0.0100");
+  });
+
   it("151st home call freezes home only", () => {
     const b = createBudget();
     const homeTap = new UsageTap("home", b, "grok-4.5");

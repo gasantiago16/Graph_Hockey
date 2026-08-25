@@ -229,7 +229,7 @@ export async function listenAndServe(opts: ListenOpts = {}): Promise<Server> {
         noLlm: true,
       });
     } else if (event.type === "tick") {
-      hub.broadcastTick(event.world, event.events);
+      hub.broadcastTick(event.world, event.events, event.budget);
     } else if (event.type === "over") {
       hub.broadcastOver({
         matchId: event.matchId,

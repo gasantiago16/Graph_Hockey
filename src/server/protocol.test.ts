@@ -145,6 +145,25 @@ describe("WS protocol denylist", () => {
     expect(originAllowed("http://evil.example", 8787)).toBe(false);
   });
 
+  it("emits CostTick without playbook or opponent playId", () => {
+    const world = worldWithPlays();
+    const msgs = tickMessages(world, "none", world.lastEvents);
+    const cost = msgs.find((m) => m.type === "cost");
+    expect(cost).toEqual({
+      type: "cost",
+      homeCalls: 0,
+      awayCalls: 0,
+      promptTokens: 0,
+      outputTokens: 0,
+      usd: 0,
+    });
+    const json = JSON.stringify(cost);
+    expect(json).not.toContain(HOME_PLAY);
+    expect(json).not.toContain(AWAY_PLAY);
+    expect(json).not.toContain("playbooks");
+    expect(denylistHits(cost)).toEqual([]);
+  });
+
   it("start body defaults noLlm true and leaves periodSeconds optional", () => {
     const body = StartMatchBodySchema.parse({ home: "original-six", away: "expansion", seed: 42 });
     expect(body.noLlm).toBe(true);

@@ -125,6 +125,57 @@ describe("invokeTeam", () => {
     expect(called).toBe(1);
   });
 
+  it("home 8s abort does not reject the away invoke", async () => {
+    const home: InvokableTeamGraph = {
+      invoke: async (_input, config) =>
+        new Promise((_resolve, reject) => {
+          config?.signal?.addEventListener("abort", () => {
+            const err = new Error("aborted");
+            err.name = "AbortError";
+            reject(err);
+          });
+        }),
+    };
+    let awayCalled = 0;
+    const away: InvokableTeamGraph = {
+      invoke: async () => {
+        awayCalled += 1;
+        return { directive: { playId: "5v5-212-forecheck", pressure: "neutral" } };
+      },
+    };
+    const budget = createBudget();
+    const [h, a] = await Promise.all([
+      invokeTeam({ graph: home, side: "home", obs, last, epochIndex: 0, matchId: "m", budget, timeoutMs: 20 }),
+      invokeTeam({ graph: away, side: "away", obs, last, epochIndex: 0, matchId: "m", budget, timeoutMs: 8000 }),
+    ]);
+    expect(h.ok).toBe(false);
+    if (!h.ok) expect(h.reason).toBe("timeout");
+    expect(a.ok).toBe(true);
+    expect(awayCalled).toBe(1);
+  });
+
+  it("passes epochKind micro as a top-level invoke field", async () => {
+    const seen: string[] = [];
+    const graph: InvokableTeamGraph = {
+      invoke: async (input) => {
+        seen.push(input.epochKind);
+        return { directive: last };
+      },
+    };
+    const microObs: TeamObservation = { ...obs, epochKind: "micro", epochReason: "zone_entry" };
+    await invokeTeam({
+      graph,
+      side: "home",
+      obs: microObs,
+      last,
+      epochIndex: 0,
+      matchId: "m",
+      budget: createBudget(),
+      timeoutMs: 50,
+    });
+    expect(seen).toEqual(["micro"]);
+  });
+
   it("records per-epoch thread_id", async () => {
     const seen: string[] = [];
     const graph: InvokableTeamGraph = {

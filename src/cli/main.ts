@@ -2,6 +2,8 @@
 import { MemorySaver } from "@langchain/langgraph";
 import { compileTeamGraph } from "../agents/teamGraph.ts";
 import { loadConfig, type EnvMap } from "../config.ts";
+import { formatCostSummary } from "../llm/budgets.ts";
+import { hasInjectedChatModel, hasXaiApiKey } from "../llm/client.ts";
 import { defaultDbPath, openDb, type Db } from "../persist/db.ts";
 import { getMatch } from "../persist/matches.ts";
 import { ensureSeedPlaybooks, latestPlaybook } from "../persist/playbooks.ts";
@@ -22,7 +24,8 @@ Usage:
   gh footage --series ID [--compare i,j] [--json]
   gh engine-selftest
 
-simulate --no-llm skips the grok-4.5 Head Coach and writes events to SQLite.
+simulate --no-llm skips grok-4.5 / grok-4.3 and writes events to SQLite.
+Without --no-llm, live epochs call xAI (needs XAI_API_KEY) and print a cost summary.
 replay resimulates from seed + stored DirectiveApplied events (zero LLM).
 
 CI / tests may set GRAPH_HOCKEY_PERIOD_SECONDS=5 so a match is not 36,000 ticks
@@ -84,8 +87,9 @@ async function withDb<T>(path: string, fn: (db: Db) => Promise<T>): Promise<T> {
 }
 
 async function cmdSimulate(argv: string[], env: EnvMap): Promise<number> {
-  if (!flag(argv, "no-llm")) {
-    console.error("gh simulate: live LLM path is not implemented; pass --no-llm");
+  const noLlm = flag(argv, "no-llm");
+  if (!noLlm && !hasXaiApiKey(env) && !hasInjectedChatModel()) {
+    console.error("gh simulate: live LLM needs XAI_API_KEY (or pass --no-llm)");
     return 1;
   }
   const cfg = loadConfig(env);
@@ -103,13 +107,13 @@ async function cmdSimulate(argv: string[], env: EnvMap): Promise<number> {
       side: "home",
       playbook: homePlaybook,
       checkpointer: new MemorySaver(),
-      noLlm: true,
+      noLlm,
     });
     const awayGraph = compileTeamGraph({
       side: "away",
       playbook: awayPlaybook,
       checkpointer: new MemorySaver(),
-      noLlm: true,
+      noLlm,
     });
     return runMatch({
       matchId,
@@ -124,9 +128,19 @@ async function cmdSimulate(argv: string[], env: EnvMap): Promise<number> {
       timeoutMs: cfg.epochTimeoutMs,
       periodSeconds: cfg.periodSeconds,
       otSeconds: cfg.otSeconds,
+      noLlm,
+      models: noLlm ? { home: "none", away: "none" } : { home: cfg.coachModel, away: cfg.coachModel },
     });
   });
 
+  const cost = {
+    promptTokens: result.budget.game.promptTokens,
+    outputTokens: result.budget.game.completionTokens,
+    reasoningTokens: result.budget.game.reasoningTokens,
+    usd: result.budget.game.usd,
+    homeCalls: result.budget.home.calls,
+    awayCalls: result.budget.away.calls,
+  };
   const payload = {
     matchId: result.matchId,
     seed: result.seed,
@@ -138,8 +152,9 @@ async function cmdSimulate(argv: string[], env: EnvMap): Promise<number> {
     epochs: result.epochs,
     eventHash: result.eventHash,
     db: dbPath,
-    noLlm: true,
+    noLlm,
     periodSeconds: cfg.periodSeconds,
+    cost,
   };
   if (flag(argv, "json")) {
     console.log(JSON.stringify(payload, null, 2));
@@ -149,6 +164,9 @@ async function cmdSimulate(argv: string[], env: EnvMap): Promise<number> {
     );
     console.log(`eventHash ${payload.eventHash}`);
     console.log(`db ${payload.db}`);
+    if (!noLlm) {
+      console.log(formatCostSummary(result.budget));
+    }
   }
   return 0;
 }

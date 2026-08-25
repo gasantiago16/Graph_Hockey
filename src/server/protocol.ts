@@ -5,6 +5,7 @@ import {
   type InspectSide,
   type ServerMessage,
 } from "../types/ws.ts";
+import { toCostTick, type MatchBudget } from "../llm/budgets.ts";
 import type { WorldState } from "../engine/world.ts";
 import { inspectState, spectatorFrame, type SpectatorOpts } from "./spectator.ts";
 
@@ -88,9 +89,9 @@ export function parseClientMessage(raw: string): { inspectSide: InspectSide } | 
   return null;
 }
 
-export type TickMessageOpts = SpectatorOpts;
+export type TickMessageOpts = SpectatorOpts & { budget?: MatchBudget };
 
-/** Snapshot + optional inspect + public ticker events. DirectiveApplied is omitted. */
+/** Snapshot + optional inspect + public ticker events + cost. DirectiveApplied is omitted. */
 export function tickMessages(
   world: WorldState,
   inspectSide: InspectSide,
@@ -105,6 +106,7 @@ export function tickMessages(
     if (TICKER_SKIP.has(e.type)) continue;
     msgs.push({ type: "event", id: e.id, eventType: e.type, liveTick: e.liveTick });
   }
+  msgs.push(opts.budget ? toCostTick(opts.budget) : ZERO_COST);
   return msgs;
 }
 

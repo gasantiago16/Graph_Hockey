@@ -1,8 +1,14 @@
 import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { FakeListChatModel } from "@langchain/core/utils/testing";
+import { resetLlmClientForTests, setCreateChatModel } from "../llm/client.ts";
 import { USAGE, main } from "./main.ts";
+
+afterEach(() => {
+  resetLlmClientForTests();
+});
 
 describe("gh CLI", () => {
   it("prints usage for --help and exits 0 without XAI_API_KEY", async () => {
@@ -31,6 +37,59 @@ describe("gh CLI", () => {
       expect(String(err.mock.calls[0]?.[0])).toContain("--no-llm");
     } finally {
       err.mockRestore();
+    }
+  });
+
+  it("simulate with injected FakeListChatModel prints tokens / reasoning / $ (no live xAI)", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "gh-pr12-"));
+    const dbPath = join(dir, "graph-hockey.sqlite");
+    const log = vi.spyOn(console, "log").mockImplementation(() => {});
+    const coach = {
+      supposedToHappen: "win the draw",
+      playId: "5v5-122-forecheck",
+      pressure: "neutral",
+    };
+    const fast = { memo: "hold structure", playIdSuggestion: "5v5-122-forecheck" };
+    setCreateChatModel((kind) => {
+      const payload = kind === "coach" ? coach : fast;
+      return new FakeListChatModel({
+        responses: Array.from({ length: 80 }, () => JSON.stringify(payload)),
+      });
+    });
+    try {
+      const code = await main(
+        [
+          "simulate",
+          "--seed",
+          "42",
+          "--home",
+          "original-six",
+          "--away",
+          "expansion",
+          "--db",
+          dbPath,
+          "--match",
+          "cli-pr12-llm",
+          "--json",
+        ],
+        { GRAPH_HOCKEY_PERIOD_SECONDS: "5" },
+      );
+      expect(code).toBe(0);
+      const out = JSON.parse(String(log.mock.calls.at(-1)?.[0])) as {
+        noLlm: boolean;
+        cost: { promptTokens: number; outputTokens: number; reasoningTokens: number; usd: number };
+      };
+      expect(out.noLlm).toBe(false);
+      expect(out.cost).toEqual(
+        expect.objectContaining({
+          promptTokens: expect.any(Number),
+          outputTokens: expect.any(Number),
+          reasoningTokens: expect.any(Number),
+          usd: expect.any(Number),
+        }),
+      );
+    } finally {
+      log.mockRestore();
     }
   });
 

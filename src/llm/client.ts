@@ -34,6 +34,10 @@ export function setCreateChatModel(factory: CreateChatModel | undefined): void {
   injected = factory;
 }
 
+export function hasInjectedChatModel(): boolean {
+  return injected !== undefined;
+}
+
 /** Restores inject + grok-4.3 `none` after tests that call `markReasoningNoneUnsupported`. */
 export function resetLlmClientForTests(): void {
   injected = undefined;

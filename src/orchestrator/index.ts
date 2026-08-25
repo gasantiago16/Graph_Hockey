@@ -1,4 +1,14 @@
-export { classifyReason, shouldDecide, POSSESSION_REVIEW_TICKS, type ShouldDecide, type SideDecision } from "./epochs.ts";
+export {
+  BENCH_REVIEW_TICKS,
+  POSSESSION_REVIEW_TICKS,
+  classifyReason,
+  createEpochTracker,
+  epochKindFor,
+  shouldDecide,
+  type EpochTracker,
+  type ShouldDecide,
+  type SideDecision,
+} from "./epochs.ts";
 export {
   maybeMirrorHeading,
   maybeMirrorVec,

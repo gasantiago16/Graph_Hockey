@@ -2,6 +2,7 @@ import { BaseCallbackHandler } from "@langchain/core/callbacks/base";
 import type { ChatGeneration, Generation, LLMResult } from "@langchain/core/outputs";
 import { DEFAULT_COACH_MODEL } from "../config.ts";
 import type { Side } from "../types/hockey.ts";
+import type { CostTick } from "../types/ws.ts";
 
 export const MAX_CALLS_PER_TEAM = 150;
 export const MAX_PROMPT_TOKENS_PER_GAME = 900_000;
@@ -49,6 +50,27 @@ export function copyUsage(u: TokenUsage): TokenUsage {
     usd: u.usd,
     calls: u.calls,
   };
+}
+
+export function copyBudget(b: MatchBudget): MatchBudget {
+  return { home: copyUsage(b.home), away: copyUsage(b.away), game: copyUsage(b.game) };
+}
+
+/** Spectator / CLI cost line. Numbers only — never playbook or directives. */
+export function toCostTick(b: MatchBudget): CostTick {
+  return {
+    type: "cost",
+    homeCalls: b.home.calls,
+    awayCalls: b.away.calls,
+    promptTokens: b.game.promptTokens,
+    outputTokens: b.game.completionTokens,
+    usd: b.game.usd,
+  };
+}
+
+export function formatCostSummary(b: MatchBudget): string {
+  const usd = b.game.usd.toFixed(4);
+  return `tokens prompt=${b.game.promptTokens} output=${b.game.completionTokens} reasoning=${b.game.reasoningTokens}  $${usd}  calls home=${b.home.calls} away=${b.away.calls}`;
 }
 
 export function createBudget(): MatchBudget {

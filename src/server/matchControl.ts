@@ -3,6 +3,7 @@ import { compileTeamGraph } from "../agents/teamGraph.ts";
 import { loadConfig, scaledOtSeconds, type AppConfig } from "../config.ts";
 import { DT } from "../engine/rink.ts";
 import type { WorldState } from "../engine/world.ts";
+import type { MatchBudget } from "../llm/budgets.ts";
 import { MatchAborted, runMatch } from "../orchestrator/match.ts";
 import type { Db } from "../persist/db.ts";
 import { latestPlaybook } from "../persist/playbooks.ts";
@@ -36,7 +37,7 @@ export type MatchControlEvent =
       noLlm: true;
       rosters: { home: Roster; away: Roster };
     }
-  | { type: "tick"; world: WorldState; events: MatchEvent[] }
+  | { type: "tick"; world: WorldState; events: MatchEvent[]; budget: MatchBudget }
   | {
       type: "over";
       matchId: string;
@@ -190,10 +191,10 @@ export function createMatchControl(opts: CreateMatchControlOpts): MatchControl {
           otSeconds,
           signal: controller.signal,
           paceMs,
-          onTick: (next, events) => {
+          onTick: (next, events, budget) => {
             liveWorld.current = next;
             lastScore = { home: next.score.home, away: next.score.away };
-            emit({ type: "tick", world: next, events });
+            emit({ type: "tick", world: next, events, budget });
           },
         });
         outcome = { score: { ...result.score }, result: result.result };
