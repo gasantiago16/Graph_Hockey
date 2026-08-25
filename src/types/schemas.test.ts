@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { makeEventId } from "./ids.ts";
-import { STRENGTHS, StrengthSchema, PlayerAttributesSchema, POSITIONS } from "./hockey.ts";
+import { STRENGTHS, StrengthSchema, PlayerAttributesSchema, POSITIONS, RosterSchema } from "./hockey.ts";
 import {
   PlaySchema,
   PlaybookSchema,
@@ -62,6 +62,26 @@ describe("core hockey schemas", () => {
   it("parses positions and player attributes", () => {
     expect(POSITIONS).toEqual(["C", "LW", "RW", "LD", "RD", "G"]);
     expect(PlayerAttributesSchema.parse({ ...attributes, reboundControl: 80, tracking: 77 }).tracking).toBe(77);
+  });
+
+  it("parses a 12F+6D+2G roster", () => {
+    const fwds = ["C", "LW", "RW"] as const;
+    const ds = ["LD", "RD"] as const;
+    const flines = ["F1", "F2", "F3", "F4"] as const;
+    const dlines = ["D1", "D2", "D3"] as const;
+    const roster = RosterSchema.parse({
+      teamId: "original-six",
+      name: "Harbor Originals",
+      players: Array.from({ length: 20 }, (_, i) => ({
+        id: `p${i}`,
+        name: `Player ${i}`,
+        number: i + 1,
+        position: i < 12 ? fwds[i % 3]! : i < 18 ? ds[(i - 12) % 2]! : "G",
+        line: i < 12 ? flines[Math.floor(i / 3)]! : i < 18 ? dlines[Math.floor((i - 12) / 2)]! : i === 18 ? "G1" : "G2",
+        attributes,
+      })),
+    });
+    expect(roster.players).toHaveLength(20);
   });
 
   it("parses Play, PlayPredicate, and Playbook", () => {

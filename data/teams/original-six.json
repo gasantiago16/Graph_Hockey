@@ -1,0 +1,166 @@
+{
+  "teamId": "original-six",
+  "name": "Harbor Originals",
+  "players": [
+    {
+      "id": "os-F1-C",
+      "name": "Ellis Marsh",
+      "number": 19,
+      "position": "C",
+      "line": "F1",
+      "attributes": { "speed": 78, "accel": 74, "agility": 76, "shooting": 72, "passing": 84, "faceoff": 86, "defense": 70, "physical": 62, "vision": 82, "discipline": 84, "stamina": 80 }
+    },
+    {
+      "id": "os-F1-LW",
+      "name": "Jonah Pike",
+      "number": 9,
+      "position": "LW",
+      "line": "F1",
+      "attributes": { "speed": 82, "accel": 80, "agility": 78, "shooting": 80, "passing": 70, "faceoff": 42, "defense": 58, "physical": 64, "vision": 74, "discipline": 76, "stamina": 78 }
+    },
+    {
+      "id": "os-F1-RW",
+      "name": "Cole Harrow",
+      "number": 14,
+      "position": "RW",
+      "line": "F1",
+      "attributes": { "speed": 80, "accel": 77, "agility": 75, "shooting": 78, "passing": 73, "faceoff": 40, "defense": 60, "physical": 66, "vision": 72, "discipline": 78, "stamina": 76 }
+    },
+    {
+      "id": "os-F2-C",
+      "name": "Martin Vale",
+      "number": 11,
+      "position": "C",
+      "line": "F2",
+      "attributes": { "speed": 74, "accel": 70, "agility": 72, "shooting": 68, "passing": 80, "faceoff": 82, "defense": 74, "physical": 60, "vision": 78, "discipline": 86, "stamina": 82 }
+    },
+    {
+      "id": "os-F2-LW",
+      "name": "Henrik Dahl",
+      "number": 12,
+      "position": "LW",
+      "line": "F2",
+      "attributes": { "speed": 76, "accel": 72, "agility": 70, "shooting": 70, "passing": 74, "faceoff": 38, "defense": 72, "physical": 58, "vision": 70, "discipline": 82, "stamina": 80 }
+    },
+    {
+      "id": "os-F2-RW",
+      "name": "Quinn Adler",
+      "number": 16,
+      "position": "RW",
+      "line": "F2",
+      "attributes": { "speed": 75, "accel": 71, "agility": 73, "shooting": 74, "passing": 68, "faceoff": 36, "defense": 66, "physical": 64, "vision": 68, "discipline": 80, "stamina": 77 }
+    },
+    {
+      "id": "os-F3-C",
+      "name": "Ruben Shaw",
+      "number": 21,
+      "position": "C",
+      "line": "F3",
+      "attributes": { "speed": 70, "accel": 68, "agility": 66, "shooting": 62, "passing": 72, "faceoff": 78, "defense": 80, "physical": 70, "vision": 66, "discipline": 88, "stamina": 84 }
+    },
+    {
+      "id": "os-F3-LW",
+      "name": "Percy Klein",
+      "number": 15,
+      "position": "LW",
+      "line": "F3",
+      "attributes": { "speed": 72, "accel": 69, "agility": 64, "shooting": 60, "passing": 64, "faceoff": 34, "defense": 78, "physical": 74, "vision": 62, "discipline": 84, "stamina": 81 }
+    },
+    {
+      "id": "os-F3-RW",
+      "name": "Ned Colton",
+      "number": 17,
+      "position": "RW",
+      "line": "F3",
+      "attributes": { "speed": 71, "accel": 67, "agility": 65, "shooting": 64, "passing": 62, "faceoff": 32, "defense": 76, "physical": 72, "vision": 60, "discipline": 82, "stamina": 79 }
+    },
+    {
+      "id": "os-F4-C",
+      "name": "Owen Briggs",
+      "number": 27,
+      "position": "C",
+      "line": "F4",
+      "attributes": { "speed": 73, "accel": 70, "agility": 68, "shooting": 66, "passing": 70, "faceoff": 74, "defense": 68, "physical": 63, "vision": 69, "discipline": 80, "stamina": 76 }
+    },
+    {
+      "id": "os-F4-LW",
+      "name": "Lyle Frost",
+      "number": 22,
+      "position": "LW",
+      "line": "F4",
+      "attributes": { "speed": 77, "accel": 74, "agility": 72, "shooting": 68, "passing": 66, "faceoff": 30, "defense": 62, "physical": 60, "vision": 67, "discipline": 78, "stamina": 75 }
+    },
+    {
+      "id": "os-F4-RW",
+      "name": "Theo Kamp",
+      "number": 91,
+      "position": "RW",
+      "line": "F4",
+      "attributes": { "speed": 79, "accel": 76, "agility": 74, "shooting": 76, "passing": 64, "faceoff": 28, "defense": 56, "physical": 58, "vision": 71, "discipline": 74, "stamina": 73 }
+    },
+    {
+      "id": "os-D1-LD",
+      "name": "Grant Holloway",
+      "number": 2,
+      "position": "LD",
+      "line": "D1",
+      "attributes": { "speed": 72, "accel": 68, "agility": 70, "shooting": 64, "passing": 76, "faceoff": 20, "defense": 86, "physical": 78, "vision": 74, "discipline": 88, "stamina": 82 }
+    },
+    {
+      "id": "os-D1-RD",
+      "name": "Miles Brennan",
+      "number": 4,
+      "position": "RD",
+      "line": "D1",
+      "attributes": { "speed": 74, "accel": 70, "agility": 72, "shooting": 70, "passing": 78, "faceoff": 18, "defense": 82, "physical": 72, "vision": 76, "discipline": 84, "stamina": 80 }
+    },
+    {
+      "id": "os-D2-LD",
+      "name": "Arthur Keene",
+      "number": 5,
+      "position": "LD",
+      "line": "D2",
+      "attributes": { "speed": 70, "accel": 66, "agility": 68, "shooting": 58, "passing": 70, "faceoff": 16, "defense": 84, "physical": 80, "vision": 68, "discipline": 86, "stamina": 83 }
+    },
+    {
+      "id": "os-D2-RD",
+      "name": "Douglas Pratt",
+      "number": 6,
+      "position": "RD",
+      "line": "D2",
+      "attributes": { "speed": 71, "accel": 67, "agility": 66, "shooting": 60, "passing": 68, "faceoff": 16, "defense": 80, "physical": 76, "vision": 66, "discipline": 85, "stamina": 81 }
+    },
+    {
+      "id": "os-D3-LD",
+      "name": "Felix Ormond",
+      "number": 7,
+      "position": "LD",
+      "line": "D3",
+      "attributes": { "speed": 68, "accel": 64, "agility": 63, "shooting": 54, "passing": 64, "faceoff": 14, "defense": 78, "physical": 82, "vision": 62, "discipline": 90, "stamina": 84 }
+    },
+    {
+      "id": "os-D3-RD",
+      "name": "Walter Gage",
+      "number": 8,
+      "position": "RD",
+      "line": "D3",
+      "attributes": { "speed": 69, "accel": 65, "agility": 64, "shooting": 56, "passing": 62, "faceoff": 14, "defense": 76, "physical": 80, "vision": 60, "discipline": 87, "stamina": 82 }
+    },
+    {
+      "id": "os-G1",
+      "name": "Patrick Holm",
+      "number": 1,
+      "position": "G",
+      "line": "G1",
+      "attributes": { "speed": 48, "accel": 50, "agility": 78, "shooting": 20, "passing": 54, "faceoff": 10, "defense": 88, "physical": 58, "vision": 80, "discipline": 92, "stamina": 86, "reboundControl": 84, "tracking": 86 }
+    },
+    {
+      "id": "os-G2",
+      "name": "Samuel Rhee",
+      "number": 30,
+      "position": "G",
+      "line": "G2",
+      "attributes": { "speed": 46, "accel": 48, "agility": 74, "shooting": 18, "passing": 50, "faceoff": 10, "defense": 82, "physical": 56, "vision": 76, "discipline": 90, "stamina": 80, "reboundControl": 78, "tracking": 80 }
+    }
+  ]
+}

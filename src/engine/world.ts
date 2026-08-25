@@ -1,4 +1,4 @@
-import { DEFAULT_PLAY_ID } from "../types/play.ts";
+import { DEFAULT_PLAY_ID, type Playbook } from "../types/play.ts";
 import type { TeamDirective } from "../types/directive.ts";
 import type { MatchEvent } from "../types/events.ts";
 import type { PlayerId } from "../types/ids.ts";
@@ -115,6 +115,8 @@ export type WorldState = {
   playId: { home: string; away: string };
   directives: { home: TeamDirective; away: TeamDirective };
   lastEvents: MatchEvent[];
+  /** Per-side books when the host has loaded them; tactics falls back to seed catalog. */
+  playbooks?: { home: Playbook; away: Playbook };
 };
 
 export type CreateWorldInput = {
@@ -151,6 +153,7 @@ export type CreateWorldInput = {
   playId?: { home: string; away: string };
   directives?: { home: TeamDirective; away: TeamDirective };
   lastEvents?: MatchEvent[];
+  playbooks?: { home: Playbook; away: Playbook };
 };
 
 export function vec(x: number, y: number): Vec2 {
@@ -379,6 +382,7 @@ export function createWorld(input: CreateWorldInput = {}): WorldState {
     playId: { ...playId },
     directives: { home: directives.home, away: directives.away },
     lastEvents: input.lastEvents ? [...input.lastEvents] : [],
+    playbooks: input.playbooks,
   };
 }
 

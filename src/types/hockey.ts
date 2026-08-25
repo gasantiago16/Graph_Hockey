@@ -157,3 +157,26 @@ export const PenaltyClockSchema = z.object({
 export type PenaltyClock = z.infer<typeof PenaltyClockSchema>;
 
 export type AttackingDir = 1 | -1;
+
+/** F4 is the extra-attacker pool; G1/G2 are the two goalies. */
+export const LINE_IDS = ["F1", "F2", "F3", "F4", "D1", "D2", "D3", "G1", "G2"] as const;
+export const LineIdSchema = z.enum(LINE_IDS);
+export type LineId = z.infer<typeof LineIdSchema>;
+
+export const RosterPlayerSchema = z.object({
+  id: z.string().min(1),
+  name: z.string().min(1),
+  number: z.number().int(),
+  position: PositionSchema,
+  line: LineIdSchema,
+  attributes: PlayerAttributesSchema,
+});
+export type RosterPlayer = z.infer<typeof RosterPlayerSchema>;
+
+/** v1 roster: 12 F + 6 D + 2 G. */
+export const RosterSchema = z.object({
+  teamId: z.string().min(1),
+  name: z.string().min(1),
+  players: z.array(RosterPlayerSchema),
+});
+export type Roster = z.infer<typeof RosterSchema>;

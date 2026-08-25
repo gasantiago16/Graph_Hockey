@@ -1,9 +1,8 @@
 import type { ContactKind, Vec2 } from "../types/hockey.ts";
 import type { PlayerId } from "../types/ids.ts";
 import type { Rng } from "./rng.ts";
-import { DT, GOAL_LINE_X, RINK_HALF_LENGTH, RINK_HALF_WIDTH, projectInsideRink } from "./rink.ts";
+import { DT, RINK_HALF_LENGTH, RINK_HALF_WIDTH, projectInsideRink } from "./rink.ts";
 import {
-  DEFAULT_SLOTS,
   isGoalie,
   onIceBodies,
   type Body,
@@ -265,7 +264,7 @@ export function stickBodyContacts(world: WorldState): ContactEvent[] {
   return contacts;
 }
 
-export function desiredVelocity(world: WorldState, body: Body): Vec2 {
+export function desiredVelocity(world: WorldState, body: Body, target: Vec2): Vec2 {
   const fatigue = world.fatigue[body.id] ?? 0;
   const race = world.icingRace;
   if (race && (body.id === race.defenderId || body.id === race.attackerId)) {
@@ -275,18 +274,8 @@ export function desiredVelocity(world: WorldState, body: Body): Vec2 {
     const speed = maxSpeedOf(body, fatigue);
     return { x: (delta.x / d) * speed, y: (delta.y / d) * speed };
   }
-  const dir = world.attackingDir[body.side];
   const possessor = world.puck.possessor === body.id;
-  let target: Vec2;
-  let cap: number;
-  if (possessor) {
-    target = { x: dir * GOAL_LINE_X, y: 0 };
-    cap = maxSpeedOf(body, fatigue);
-  } else {
-    const slot = DEFAULT_SLOTS[body.position];
-    target = { x: slot.x * dir, y: slot.y };
-    cap = cruiseOf(body, fatigue);
-  }
+  const cap = possessor ? maxSpeedOf(body, fatigue) : cruiseOf(body, fatigue);
   const delta = sub(target, body.pos);
   const d = hypotVec(delta);
   if (d < 1.5) return { x: 0, y: 0 };
@@ -294,9 +283,9 @@ export function desiredVelocity(world: WorldState, body: Body): Vec2 {
   return { x: (delta.x / d) * speed, y: (delta.y / d) * speed };
 }
 
-export function integrateBody(world: WorldState, body: Body, dt: number = DT): void {
+export function integrateBody(world: WorldState, body: Body, target: Vec2, dt: number = DT): void {
   const fatigue = world.fatigue[body.id] ?? 0;
-  const desired = desiredVelocity(world, body);
+  const desired = desiredVelocity(world, body, target);
   const accel = clampMag(scale(sub(desired, body.vel), 1 / dt), maxAccelOf(body));
   body.vel.x += accel.x * dt;
   body.vel.y += accel.y * dt;

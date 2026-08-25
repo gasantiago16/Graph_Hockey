@@ -1,0 +1,303 @@
+{
+  "teamId": "original-six",
+  "version": 1,
+  "plays": [
+    {
+      "id": "5v5-122-forecheck",
+      "name": "F1 1-2-2 dump-and-chase",
+      "version": 1,
+      "status": "active",
+      "family": "forecheck-122",
+      "strength": ["5v5"],
+      "zoneBias": ["NZ", "OZ"],
+      "formation": {
+        "slots": {
+          "C": { "rel": { "x": 8, "y": 0 }, "landmark": "puck", "role": "puck" },
+          "LW": { "rel": { "x": 20, "y": 22 }, "landmark": "blue-atk", "role": "support" },
+          "RW": { "rel": { "x": 20, "y": -22 }, "landmark": "blue-atk", "role": "support" },
+          "LD": { "rel": { "x": -8, "y": 20 }, "landmark": "blue-atk", "role": "gap" },
+          "RD": { "rel": { "x": -8, "y": -20 }, "landmark": "blue-atk", "role": "gap" },
+          "G": { "rel": { "x": 2, "y": 0 }, "landmark": "net-us", "role": "crease" }
+        }
+      },
+      "triggers": [
+        { "any": [{ "kind": "zone", "eq": "OZ" }, { "kind": "zone", "eq": "NZ" }] }
+      ],
+      "assignments": {
+        "shotPolicy": "dump",
+        "forecheck": "1-2-2",
+        "nz": "1-2-2",
+        "dumpSpot": "strong-corner"
+      },
+      "counters": ["stretch-pass"],
+      "vulnerableTo": ["forecheck-212"],
+      "stats": { "games": 0, "xgFor": 0, "xgAgainst": 0 },
+      "origin": "seed"
+    },
+    {
+      "id": "5v5-breakout-d-to-winger",
+      "name": "D-to-winger breakout",
+      "version": 1,
+      "status": "active",
+      "family": "breakout",
+      "strength": ["5v5"],
+      "zoneBias": ["DZ"],
+      "formation": {
+        "slots": {
+          "C": { "rel": { "x": 18, "y": 0 }, "landmark": "blue-def", "role": "support" },
+          "LW": { "rel": { "x": 22, "y": 28 }, "landmark": "net-us", "role": "support" },
+          "RW": { "rel": { "x": 22, "y": -28 }, "landmark": "net-us", "role": "support" },
+          "LD": { "rel": { "x": 8, "y": 16 }, "landmark": "net-us", "role": "puck" },
+          "RD": { "rel": { "x": 8, "y": -16 }, "landmark": "net-us", "role": "support" },
+          "G": { "rel": { "x": 2, "y": 0 }, "landmark": "net-us", "role": "crease" }
+        }
+      },
+      "triggers": [{ "all": [{ "kind": "zone", "eq": "DZ" }] }],
+      "assignments": {
+        "shotPolicy": "pass",
+        "forecheck": "1-2-2",
+        "dz": "collapse"
+      },
+      "counters": ["nz-23"],
+      "vulnerableTo": ["forecheck-212"],
+      "stats": { "games": 0, "xgFor": 0, "xgAgainst": 0 },
+      "origin": "seed"
+    },
+    {
+      "id": "oz-cycle-low",
+      "name": "OZ low cycle",
+      "version": 1,
+      "status": "active",
+      "family": "cycle-low",
+      "strength": ["5v5"],
+      "zoneBias": ["OZ"],
+      "formation": {
+        "slots": {
+          "C": { "rel": { "x": -12, "y": 0 }, "landmark": "net-them", "role": "net-front" },
+          "LW": { "rel": { "x": -8, "y": 32 }, "landmark": "net-them", "role": "support" },
+          "RW": { "rel": { "x": -22, "y": -8 }, "landmark": "net-them", "role": "weak-side" },
+          "LD": { "rel": { "x": 10, "y": 18 }, "landmark": "blue-atk", "role": "point" },
+          "RD": { "rel": { "x": 10, "y": -18 }, "landmark": "blue-atk", "role": "point" },
+          "G": { "rel": { "x": 2, "y": 0 }, "landmark": "net-us", "role": "crease" }
+        }
+      },
+      "triggers": [{ "all": [{ "kind": "zone", "eq": "OZ" }] }],
+      "assignments": {
+        "shotPolicy": "cycle",
+        "forecheck": "1-2-2",
+        "dumpSpot": "strong-corner"
+      },
+      "counters": ["dz-collapse"],
+      "vulnerableTo": ["dz-over"],
+      "stats": { "games": 0, "xgFor": 0, "xgAgainst": 0 },
+      "origin": "seed"
+    },
+    {
+      "id": "nz-122-trap",
+      "name": "NZ 1-2-2 trap",
+      "version": 1,
+      "status": "active",
+      "family": "trap-122",
+      "strength": ["5v5"],
+      "zoneBias": ["NZ"],
+      "formation": {
+        "slots": {
+          "C": { "rel": { "x": 8, "y": 0 }, "landmark": "blue-atk", "role": "gap" },
+          "LW": { "rel": { "x": -6, "y": 22 }, "landmark": "blue-atk", "role": "support" },
+          "RW": { "rel": { "x": -6, "y": -22 }, "landmark": "blue-atk", "role": "support" },
+          "LD": { "rel": { "x": 6, "y": 18 }, "landmark": "blue-def", "role": "gap" },
+          "RD": { "rel": { "x": 6, "y": -18 }, "landmark": "blue-def", "role": "gap" },
+          "G": { "rel": { "x": 2, "y": 0 }, "landmark": "net-us", "role": "crease" }
+        }
+      },
+      "triggers": [{ "all": [{ "kind": "zone", "eq": "NZ" }] }],
+      "assignments": {
+        "shotPolicy": "dump",
+        "forecheck": "1-2-2",
+        "nz": "1-2-2"
+      },
+      "counters": ["stretch-pass"],
+      "vulnerableTo": ["nz-23"],
+      "stats": { "games": 0, "xgFor": 0, "xgAgainst": 0 },
+      "origin": "seed"
+    },
+    {
+      "id": "dz-collapse",
+      "name": "DZ collapse",
+      "version": 1,
+      "status": "active",
+      "family": "dz-collapse",
+      "strength": ["5v5"],
+      "zoneBias": ["DZ"],
+      "formation": {
+        "slots": {
+          "C": { "rel": { "x": 22, "y": 0 }, "landmark": "net-us", "role": "gap" },
+          "LW": { "rel": { "x": 16, "y": 16 }, "landmark": "net-us", "role": "support" },
+          "RW": { "rel": { "x": 16, "y": -16 }, "landmark": "net-us", "role": "support" },
+          "LD": { "rel": { "x": 8, "y": 10 }, "landmark": "net-us", "role": "point" },
+          "RD": { "rel": { "x": 8, "y": -10 }, "landmark": "net-us", "role": "point" },
+          "G": { "rel": { "x": 2, "y": 0 }, "landmark": "net-us", "role": "crease" }
+        }
+      },
+      "triggers": [{ "all": [{ "kind": "zone", "eq": "DZ" }] }],
+      "assignments": {
+        "shotPolicy": "hold",
+        "dz": "collapse"
+      },
+      "counters": ["cycle-low"],
+      "vulnerableTo": ["crash-net"],
+      "stats": { "games": 0, "xgFor": 0, "xgAgainst": 0 },
+      "origin": "seed"
+    },
+    {
+      "id": "pp1-umbrella",
+      "name": "PP1 umbrella",
+      "version": 1,
+      "status": "active",
+      "family": "pp-umbrella",
+      "strength": ["PP"],
+      "zoneBias": ["OZ", "NZ"],
+      "formation": {
+        "slots": {
+          "C": { "rel": { "x": -10, "y": 0 }, "landmark": "net-them", "role": "net-front" },
+          "LW": { "rel": { "x": -18, "y": 28 }, "landmark": "net-them", "role": "support" },
+          "RW": { "rel": { "x": -18, "y": -28 }, "landmark": "net-them", "role": "support" },
+          "LD": { "rel": { "x": 14, "y": 12 }, "landmark": "blue-atk", "role": "point" },
+          "RD": { "rel": { "x": 8, "y": 0 }, "landmark": "blue-atk", "role": "point" },
+          "G": { "rel": { "x": 2, "y": 0 }, "landmark": "net-us", "role": "crease" }
+        }
+      },
+      "triggers": [{ "all": [{ "kind": "strength", "eq": "PP" }] }],
+      "assignments": {
+        "shotPolicy": "shoot",
+        "forecheck": "1-2-2"
+      },
+      "counters": ["pk-box"],
+      "vulnerableTo": ["pk-diamond"],
+      "stats": { "games": 0, "xgFor": 0, "xgAgainst": 0 },
+      "origin": "seed"
+    },
+    {
+      "id": "pk1-box",
+      "name": "PK1 box",
+      "version": 1,
+      "status": "active",
+      "family": "pk-box",
+      "strength": ["PK"],
+      "zoneBias": ["DZ", "NZ"],
+      "formation": {
+        "slots": {
+          "C": { "rel": { "x": 22, "y": 0 }, "landmark": "net-us", "role": "gap" },
+          "LW": { "rel": { "x": 18, "y": 14 }, "landmark": "net-us", "role": "support" },
+          "RW": { "rel": { "x": 18, "y": -14 }, "landmark": "net-us", "role": "support" },
+          "LD": { "rel": { "x": 8, "y": 11 }, "landmark": "net-us", "role": "point" },
+          "RD": { "rel": { "x": 8, "y": -11 }, "landmark": "net-us", "role": "point" },
+          "G": { "rel": { "x": 2, "y": 0 }, "landmark": "net-us", "role": "crease" }
+        }
+      },
+      "triggers": [{ "all": [{ "kind": "strength", "eq": "PK" }] }],
+      "assignments": {
+        "shotPolicy": "dump",
+        "dz": "zone-box",
+        "dumpSpot": "weak-corner"
+      },
+      "counters": ["pp-umbrella"],
+      "vulnerableTo": ["pp-overload"],
+      "stats": { "games": 0, "xgFor": 0, "xgAgainst": 0 },
+      "origin": "seed"
+    },
+    {
+      "id": "en-6v5-scramble",
+      "name": "6v5 scramble",
+      "version": 1,
+      "status": "active",
+      "family": "en-scramble",
+      "strength": ["EN"],
+      "zoneBias": ["OZ", "NZ", "any"],
+      "formation": {
+        "slots": {
+          "C": { "rel": { "x": -8, "y": 0 }, "landmark": "net-them", "role": "net-front" },
+          "LW": { "rel": { "x": -16, "y": 20 }, "landmark": "net-them", "role": "support" },
+          "RW": { "rel": { "x": -16, "y": -20 }, "landmark": "net-them", "role": "support" },
+          "LD": { "rel": { "x": 16, "y": 14 }, "landmark": "blue-atk", "role": "point" },
+          "RD": { "rel": { "x": 16, "y": -14 }, "landmark": "blue-atk", "role": "point" },
+          "G": { "rel": { "x": 2, "y": 0 }, "landmark": "net-us", "role": "crease" }
+        }
+      },
+      "triggers": [
+        {
+          "any": [
+            { "kind": "strength", "eq": "EN" },
+            { "kind": "timeRemainingLt", "seconds": 120 }
+          ]
+        }
+      ],
+      "assignments": {
+        "shotPolicy": "crash",
+        "forecheck": "2-1-2"
+      },
+      "counters": ["protect-113"],
+      "vulnerableTo": ["dz-collapse"],
+      "stats": { "games": 0, "xgFor": 0, "xgAgainst": 0 },
+      "origin": "seed"
+    },
+    {
+      "id": "protect-lead-1-1-3",
+      "name": "Protect lead 1-1-3",
+      "version": 1,
+      "status": "active",
+      "family": "protect-113",
+      "strength": ["5v5"],
+      "zoneBias": ["NZ", "DZ", "any"],
+      "formation": {
+        "slots": {
+          "C": { "rel": { "x": 6, "y": 0 }, "landmark": "puck", "role": "puck" },
+          "LW": { "rel": { "x": -4, "y": 0 }, "landmark": "blue-atk", "role": "support" },
+          "RW": { "rel": { "x": 8, "y": -22 }, "landmark": "blue-def", "role": "weak-side" },
+          "LD": { "rel": { "x": 4, "y": 20 }, "landmark": "blue-def", "role": "gap" },
+          "RD": { "rel": { "x": 4, "y": -8 }, "landmark": "blue-def", "role": "gap" },
+          "G": { "rel": { "x": 1, "y": 0 }, "landmark": "net-us", "role": "crease" }
+        }
+      },
+      "triggers": [{ "all": [{ "kind": "score", "eq": "leading" }] }],
+      "assignments": {
+        "shotPolicy": "dump",
+        "forecheck": "1-1-3",
+        "nz": "left-wing-lock",
+        "dz": "collapse"
+      },
+      "counters": ["crash-net"],
+      "vulnerableTo": ["stretch-pass"],
+      "stats": { "games": 0, "xgFor": 0, "xgAgainst": 0 },
+      "origin": "seed"
+    },
+    {
+      "id": "ot-3v3-2-1-spread",
+      "name": "OT 3v3 2-1 spread",
+      "version": 1,
+      "status": "active",
+      "family": "ot-21-spread",
+      "strength": ["3v3"],
+      "zoneBias": ["any"],
+      "formation": {
+        "slots": {
+          "C": { "rel": { "x": 10, "y": 10 }, "landmark": "puck", "role": "puck" },
+          "LW": { "rel": { "x": 28, "y": -22 }, "landmark": "blue-atk", "role": "weak-side" },
+          "RW": { "rel": { "x": 20, "y": 18 }, "landmark": "blue-atk", "role": "support" },
+          "LD": { "rel": { "x": -4, "y": 0 }, "landmark": "blue-atk", "role": "gap" },
+          "RD": { "rel": { "x": -10, "y": -16 }, "landmark": "blue-atk", "role": "point" },
+          "G": { "rel": { "x": 2, "y": 0 }, "landmark": "net-us", "role": "crease" }
+        }
+      },
+      "triggers": [{ "all": [{ "kind": "strength", "eq": "3v3" }] }],
+      "assignments": {
+        "shotPolicy": "pass",
+        "forecheck": "1-2-2"
+      },
+      "counters": ["ot-agg-forecheck"],
+      "vulnerableTo": ["ot-agg-forecheck"],
+      "stats": { "games": 0, "xgFor": 0, "xgAgainst": 0 },
+      "origin": "seed"
+    }
+  ]
+}

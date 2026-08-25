@@ -1,0 +1,166 @@
+{
+  "teamId": "expansion",
+  "name": "Cinder Bay Expansion",
+  "players": [
+    {
+      "id": "ex-F1-C",
+      "name": "Jax Rourke",
+      "number": 97,
+      "position": "C",
+      "line": "F1",
+      "attributes": { "speed": 88, "accel": 86, "agility": 84, "shooting": 86, "passing": 78, "faceoff": 70, "defense": 54, "physical": 76, "vision": 80, "discipline": 58, "stamina": 74 }
+    },
+    {
+      "id": "ex-F1-LW",
+      "name": "Nico Vela",
+      "number": 13,
+      "position": "LW",
+      "line": "F1",
+      "attributes": { "speed": 90, "accel": 88, "agility": 86, "shooting": 84, "passing": 72, "faceoff": 36, "defense": 48, "physical": 70, "vision": 76, "discipline": 52, "stamina": 72 }
+    },
+    {
+      "id": "ex-F1-RW",
+      "name": "Dash Pell",
+      "number": 88,
+      "position": "RW",
+      "line": "F1",
+      "attributes": { "speed": 87, "accel": 85, "agility": 83, "shooting": 88, "passing": 70, "faceoff": 34, "defense": 50, "physical": 74, "vision": 74, "discipline": 50, "stamina": 71 }
+    },
+    {
+      "id": "ex-F2-C",
+      "name": "Cruz Malen",
+      "number": 10,
+      "position": "C",
+      "line": "F2",
+      "attributes": { "speed": 84, "accel": 82, "agility": 80, "shooting": 80, "passing": 76, "faceoff": 68, "defense": 56, "physical": 72, "vision": 78, "discipline": 60, "stamina": 73 }
+    },
+    {
+      "id": "ex-F2-LW",
+      "name": "Rio Stanton",
+      "number": 81,
+      "position": "LW",
+      "line": "F2",
+      "attributes": { "speed": 86, "accel": 84, "agility": 82, "shooting": 82, "passing": 68, "faceoff": 30, "defense": 52, "physical": 68, "vision": 72, "discipline": 54, "stamina": 70 }
+    },
+    {
+      "id": "ex-F2-RW",
+      "name": "Kaz Volkov",
+      "number": 71,
+      "position": "RW",
+      "line": "F2",
+      "attributes": { "speed": 85, "accel": 83, "agility": 81, "shooting": 79, "passing": 66, "faceoff": 28, "defense": 54, "physical": 78, "vision": 70, "discipline": 48, "stamina": 69 }
+    },
+    {
+      "id": "ex-F3-C",
+      "name": "Bodhi Crane",
+      "number": 9,
+      "position": "C",
+      "line": "F3",
+      "attributes": { "speed": 80, "accel": 78, "agility": 76, "shooting": 74, "passing": 70, "faceoff": 64, "defense": 60, "physical": 80, "vision": 66, "discipline": 46, "stamina": 76 }
+    },
+    {
+      "id": "ex-F3-LW",
+      "name": "Finn Okada",
+      "number": 19,
+      "position": "LW",
+      "line": "F3",
+      "attributes": { "speed": 82, "accel": 80, "agility": 78, "shooting": 76, "passing": 64, "faceoff": 26, "defense": 58, "physical": 82, "vision": 64, "discipline": 44, "stamina": 75 }
+    },
+    {
+      "id": "ex-F3-RW",
+      "name": "Jett Sable",
+      "number": 23,
+      "position": "RW",
+      "line": "F3",
+      "attributes": { "speed": 81, "accel": 79, "agility": 77, "shooting": 78, "passing": 62, "faceoff": 24, "defense": 56, "physical": 84, "vision": 62, "discipline": 42, "stamina": 74 }
+    },
+    {
+      "id": "ex-F4-C",
+      "name": "Apex Grier",
+      "number": 16,
+      "position": "C",
+      "line": "F4",
+      "attributes": { "speed": 83, "accel": 81, "agility": 79, "shooting": 77, "passing": 72, "faceoff": 66, "defense": 50, "physical": 70, "vision": 73, "discipline": 55, "stamina": 68 }
+    },
+    {
+      "id": "ex-F4-LW",
+      "name": "Slade Quinn",
+      "number": 28,
+      "position": "LW",
+      "line": "F4",
+      "attributes": { "speed": 84, "accel": 82, "agility": 80, "shooting": 75, "passing": 60, "faceoff": 22, "defense": 46, "physical": 66, "vision": 68, "discipline": 50, "stamina": 67 }
+    },
+    {
+      "id": "ex-F4-RW",
+      "name": "Orin Blake",
+      "number": 39,
+      "position": "RW",
+      "line": "F4",
+      "attributes": { "speed": 82, "accel": 80, "agility": 78, "shooting": 80, "passing": 58, "faceoff": 20, "defense": 44, "physical": 72, "vision": 65, "discipline": 47, "stamina": 66 }
+    },
+    {
+      "id": "ex-D1-LD",
+      "name": "Rex Calder",
+      "number": 44,
+      "position": "LD",
+      "line": "D1",
+      "attributes": { "speed": 80, "accel": 76, "agility": 74, "shooting": 72, "passing": 70, "faceoff": 16, "defense": 68, "physical": 86, "vision": 64, "discipline": 50, "stamina": 78 }
+    },
+    {
+      "id": "ex-D1-RD",
+      "name": "Voss Kline",
+      "number": 3,
+      "position": "RD",
+      "line": "D1",
+      "attributes": { "speed": 82, "accel": 78, "agility": 76, "shooting": 78, "passing": 72, "faceoff": 14, "defense": 64, "physical": 80, "vision": 68, "discipline": 52, "stamina": 76 }
+    },
+    {
+      "id": "ex-D2-LD",
+      "name": "Pike Darrow",
+      "number": 55,
+      "position": "LD",
+      "line": "D2",
+      "attributes": { "speed": 78, "accel": 74, "agility": 70, "shooting": 66, "passing": 64, "faceoff": 12, "defense": 70, "physical": 88, "vision": 60, "discipline": 46, "stamina": 80 }
+    },
+    {
+      "id": "ex-D2-RD",
+      "name": "Niko Brandt",
+      "number": 6,
+      "position": "RD",
+      "line": "D2",
+      "attributes": { "speed": 79, "accel": 75, "agility": 72, "shooting": 68, "passing": 66, "faceoff": 12, "defense": 66, "physical": 84, "vision": 62, "discipline": 48, "stamina": 77 }
+    },
+    {
+      "id": "ex-D3-LD",
+      "name": "Jory Finch",
+      "number": 7,
+      "position": "LD",
+      "line": "D3",
+      "attributes": { "speed": 76, "accel": 72, "agility": 68, "shooting": 60, "passing": 58, "faceoff": 10, "defense": 72, "physical": 90, "vision": 56, "discipline": 44, "stamina": 79 }
+    },
+    {
+      "id": "ex-D3-RD",
+      "name": "Callum Wex",
+      "number": 8,
+      "position": "RD",
+      "line": "D3",
+      "attributes": { "speed": 77, "accel": 73, "agility": 69, "shooting": 62, "passing": 56, "faceoff": 10, "defense": 68, "physical": 86, "vision": 54, "discipline": 42, "stamina": 78 }
+    },
+    {
+      "id": "ex-G1",
+      "name": "Ember Solis",
+      "number": 31,
+      "position": "G",
+      "line": "G1",
+      "attributes": { "speed": 52, "accel": 54, "agility": 82, "shooting": 22, "passing": 58, "faceoff": 8, "defense": 76, "physical": 50, "vision": 78, "discipline": 64, "stamina": 74, "reboundControl": 72, "tracking": 80 }
+    },
+    {
+      "id": "ex-G2",
+      "name": "Rafi Nguyen",
+      "number": 35,
+      "position": "G",
+      "line": "G2",
+      "attributes": { "speed": 50, "accel": 52, "agility": 78, "shooting": 20, "passing": 52, "faceoff": 8, "defense": 72, "physical": 48, "vision": 74, "discipline": 66, "stamina": 70, "reboundControl": 70, "tracking": 76 }
+    }
+  ]
+}

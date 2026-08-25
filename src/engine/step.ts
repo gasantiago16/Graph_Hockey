@@ -31,6 +31,7 @@ import {
   stickHeightOf,
   tickPenaltyClocks,
 } from "./rules.ts";
+import { steeringTarget } from "./tactics.ts";
 import { isGoalie, LAST_EVENTS_CAP, onIceBodies, type WorldState } from "./world.ts";
 
 export function clockRuns(
@@ -127,8 +128,12 @@ export function stepLive(world: WorldState, dt: number, rng: Rng): MatchEvent[] 
   applyPersonnel(world, emit);
 
   const bodies = onIceBodies(world);
-  for (const body of bodies) {
-    integrateBody(world, body, dt);
+  const targets = bodies.map((body) => steeringTarget(world, body));
+  for (let i = 0; i < bodies.length; i++) {
+    const body = bodies[i];
+    const target = targets[i];
+    if (!body || !target) continue;
+    integrateBody(world, body, target, dt);
   }
 
   if (world.puck.possessor) {
