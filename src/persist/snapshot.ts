@@ -4,7 +4,7 @@ import { PlayerIdSchema, type PlayerId } from "../types/ids.ts";
 import { RosterSchema, Vec2Schema, type Roster, type Vec2 } from "../types/hockey.ts";
 import type { TeamDirective } from "../types/directive.ts";
 import { loadTeam } from "../playbook/store.ts";
-import { CENTER_ICE } from "../engine/rink.ts";
+import { CENTER_ICE, OT_SECONDS, PERIOD_SECONDS } from "../engine/rink.ts";
 import { createWorld, defaultDirective } from "../engine/world.ts";
 
 /** DESIGN §4. Stored as `matches.config_json`. Replay starts from this + event stream. */
@@ -28,6 +28,9 @@ export const OpeningSnapshotSchema = z.object({
     home: z.string(),
     away: z.string(),
   }),
+  /** Absent in older snapshots → full NHL 20:00 / OT 5:00. */
+  periodSeconds: z.number().positive().optional(),
+  otSeconds: z.number().positive().optional(),
 });
 export type OpeningSnapshot = z.infer<typeof OpeningSnapshotSchema>;
 
@@ -39,6 +42,8 @@ export type MakeOpeningSnapshotInput = {
   homePlaybookVersion?: number;
   awayPlaybookVersion?: number;
   models?: { home: string; away: string };
+  periodSeconds?: number;
+  otSeconds?: number;
   openingFaceoff?: {
     spot?: Vec2;
     homeOnIce?: PlayerId[];
@@ -70,6 +75,8 @@ export function makeOpeningSnapshot(input: MakeOpeningSnapshotInput): OpeningSna
     homePlaybookVersion: input.homePlaybookVersion ?? 1,
     awayPlaybookVersion: input.awayPlaybookVersion ?? 1,
     models: input.models ?? { home: "none", away: "none" },
+    periodSeconds: input.periodSeconds,
+    otSeconds: input.otSeconds,
   });
 }
 

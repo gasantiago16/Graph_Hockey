@@ -72,7 +72,21 @@ This repo uses **sql.js** (SQLite compiled to WASM) in `src/persist/db.ts` inste
 
 LangSmith keys in `.env.example` stay commented. CI does not set secrets.
 
-Headless CI path (later PRs): `gh simulate --no-llm` (`gh` here is this project's CLI, not GitHub's).
+Headless CI path: `gh simulate --no-llm` (`gh` here is this project's CLI, not GitHub's).
+
+```bash
+npm run gh -- simulate --no-llm --seed 42 --home original-six --away expansion
+npm run gh -- replay --match <id>
+```
+
+Stub graphs use the seed-book default 5v5 play (`5v5-122-forecheck` vs `5v5-212-forecheck`) and do not call xAI.
+
+**Short periods for tests/CI:** a full game is 3×20:00 at 10 Hz (36,000 live ticks). Set `GRAPH_HOCKEY_PERIOD_SECONDS=5` so unit tests and CI finish quickly. OT scales as 5:00/20:00 unless `GRAPH_HOCKEY_OT_SECONDS` is set. Golden hash fixtures in this repo were captured with a 5-second period.
+
+```bash
+# Windows PowerShell
+$env:GRAPH_HOCKEY_PERIOD_SECONDS=5; npm test
+```
 
 ## Review footage (available now)
 

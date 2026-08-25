@@ -2,7 +2,7 @@ import { join } from "node:path";
 
 /**
  * LangGraph `SqliteSaver` uses this file — never mix with match events
- * (`data/graph-hockey.sqlite`). Wired in the orchestrator PR.
+ * (`data/graph-hockey.sqlite`). Stub graphs in this PR use in-memory `MemorySaver`.
  */
 export const CHECKPOINTS_FILENAME = "checkpoints.sqlite";
 

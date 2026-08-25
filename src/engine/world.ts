@@ -17,7 +17,7 @@ import type {
   Vec2,
   WhistleKind,
 } from "../types/hockey.ts";
-import { attackingDir, CENTER_ICE, GOAL_LINE_X, PERIOD_SECONDS } from "./rink.ts";
+import { attackingDir, CENTER_ICE, GOAL_LINE_X, OT_SECONDS, PERIOD_SECONDS } from "./rink.ts";
 
 export const SKATER_RADIUS = 1.6;
 export const GOALIE_RADIUS = 1.8;
@@ -82,6 +82,9 @@ export type WorldState = {
   period: Period;
   /** Seconds remaining in this period. Decrements only in live / delayed_* at 10 Hz. */
   clockRemaining: number;
+  /** Regulation period length. CI may set GRAPH_HOCKEY_PERIOD_SECONDS (not 1200). */
+  periodSeconds: number;
+  otSeconds: number;
   /** Increments only on 10 Hz live/delayed steps. */
   liveTick: number;
   /** Increments on each discrete stoppage resolution. */
@@ -125,6 +128,8 @@ export type CreateWorldInput = {
   phase?: Phase;
   period?: Period;
   clockRemaining?: number;
+  periodSeconds?: number;
+  otSeconds?: number;
   liveTick?: number;
   stoppageSeq?: number;
   attackingDir?: { home: AttackingDir; away: AttackingDir };
@@ -330,6 +335,8 @@ export function createWorld(input: CreateWorldInput = {}): WorldState {
     home: defaultDirective(playId.home),
     away: defaultDirective(playId.away),
   };
+  const periodSeconds = input.periodSeconds ?? PERIOD_SECONDS;
+  const otSeconds = input.otSeconds ?? OT_SECONDS;
 
   const puckIn = input.puck;
   return {
@@ -337,7 +344,9 @@ export function createWorld(input: CreateWorldInput = {}): WorldState {
     seed: input.seed ?? 1,
     phase: input.phase ?? "live",
     period,
-    clockRemaining: input.clockRemaining ?? PERIOD_SECONDS,
+    clockRemaining: input.clockRemaining ?? periodSeconds,
+    periodSeconds,
+    otSeconds,
     liveTick: input.liveTick ?? 0,
     stoppageSeq: input.stoppageSeq ?? 0,
     attackingDir: { home: dirs.home, away: dirs.away },

@@ -57,3 +57,9 @@ export function resolvePlay(id: string, book?: Playbook): Play {
   if (fromBook) return fromBook;
   return playById(id) ?? defaultStructurePlay();
 }
+
+/** First active 5v5 seed play, else `default-structure`. original-six → 5v5-122; expansion → 5v5-212. */
+export function defaultPlayIdForBook(book: Playbook): string {
+  const play = book.plays.find((p) => p.status === "active" && p.strength.includes("5v5"));
+  return play?.id ?? DEFAULT_PLAY_ID;
+}

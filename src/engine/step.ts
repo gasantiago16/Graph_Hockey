@@ -2,7 +2,7 @@ import { makeEventId } from "../types/ids.ts";
 import type { TeamDirective } from "../types/directive.ts";
 import type { MatchEvent } from "../types/events.ts";
 import type { Phase, Zone } from "../types/hockey.ts";
-import { BLUE_LINE_X, CENTER_ICE, DT, OT_SECONDS, PERIOD_SECONDS, attackingDir } from "./rink.ts";
+import { BLUE_LINE_X, CENTER_ICE, DT, attackingDir } from "./rink.ts";
 import type { Rng } from "./rng.ts";
 import {
   attachPuckToStick,
@@ -203,7 +203,7 @@ export function startNextPeriod(world: WorldState): MatchEvent[] {
   }
   const next = world.period === 1 ? 2 : world.period === 2 ? 3 : "OT";
   world.period = next;
-  world.clockRemaining = next === "OT" ? OT_SECONDS : PERIOD_SECONDS;
+  world.clockRemaining = next === "OT" ? world.otSeconds : world.periodSeconds;
   world.liveTick = 0;
   world.attackingDir = attackingDir(next);
   world.phase = "faceoff_drop";

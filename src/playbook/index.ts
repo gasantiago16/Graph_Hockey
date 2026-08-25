@@ -9,6 +9,7 @@ export {
 } from "./schema.ts";
 export {
   SEED_TEAM_IDS,
+  defaultPlayIdForBook,
   loadPlaybook,
   loadTeam,
   playById,

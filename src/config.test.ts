@@ -22,6 +22,14 @@ describe("loadConfig", () => {
     expect(cfg.httpPort).toBe(DEFAULT_HTTP_PORT);
     expect(cfg.langsmithTracing).toBe(false);
     expect(cfg.hitl).toBe(false);
+    expect(cfg.periodSeconds).toBe(1200);
+    expect(cfg.otSeconds).toBe(300);
+  });
+
+  it("shortens periods via GRAPH_HOCKEY_PERIOD_SECONDS and scales OT", () => {
+    const cfg = loadConfig({ GRAPH_HOCKEY_PERIOD_SECONDS: "5" });
+    expect(cfg.periodSeconds).toBe(5);
+    expect(cfg.otSeconds).toBeCloseTo(1.25, 10);
   });
 
   it("treats blank XAI_API_KEY as unset", () => {

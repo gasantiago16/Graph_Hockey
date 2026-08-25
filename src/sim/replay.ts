@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { createRng } from "../engine/rng.ts";
-import { TICKS_PER_GAME_REG } from "../engine/rink.ts";
+import { OT_SECONDS, PERIOD_SECONDS, TICKS_PER_GAME_REG } from "../engine/rink.ts";
 import { advanceWorld } from "../engine/step.ts";
 import { LAST_EVENTS_CAP, createWorld, type WorldState } from "../engine/world.ts";
 import type { TeamDirective } from "../types/directive.ts";
@@ -32,10 +32,15 @@ export type ReplayStep = {
 export function worldFromSnapshot(snap: OpeningSnapshot): WorldState {
   const homeOnIce = snap.openingFaceoff.homeOnIce;
   const awayOnIce = snap.openingFaceoff.awayOnIce;
+  const periodSeconds = snap.periodSeconds ?? PERIOD_SECONDS;
+  const otSeconds = snap.otSeconds ?? OT_SECONDS;
   const world = createWorld({
     matchId: snap.matchId,
     seed: snap.seed,
     phase: "faceoff_drop",
+    periodSeconds,
+    otSeconds,
+    clockRemaining: periodSeconds,
     faceoffSpot: { x: snap.openingFaceoff.spot.x, y: snap.openingFaceoff.spot.y },
     onIce:
       homeOnIce.length > 0 && awayOnIce.length > 0
