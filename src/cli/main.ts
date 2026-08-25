@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { loadConfig } from "../config.ts";
+import { loadConfig, type EnvMap } from "../config.ts";
 
 export const USAGE = `graph-hockey — competing LangGraph teams on a hockey rink
 
@@ -31,8 +31,8 @@ const KNOWN_COMMANDS = new Set([
   "engine-selftest",
 ]);
 
-export function main(argv: string[]): number {
-  loadConfig();
+export function main(argv: string[], env: EnvMap = process.env): number {
+  loadConfig(env);
   if (argv.length === 0 || argv.includes("-h") || argv.includes("--help")) {
     console.log(USAGE.trimEnd());
     return 0;

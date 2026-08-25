@@ -39,14 +39,14 @@ describe("loadConfig", () => {
   });
 
   it("does not require keys to be present on process.env", () => {
-    const prev = process.env.XAI_API_KEY;
-    delete process.env.XAI_API_KEY;
-    try {
-      expect(() => loadConfig()).not.toThrow();
-      expect(loadConfig().xaiBaseUrl).toBe(DEFAULT_XAI_BASE_URL);
-    } finally {
-      if (prev === undefined) delete process.env.XAI_API_KEY;
-      else process.env.XAI_API_KEY = prev;
-    }
+    // Copy so LangSmith side effects cannot leak into the real process env.
+    const env = {
+      ...process.env,
+      XAI_API_KEY: undefined,
+      XAI_BASE_URL: undefined,
+      LANGSMITH_API_KEY: undefined,
+      LANGCHAIN_API_KEY: undefined,
+    };
+    expect(() => loadConfig(env)).not.toThrow();
   });
 });

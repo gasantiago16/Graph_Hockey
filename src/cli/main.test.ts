@@ -5,7 +5,7 @@ describe("gh CLI", () => {
   it("prints usage for --help and exits 0 without XAI_API_KEY", () => {
     const log = vi.spyOn(console, "log").mockImplementation(() => {});
     try {
-      expect(main(["--help"])).toBe(0);
+      expect(main(["--help"], {})).toBe(0);
       expect(log).toHaveBeenCalled();
       const printed = String(log.mock.calls[0]?.[0]);
       expect(printed).toContain("simulate");
