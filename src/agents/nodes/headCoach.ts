@@ -25,6 +25,7 @@ const COACH_SYSTEM =
   "supposedToHappen must name the hockey action (support-below-the-puck, pass to the slot/backdoor, " +
   "cycle low, crash the net) — never 'continue the current structure'. " +
   "Prefer plays that enter the OZ with possession and pass to a shooter. Dump only if no pass exists. " +
+  "Always set shotPolicy to pass, shoot, crash, or cycle (dump only if no pass exists). " +
   "Pick exactly one playId from retrievedPlays. Output structured CoachIntent only. Do not invent play ids.";
 
 export type HeadCoachOpts = {
@@ -39,10 +40,13 @@ export function clampCoachPlayId(playId: string, retrievedPlays: readonly Pick<P
 }
 
 function fallbackIntent(state: TeamGraphStateType): CoachIntent {
+  const zone = state.observation.zone;
+  const shotPolicy = zone === "OZ" ? "shoot" : zone === "DZ" ? "pass" : "pass";
   return {
     supposedToHappen: "occupy ice, pass to a teammate in a scoring spot, attack the net",
     playId: clampCoachPlayId(state.lastDirective.playId, state.retrievedPlays),
     pressure: state.lastDirective.pressure,
+    shotPolicy,
   };
 }
 

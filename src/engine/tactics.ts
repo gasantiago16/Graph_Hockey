@@ -1,6 +1,6 @@
 import type { PlayParams } from "../types/directive.ts";
-import type { Position, Side, Vec2 } from "../types/hockey.ts";
-import type { FormationSlot, Landmark, Play } from "../types/play.ts";
+import type { Position, Side, ShotPolicy, Vec2 } from "../types/hockey.ts";
+import type { FormationSlot, Landmark, Play, SlotRole } from "../types/play.ts";
 import { resolvePlay } from "../playbook/store.ts";
 import {
   BLUE_LINE_X,
@@ -12,7 +12,17 @@ import {
   RINK_HALF_WIDTH,
   projectInsideRink,
 } from "./rink.ts";
+import { headingVec, STICK_REACH } from "./physics.ts";
 import { DEFAULT_SLOTS, isGoalie, type Body, type WorldState } from "./world.ts";
+
+export const PASS_RELEASE_SPEED = 55;
+export const SHOT_RELEASE_SPEED = 72;
+export const PASS_MIN_SEP = 8;
+export const PASS_MAX_SEP = 48;
+/** cos(heading vs release dir). ~0.75 ≈ 41°. */
+export const RELEASE_FACING = 0.75;
+
+const RECEIVE_ROLES = new Set<SlotRole>(["support", "weak-side", "net-front", "puck", "point"]);
 
 export const UTILITY_TEMPERATURE = 0.15;
 
@@ -129,10 +139,42 @@ function dumpTarget(world: WorldState, side: Side, spot: "strong-corner" | "weak
   return projectInsideRink({ x: dir * (GOAL_LINE_X - 6), y: sy * (RINK_HALF_WIDTH - 10) }, 1.6).pos;
 }
 
+export function shotPolicyOf(world: WorldState, side: Side, play: Play): ShotPolicy {
+  const params: PlayParams | undefined = world.directives[side].playParams;
+  return params?.shotPolicy ?? play.assignments.shotPolicy;
+}
+
+/** LLM overlay only. Seed assignment pass/shoot still uses the old skate-to-net path (goldens). */
+function overlayShotPolicy(world: WorldState, side: Side): ShotPolicy | undefined {
+  return world.directives[side].playParams?.shotPolicy;
+}
+
+/** Nearest on-ice teammate who can take a pass. Goalies and gap/crease slots skipped. */
+export function passReceiver(world: WorldState, carrier: Body): Body | undefined {
+  const play = playForSide(world, carrier.side);
+  let best: Body | undefined;
+  let bestScore = Infinity;
+  for (const id of world.onIce[carrier.side]) {
+    if (id === carrier.id) continue;
+    const mate = world.bodies[id];
+    if (!mate || isGoalie(mate)) continue;
+    const role = play.formation.slots[mate.position]?.role;
+    if (role === "crease" || role === "gap") continue;
+    const d = hypot(sub(mate.pos, carrier.pos));
+    if (d < PASS_MIN_SEP || d > PASS_MAX_SEP) continue;
+    const score = role && RECEIVE_ROLES.has(role) ? d : d + 20;
+    if (score < bestScore) {
+      bestScore = score;
+      best = mate;
+    }
+  }
+  return best;
+}
+
 function possessorTarget(world: WorldState, body: Body, play: Play): Vec2 {
   const dir = world.attackingDir[body.side];
-  const params: PlayParams | undefined = world.directives[body.side].playParams;
-  const policy = params?.shotPolicy ?? play.assignments.shotPolicy;
+  const overlay = overlayShotPolicy(world, body.side);
+  const policy = overlay ?? play.assignments.shotPolicy;
   const dumpSpot = play.assignments.dumpSpot ?? "strong-corner";
   if (policy === "dump" || policy === "cycle") {
     return dumpTarget(world, body.side, dumpSpot);
@@ -144,7 +186,57 @@ function possessorTarget(world: WorldState, body: Body, play: Play): Vec2 {
     }
     return { x: body.pos.x, y: body.pos.y };
   }
+  if (overlay === "pass") {
+    const recv = passReceiver(world, body);
+    if (recv) return { x: recv.pos.x, y: recv.pos.y };
+  }
   return { x: dir * GOAL_LINE_X, y: 0 };
+}
+
+function facingRelease(body: Body, dest: Vec2): Vec2 | undefined {
+  const to = sub(dest, body.pos);
+  const mag = hypot(to);
+  if (mag < 1e-6) return undefined;
+  const n = { x: to.x / mag, y: to.y / mag };
+  const face = headingVec(body.heading);
+  if (face.x * n.x + face.y * n.y < RELEASE_FACING) return undefined;
+  return n;
+}
+
+/**
+ * Directed pass/shot: impulse the puck and clear possession.
+ * dump/cycle/hold never release here (goldens).
+ */
+export function maybeReleasePuck(world: WorldState): boolean {
+  const id = world.puck.possessor;
+  if (!id) return false;
+  const body = world.bodies[id];
+  if (!body || isGoalie(body)) return false;
+  const play = playForSide(world, body.side);
+  const overlay = overlayShotPolicy(world, body.side);
+  if (!overlay || overlay === "dump" || overlay === "cycle" || overlay === "hold") return false;
+
+  let dest: Vec2;
+  let speed: number;
+  if (overlay === "pass") {
+    const recv = passReceiver(world, body);
+    if (!recv) return false;
+    dest = recv.pos;
+    speed = PASS_RELEASE_SPEED;
+  } else {
+    const dir = world.attackingDir[body.side];
+    if (body.pos.x * dir < BLUE_LINE_X - 8) return false;
+    dest = { x: dir * GOAL_LINE_X, y: 0 };
+    speed = SHOT_RELEASE_SPEED;
+  }
+
+  const n = facingRelease(body, dest);
+  if (!n) return false;
+  const launch = STICK_REACH + 1.1;
+  world.puck.possessor = null;
+  world.puck.pos = { x: body.pos.x + n.x * launch, y: body.pos.y + n.y * launch };
+  world.puck.vel = { x: n.x * speed, y: n.y * speed };
+  return true;
 }
 
 function fallbackTarget(body: Body, dir: 1 | -1): Vec2 {

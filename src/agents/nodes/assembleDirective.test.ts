@@ -78,6 +78,24 @@ describe("assemble_directive merge table §10.4", () => {
     expect(directive.playParams?.nz).toBe("1-2-2");
   });
 
+  it("macro HC shotPolicy wins over OC overlay", () => {
+    const directive = mergeAssembleDirective(
+      st({
+        coachIntent: {
+          supposedToHappen: "pass to the slot",
+          playId: "5v5-122-forecheck",
+          pressure: "aggressive",
+          shotPolicy: "pass",
+        },
+        specialistMemos: [
+          { specialist: "oc", memo: "dump", params: { shotPolicy: "dump" } },
+        ],
+      }),
+      book,
+    );
+    expect(directive.playParams?.shotPolicy).toBe("pass");
+  });
+
   it("ignores OC on PK and lets ST overwrite params", () => {
     const observation = obs({ strength: "4v5", zone: "DZ" });
     const directive = mergeAssembleDirective(

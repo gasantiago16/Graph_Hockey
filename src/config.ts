@@ -114,7 +114,7 @@ export function loadConfig(env: EnvMap = process.env): AppConfig {
     maxOutputTokensPerGame: readInt(env, "GRAPH_HOCKEY_MAX_OUTPUT_TOKENS_PER_GAME", 250_000),
     maxUsdPerGame: readFloat(env, "GRAPH_HOCKEY_MAX_USD_PER_GAME", 4.0),
     maxCallsPerTeam: readInt(env, "GRAPH_HOCKEY_MAX_CALLS_PER_TEAM", 150),
-    epochTimeoutMs: readInt(env, "GRAPH_HOCKEY_EPOCH_TIMEOUT_MS", 8_000),
+    epochTimeoutMs: readInt(env, "GRAPH_HOCKEY_EPOCH_TIMEOUT_MS", 12_000),
     httpHost: readStringOr(env, "GRAPH_HOCKEY_HTTP_HOST", DEFAULT_HTTP_HOST),
     httpPort: readInt(env, "GRAPH_HOCKEY_HTTP_PORT", DEFAULT_HTTP_PORT),
     langsmithTracing,

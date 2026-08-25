@@ -7,7 +7,7 @@ import { DT, OT_SECONDS, PERIOD_SECONDS } from "../engine/rink.ts";
 import { createRng } from "../engine/rng.ts";
 import { advanceWorld } from "../engine/step.ts";
 import { defaultDirective, type WorldState } from "../engine/world.ts";
-import { copyBudget, createBudget, EPOCH_TIMEOUT_MS, type MatchBudget } from "../llm/budgets.ts";
+import { copyBudget, createBudget, EPOCH_TIMEOUT_MS, LIVE_EPOCH_TIMEOUT_MS, type MatchBudget } from "../llm/budgets.ts";
 import { aarCiteEventIds } from "../film/clipper.ts";
 import { recordGameImprovement } from "../film/improvement.ts";
 import { recordMatchFilm } from "../persist/clips.ts";
@@ -119,14 +119,14 @@ function epochModel(opts: MatchOptions, kind: "macro" | "micro"): string {
 
 /**
  * Host loop: tick world, observe, invoke team graphs at decision epochs. Not a LangGraph.
- * After game_over, runs AAR for both sides (LLM skipped when noLlm). Independent 8s
- * AbortController per side inside invokeTeam.
+ * After game_over, runs AAR for both sides (LLM skipped when noLlm). Independent
+ * AbortController per side inside invokeTeam (8s --no-llm, 12s live).
  */
 export async function runMatch(opts: MatchOptions): Promise<MatchResult> {
   const periodSeconds = opts.periodSeconds ?? PERIOD_SECONDS;
   const otSeconds = opts.otSeconds ?? OT_SECONDS;
-  const timeoutMs = opts.timeoutMs ?? EPOCH_TIMEOUT_MS;
   const noLlm = opts.noLlm !== false;
+  const timeoutMs = opts.timeoutMs ?? (noLlm ? EPOCH_TIMEOUT_MS : LIVE_EPOCH_TIMEOUT_MS);
   const snap = makeOpeningSnapshot({
     matchId: opts.matchId,
     seed: opts.seed,

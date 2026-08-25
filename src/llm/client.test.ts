@@ -42,7 +42,7 @@ describe("chatModelSpec", () => {
     });
     expect(chatModelSpec("fast", env)).toMatchObject({
       model: "grok-4.3",
-      effort: "none",
+      effort: "low",
       maxTokens: FAST_MAX_TOKENS,
       timeoutMs: FAST_TIMEOUT_MS,
     });
@@ -52,21 +52,22 @@ describe("chatModelSpec", () => {
       maxTokens: AAR_MAX_TOKENS,
       timeoutMs: AAR_TIMEOUT_MS,
     });
-    expect(COACH_TIMEOUT_MS).toBe(5_000);
-    expect(FAST_TIMEOUT_MS).toBe(2_500);
+    expect(COACH_TIMEOUT_MS).toBe(6_000);
+    expect(FAST_TIMEOUT_MS).toBe(4_000);
     expect(AAR_TIMEOUT_MS).toBe(12_000);
     expect(COACH_MAX_TOKENS).toBe(1_600);
-    expect(FAST_MAX_TOKENS).toBe(500);
+    expect(FAST_MAX_TOKENS).toBe(1_600);
     expect(AAR_MAX_TOKENS).toBe(3_000);
   });
 
-  it("falls back grok-4.3 none → low after ReasoningNoneUnsupported", () => {
+  it("fast specialists default to low effort (none 400s on Muse and grok-4.3)", () => {
+    expect(chatModelSpec("fast", {}).effort).toBe("low");
+    expect(chatModelSpec("coach", {}).effort).toBe("low");
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     try {
       markReasoningNoneUnsupported();
       expect(chatModelSpec("fast", {}).effort).toBe("low");
-      expect(chatModelSpec("coach", {}).effort).toBe("low");
-      expect(warn).toHaveBeenCalledWith("ReasoningNoneUnsupported");
+      expect(warn).not.toHaveBeenCalled();
     } finally {
       warn.mockRestore();
     }
@@ -107,7 +108,7 @@ describe("ChatXAI two-arg Completions factories", () => {
     expect(fast.model).toBe("grok-4.3");
     expect(fast.timeout).toBe(FAST_TIMEOUT_MS);
     expect(fast.maxTokens).toBe(FAST_MAX_TOKENS);
-    expect(fast.modelKwargs).toEqual({ reasoning_effort: "none" });
+    expect(fast.modelKwargs).toEqual({ reasoning_effort: "low" });
 
     const aar = aarLlm(dummyEnv) as ChatXAI;
     expect(aar.model).toBe("grok-4.5");

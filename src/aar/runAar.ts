@@ -8,11 +8,10 @@ import type { MatchEvent } from "../types/events.ts";
 import type { Side } from "../types/hockey.ts";
 import type { TeamLlmProfile } from "../llm/profiles.ts";
 import type { Playbook, PlaybookRevision } from "../types/play.ts";
-import { AAR_TIMEOUT_MS } from "../llm/client.ts";
 import { AAR_RECURSION_LIMIT, aarThreadId, compileAarGraph, type CompiledAarGraph } from "./aarGraph.ts";
 
-/** Whole AAR graph for one side (several LLM nodes). */
-export const AAR_SIDE_TIMEOUT_MS = AAR_TIMEOUT_MS * 2;
+/** Whole AAR graph for one side (several LLM nodes). Horn already fired. */
+export const AAR_SIDE_TIMEOUT_MS = 45_000;
 import { applyAarRevision, persistAarReport, shouldApplyRevision, type AarMode } from "./apply.ts";
 import { computeActual } from "./nodes/actual.ts";
 import { codeIntentSummary } from "./nodes/intent.ts";

@@ -163,7 +163,7 @@ describe("invokeStructured", () => {
 
   it("marks grok-4.3 none unsupported only when the error cites reasoning_effort", async () => {
     vi.spyOn(console, "warn").mockImplementation(() => {});
-    expect(chatModelSpec("fast", {}).effort).toBe("none");
+    expect(chatModelSpec("fast", {}).effort).toBe("low");
     const schema400 = fakeLlm({
       structured: async () => {
         throw new Error("400 Invalid schema for response_format");
@@ -171,7 +171,7 @@ describe("invokeStructured", () => {
       invoke: async () => ({ content: JSON.stringify(intent) }),
     });
     await invokeStructured(schema400, CoachIntentSchema, messages);
-    expect(chatModelSpec("fast", {}).effort).toBe("none");
+    expect(chatModelSpec("fast", {}).effort).toBe("low");
 
     const none400 = fakeLlm({
       structured: async () => {

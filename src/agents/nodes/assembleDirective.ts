@@ -83,6 +83,9 @@ export function mergeAssembleDirective(state: TeamGraphStateType, playbook: Play
   if (!isPk && oc?.params && (zone === "OZ" || zone === "NZ")) {
     applyOcParams(playParams, oc.params);
   }
+  if (!isMicro && !isPk && intent?.shotPolicy) {
+    playParams.shotPolicy = intent.shotPolicy;
+  }
   if (dc?.params) {
     applyDcParams(playParams, dc.params, zone);
   }

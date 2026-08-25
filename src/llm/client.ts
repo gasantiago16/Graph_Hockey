@@ -20,18 +20,19 @@ export type { ReasoningEffort };
 export type ChatModelKind = "coach" | "fast" | "aar";
 export type CreateChatModel = (kind: ChatModelKind, profile?: TeamLlmProfile) => BaseChatModel;
 
-export const COACH_TIMEOUT_MS = 5_000;
-export const FAST_TIMEOUT_MS = 2_500;
+export const COACH_TIMEOUT_MS = 6_000;
+export const FAST_TIMEOUT_MS = 4_000;
 /** Per ChatXAI/OpenAI/Gemini HTTP call. AAR nodes also race this in invokeAarStructured. */
 export const AAR_TIMEOUT_MS = 12_000;
 export const COACH_MAX_TOKENS = 1_600;
-export const FAST_MAX_TOKENS = 500;
+export const FAST_MAX_TOKENS = 1_600;
 export const AAR_MAX_TOKENS = 3_000;
 export const LLM_TEMPERATURE = 0.2;
-export const LLM_MAX_RETRIES = 2;
+/** Live epochs are 12s; retries of a 6s timeout abort the graph. AAR already uses 0. */
+export const LLM_MAX_RETRIES = 0;
 
 let injected: CreateChatModel | undefined;
-let fastEffort: ReasoningEffort = "none";
+let fastEffort: ReasoningEffort = "low";
 
 export function setCreateChatModel(factory: CreateChatModel | undefined): void {
   injected = factory;
@@ -41,10 +42,10 @@ export function hasInjectedChatModel(): boolean {
   return injected !== undefined;
 }
 
-/** Restores inject + grok-4.3 `none` after tests that call `markReasoningNoneUnsupported`. */
+/** Restores inject + grok-4.3 `low` after tests that call `markReasoningNoneUnsupported`. */
 export function resetLlmClientForTests(): void {
   injected = undefined;
-  fastEffort = "none";
+  fastEffort = "low";
 }
 
 export function hasXaiApiKey(env: EnvMap = process.env): boolean {

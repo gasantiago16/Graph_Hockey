@@ -31,7 +31,7 @@ import {
   stickHeightOf,
   tickPenaltyClocks,
 } from "./rules.ts";
-import { steeringTarget } from "./tactics.ts";
+import { maybeReleasePuck, steeringTarget } from "./tactics.ts";
 import { isGoalie, LAST_EVENTS_CAP, onIceBodies, type WorldState } from "./world.ts";
 
 export function clockRuns(
@@ -137,7 +137,11 @@ export function stepLive(world: WorldState, dt: number, rng: Rng): MatchEvent[] 
   }
 
   if (world.puck.possessor) {
-    attachPuckToStick(world);
+    if (maybeReleasePuck(world)) {
+      integratePuck(world, dt);
+    } else {
+      attachPuckToStick(world);
+    }
   } else {
     integratePuck(world, dt);
   }

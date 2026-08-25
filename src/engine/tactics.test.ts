@@ -2,10 +2,10 @@ import { describe, expect, it } from "vitest";
 import { DEFAULT_PLAY_ID } from "../types/play.ts";
 import { playStillValid } from "../playbook/retrieve.ts";
 import { loadPlaybook } from "../playbook/store.ts";
-import { BLUE_LINE_X } from "./rink.ts";
+import { BLUE_LINE_X, GOAL_LINE_X } from "./rink.ts";
 import { createRng } from "./rng.ts";
 import { advanceWorld } from "./step.ts";
-import { playForSide, softmax, steeringTarget, UTILITY_TEMPERATURE } from "./tactics.ts";
+import { maybeReleasePuck, passReceiver, playForSide, softmax, steeringTarget, UTILITY_TEMPERATURE } from "./tactics.ts";
 import { createWorld, defaultDirective, DEFAULT_SLOTS, findBySlot } from "./world.ts";
 
 describe("1-2-2 tactics", () => {
@@ -89,6 +89,76 @@ describe("default-structure slots", () => {
       expect(target.x).toBeCloseTo(DEFAULT_SLOTS[pos].x, 5);
       expect(target.y).toBeCloseTo(DEFAULT_SLOTS[pos].y, 5);
     }
+  });
+});
+
+describe("pass / shoot release", () => {
+  it("pass policy steers the carrier at a teammate, not the net", () => {
+    const book = loadPlaybook("expansion");
+    const world = createWorld({
+      playId: { home: "stretch-pass-nz", away: DEFAULT_PLAY_ID },
+      playbooks: { home: book, away: book },
+      directives: {
+        home: { playId: "stretch-pass-nz", pressure: "neutral", playParams: { shotPolicy: "pass" } },
+        away: defaultDirective(),
+      },
+      puck: { pos: { x: 0, y: 0 }, possessor: "h-C" },
+      bodies: {
+        "h-C": { pos: { x: 0, y: 0 }, heading: 0 },
+        "h-LW": { pos: { x: 22, y: 10 }, heading: 0 },
+      },
+    });
+    const c = findBySlot(world, "home", "C")!;
+    const lw = passReceiver(world, c);
+    expect(lw?.id).toBe("h-LW");
+    const target = steeringTarget(world, c);
+    expect(Math.hypot(target.x - 22, target.y - 10)).toBeLessThan(0.01);
+    expect(Math.hypot(target.x - GOAL_LINE_X, target.y)).toBeGreaterThan(50);
+  });
+
+  it("dump policy still aims a corner", () => {
+    const book = loadPlaybook("original-six");
+    const world = createWorld({
+      playId: { home: "5v5-122-forecheck", away: DEFAULT_PLAY_ID },
+      playbooks: { home: book, away: book },
+      puck: { pos: { x: 10, y: 8 }, possessor: "h-C" },
+      bodies: { "h-C": { pos: { x: 10, y: 8 }, heading: 0 } },
+    });
+    const c = findBySlot(world, "home", "C")!;
+    const target = steeringTarget(world, c);
+    expect(target.x).toBeGreaterThan(BLUE_LINE_X);
+    expect(Math.abs(target.y)).toBeGreaterThan(20);
+    expect(maybeReleasePuck(world)).toBe(false);
+    expect(world.puck.possessor).toBe("h-C");
+  });
+
+  it("shoot release in OZ emits a Shot with xG", () => {
+    const book = loadPlaybook("expansion");
+    const world = createWorld({
+      playId: { home: "5v5-212-forecheck", away: DEFAULT_PLAY_ID },
+      playbooks: { home: book, away: book },
+      directives: {
+        home: { playId: "5v5-212-forecheck", pressure: "aggressive", playParams: { shotPolicy: "shoot" } },
+        away: defaultDirective(),
+      },
+      puck: { pos: { x: 50, y: 0 }, possessor: "h-C" },
+      bodies: {
+        "h-C": { pos: { x: 50, y: 0 }, heading: 0, vel: { x: 0, y: 0 } },
+      },
+    });
+    const rng = createRng(3);
+    let sawShot = false;
+    for (let i = 0; i < 40; i++) {
+      const ev = advanceWorld(world, world.directives, rng);
+      if (ev.some((e) => e.type === "Shot")) {
+        sawShot = true;
+        const shot = ev.find((e) => e.type === "Shot");
+        expect(shot?.xG).toBeGreaterThanOrEqual(0.01);
+        expect(shot?.xG).toBeLessThanOrEqual(0.95);
+        break;
+      }
+    }
+    expect(sawShot).toBe(true);
   });
 });
 

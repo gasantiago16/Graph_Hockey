@@ -101,7 +101,7 @@ describe("provider adapters (constructor only, no network)", () => {
       env: { GOOGLE_API_KEY: "test-not-live" },
     }) as ChatGoogleGenerativeAI;
     expect(fast.model).toBe("gemini-3.7-flash");
-    expect(fast.thinkingConfig).toBeUndefined();
+    expect(fast.thinkingConfig).toEqual({ thinkingLevel: "LOW" });
 
     const aar = createChatModel({
       kind: "aar",
