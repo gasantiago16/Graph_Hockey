@@ -1,18 +1,21 @@
 #!/usr/bin/env node
+import { join } from "node:path";
 import { MemorySaver } from "@langchain/langgraph";
 import { compileAarGraph, parseAarMode, runPostMatchAar, sideResult } from "../aar/index.ts";
 import { compileTeamGraph } from "../agents/teamGraph.ts";
-import { loadConfig, type EnvMap } from "../config.ts";
+import { loadConfig, scaledOtSeconds, type EnvMap } from "../config.ts";
 import { formatCostSummary } from "../llm/budgets.ts";
 import { hasInjectedChatModel, hasXaiApiKey } from "../llm/client.ts";
 import { getFootage } from "../persist/clips.ts";
 import { defaultDbPath, openDb, type Db } from "../persist/db.ts";
 import { getAarReport, getMatch, type MatchResultLabel } from "../persist/matches.ts";
+import { defaultSnapshotDir } from "../persist/playbookSnapshots.ts";
 import { ensureSeedPlaybooks, latestPlaybook, listPlaybookVersions, resetPlaybookToSeed } from "../persist/playbooks.ts";
 import { diffPlaybooks, formatPlaybookDiff } from "../playbook/diff.ts";
 import { loadPlaybook, SEED_TEAM_IDS } from "../playbook/store.ts";
 import { runMatch } from "../orchestrator/match.ts";
 import { collectReplayEvents, eventStreamHash, replayMatch } from "../sim/replay.ts";
+import { makeSeriesId, parseSeriesGames, runSeries } from "../sim/series.ts";
 import type { Side } from "../types/hockey.ts";
 
 export const USAGE = `graph-hockey — competing LangGraph teams on a hockey rink
@@ -23,7 +26,7 @@ Usage:
   gh replay --match ID [--to-tick N] [--db PATH]
   gh aar --match ID [--side home|away] [--aar-mode auto|propose|hitl]
   gh playbook --team ID [--diff] [--version N] [--reset-playbook]
-  gh series --games N --home ID --away ID [--seed N]
+  gh series --games 7 [--home ID] [--away ID] [--seed N] [--no-llm] [--no-record] [--aar-mode auto|propose] [--db PATH] [--snapshot-dir PATH]
   gh footage --match ID
   gh footage --series ID [--compare i,j] [--json]
   gh engine-selftest
@@ -34,6 +37,9 @@ AAR runs after every result; default --aar-mode auto applies capped playbook pat
 --aar-mode propose writes the AAR JSON and does not bump playbook versions.
 --no-llm skips AAR LLM, stores a code-only digest, and never mutates playbooks.
 --no-record skips the clip index (events still stored). CI golden hashes use --no-record.
+series default is 7 games; gameSeed = seed + gameIndex. AAR auto-apply mutates playbooks between games (not --no-llm).
+Playbook snapshots go in data/playbook-snapshots/<seriesId>/ (before.json + after-game-N.json).
+--no-llm series uses 5s periods unless GRAPH_HOCKEY_PERIOD_SECONDS or --period-seconds is set.
 footage --match lists auto-clips + open ticks. --series is PR15b.
 replay resimulates from seed + stored DirectiveApplied events (zero LLM).
 aar dumps stored reports or re-runs the AAR graph (--no-llm for code-only).
@@ -86,6 +92,25 @@ function parseTeam(argv: string[], name: "home" | "away", fallback: string): str
     throw new Error(`unknown team '${id}' (expected ${SEED_TEAM_IDS.join("|")})`);
   }
   return id;
+}
+
+function parseGames(argv: string[]): number {
+  const raw = opt(argv, "games");
+  if (raw === undefined) return parseSeriesGames(undefined);
+  return parseSeriesGames(Number.parseInt(raw, 10));
+}
+
+/** --no-llm series stays off 36,000 ticks unless the operator sets a period. */
+function seriesPeriodSeconds(argv: string[], env: EnvMap, cfgPeriod: number, noLlm: boolean): number {
+  const raw = opt(argv, "period-seconds");
+  if (raw !== undefined) {
+    const n = Number.parseFloat(raw);
+    if (!Number.isFinite(n) || n <= 0) throw new Error(`invalid --period-seconds ${raw}`);
+    return n;
+  }
+  const envPeriod = env.GRAPH_HOCKEY_PERIOD_SECONDS;
+  if (envPeriod !== undefined && envPeriod.trim() !== "") return cfgPeriod;
+  return noLlm ? 5 : cfgPeriod;
 }
 
 async function withDb<T>(path: string, fn: (db: Db) => Promise<T>): Promise<T> {
@@ -434,6 +459,86 @@ async function cmdPlaybook(argv: string[], env: EnvMap): Promise<number> {
   });
 }
 
+async function cmdSeries(argv: string[], env: EnvMap): Promise<number> {
+  const noLlm = flag(argv, "no-llm");
+  if (!noLlm && !hasXaiApiKey(env) && !hasInjectedChatModel()) {
+    console.error("gh series: live LLM needs XAI_API_KEY (or pass --no-llm)");
+    return 1;
+  }
+  const cfg = loadConfig(env);
+  const seed = parseSeed(argv);
+  const homeTeamId = parseTeam(argv, "home", "original-six");
+  const awayTeamId = parseTeam(argv, "away", "expansion");
+  const aarMode = parseAarMode(opt(argv, "aar-mode"));
+  const dbPath = opt(argv, "db") ?? defaultDbPath();
+  const games = parseGames(argv);
+  const record = !flag(argv, "no-record");
+  const periodSeconds = seriesPeriodSeconds(argv, env, cfg.periodSeconds, noLlm);
+  const otOverride = env.GRAPH_HOCKEY_OT_SECONDS;
+  const otParsed = otOverride !== undefined ? Number.parseFloat(otOverride) : undefined;
+  const otSeconds = scaledOtSeconds(
+    periodSeconds,
+    otParsed !== undefined && Number.isFinite(otParsed) ? otParsed : undefined,
+  );
+  const seriesId = opt(argv, "id") ?? makeSeriesId(seed);
+  const snapshotParent = opt(argv, "snapshot-dir") ?? defaultSnapshotDir();
+  const snapshotDir = join(snapshotParent, seriesId);
+
+  const result = await withDb(dbPath, async (db) => {
+    return runSeries({
+      db,
+      homeTeamId,
+      awayTeamId,
+      seed,
+      games,
+      seriesId,
+      noLlm,
+      aarMode,
+      periodSeconds,
+      otSeconds,
+      timeoutMs: cfg.epochTimeoutMs,
+      record,
+      snapshotDir,
+      models: noLlm ? { home: "none", away: "none" } : { home: cfg.coachModel, away: cfg.coachModel },
+    });
+  });
+
+  const payload = {
+    seriesId: result.seriesId,
+    seed: result.seed,
+    games: result.games,
+    home: homeTeamId,
+    away: awayTeamId,
+    noLlm,
+    periodSeconds,
+    db: dbPath,
+    snapshotDir: result.snapshotDir,
+    snapshots: result.snapshotPaths,
+    matches: result.matches.map((g) => ({
+      gameIndex: g.gameIndex,
+      gameSeed: g.gameSeed,
+      matchId: g.match.matchId,
+      score: g.match.score,
+      result: g.match.result,
+      events: g.match.events.length,
+      eventHash: g.match.eventHash,
+      playbookVersions: g.playbookVersions,
+    })),
+  };
+  if (flag(argv, "json")) {
+    console.log(JSON.stringify(payload, null, 2));
+  } else {
+    console.log(`series ${payload.seriesId}  ${payload.games} games  seed ${payload.seed}`);
+    for (const g of payload.matches) {
+      console.log(
+        `  g${g.gameIndex}  ${g.matchId}  seed ${g.gameSeed}  ${g.score.home}-${g.score.away} ${g.result}  events=${g.events}`,
+      );
+    }
+    console.log(`snapshots ${payload.snapshotDir}`);
+  }
+  return 0;
+}
+
 export async function main(argv: string[], env: EnvMap = process.env): Promise<number> {
   loadConfig(env);
   if (argv.length === 0 || argv.includes("-h") || argv.includes("--help")) {
@@ -458,6 +563,8 @@ export async function main(argv: string[], env: EnvMap = process.env): Promise<n
         return await cmdPlaybook(rest, env);
       case "footage":
         return await cmdFootage(rest, env);
+      case "series":
+        return await cmdSeries(rest, env);
       default:
         console.error(`gh ${cmd}: not implemented yet`);
         return 1;

@@ -74,6 +74,17 @@ export function listPlaybookVersions(db: Db, teamId: string): PlaybookRow[] {
     .map(rowToPlaybook);
 }
 
+/** Replace a team's version history (used by restore-safe series snapshots). */
+export function replaceTeamPlaybooks(db: Db, teamId: string, rows: readonly PlaybookRow[]): void {
+  db.prepare("DELETE FROM playbooks WHERE team_id = ?").run(teamId);
+  for (const row of rows) {
+    if (row.teamId !== teamId) {
+      throw new Error(`playbook row team '${row.teamId}' !== '${teamId}'`);
+    }
+    insertPlaybook(db, row);
+  }
+}
+
 /** Drop versions and restore seed JSON as version 1. */
 export function resetPlaybookToSeed(db: Db, teamId: string): PlaybookRow {
   if (!(SEED_TEAM_IDS as readonly string[]).includes(teamId)) {

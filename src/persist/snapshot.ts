@@ -31,6 +31,8 @@ export const OpeningSnapshotSchema = z.object({
   /** Absent in older snapshots → full NHL 20:00 / OT 5:00. */
   periodSeconds: z.number().positive().optional(),
   otSeconds: z.number().positive().optional(),
+  seriesId: z.string().min(1).optional(),
+  gameIndex: z.number().int().nonnegative().optional(),
 });
 export type OpeningSnapshot = z.infer<typeof OpeningSnapshotSchema>;
 
@@ -44,6 +46,8 @@ export type MakeOpeningSnapshotInput = {
   models?: { home: string; away: string };
   periodSeconds?: number;
   otSeconds?: number;
+  seriesId?: string;
+  gameIndex?: number;
   openingFaceoff?: {
     spot?: Vec2;
     homeOnIce?: PlayerId[];
@@ -77,6 +81,8 @@ export function makeOpeningSnapshot(input: MakeOpeningSnapshotInput): OpeningSna
     models: input.models ?? { home: "none", away: "none" },
     periodSeconds: input.periodSeconds,
     otSeconds: input.otSeconds,
+    ...(input.seriesId !== undefined ? { seriesId: input.seriesId } : {}),
+    ...(input.gameIndex !== undefined ? { gameIndex: input.gameIndex } : {}),
   });
 }
 

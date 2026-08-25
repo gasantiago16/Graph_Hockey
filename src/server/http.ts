@@ -15,7 +15,7 @@ import type { Clip } from "../types/film.ts";
 import { defaultDbPath, openDb, type Db } from "../persist/db.ts";
 import { getAarReport, getMatch, listMatches } from "../persist/matches.ts";
 import { ensureSeedPlaybooks } from "../persist/playbooks.ts";
-import { StartMatchBodySchema } from "../types/ws.ts";
+import { StartMatchBodySchema, StartSeriesBodySchema } from "../types/ws.ts";
 import { createMatchControl, MatchBusyError, MatchStartError, type MatchControl } from "./matchControl.ts";
 import { corsOrigins, isLoopbackHost, originAllowed } from "./protocol.ts";
 import { aarApiResponse, playbookApiResponse } from "./reports.ts";
@@ -209,6 +209,56 @@ export async function handleHockeyRequest(
     return;
   }
 
+  if (method === "GET" && url.pathname === "/api/series") {
+    sendJson(res, 200, ctx.control.status());
+    return;
+  }
+
+  if (method === "POST" && url.pathname === "/api/series/start") {
+    let raw = "";
+    try {
+      raw = await readBody(req);
+    } catch {
+      sendJson(res, 413, { error: "payload too large" });
+      return;
+    }
+    let json: unknown = {};
+    if (raw.trim() !== "") {
+      try {
+        json = JSON.parse(raw);
+      } catch {
+        sendJson(res, 400, { error: "invalid json" });
+        return;
+      }
+    }
+    const parsed = StartSeriesBodySchema.safeParse(json);
+    if (!parsed.success) {
+      sendJson(res, 400, { error: "invalid body", details: parsed.error.flatten() });
+      return;
+    }
+    try {
+      const started = ctx.control.startSeries(parsed.data);
+      sendJson(res, 200, started);
+    } catch (err) {
+      if (err instanceof MatchBusyError) {
+        sendJson(res, 409, { error: err.message, matchId: err.matchId });
+        return;
+      }
+      if (err instanceof MatchStartError) {
+        sendJson(res, 400, { error: err.message });
+        return;
+      }
+      throw err;
+    }
+    return;
+  }
+
+  if (method === "POST" && url.pathname === "/api/series/stop") {
+    const out = await ctx.control.stop();
+    sendJson(res, 200, { ok: true, ...out });
+    return;
+  }
+
   if (method === "GET" && url.pathname === "/api/matches") {
     const matches = listMatches(ctx.db).map((row) => {
       const footage = getFootage(ctx.db, row.id);
@@ -390,6 +440,9 @@ export async function listenAndServe(opts: ListenOpts = {}): Promise<Server> {
         seed: event.seed,
         periodSeconds: event.periodSeconds,
         noLlm: event.noLlm,
+        seriesId: event.seriesId,
+        gameIndex: event.gameIndex,
+        games: event.games,
       });
     } else if (event.type === "tick") {
       hub.broadcastTick(event.world, event.events, event.budget);
@@ -398,6 +451,10 @@ export async function listenAndServe(opts: ListenOpts = {}): Promise<Server> {
         matchId: event.matchId,
         score: event.score,
         result: event.result,
+        seriesId: event.seriesId,
+        gameIndex: event.gameIndex,
+        games: event.games,
+        seriesComplete: event.seriesComplete,
       });
       hub.setRosters(null);
     }

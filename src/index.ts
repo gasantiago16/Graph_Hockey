@@ -18,6 +18,16 @@ export * from "./engine/tactics.ts";
 export * from "./playbook/index.ts";
 export * from "./persist/index.ts";
 export * from "./sim/replay.ts";
+export {
+  DEFAULT_SERIES_GAMES,
+  MAX_SERIES_GAMES,
+  gameSeed,
+  makeSeriesId,
+  parseSeriesGames,
+  runSeries,
+  seriesMatchId,
+} from "./sim/series.ts";
+export type { RunSeriesOpts, SeriesGameOver, SeriesGameResult, SeriesGameStart, SeriesResult } from "./sim/series.ts";
 export * from "./agents/index.ts";
 export * from "./aar/index.ts";
 export * from "./orchestrator/index.ts";

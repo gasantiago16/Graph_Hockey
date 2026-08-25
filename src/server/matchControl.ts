@@ -1,3 +1,4 @@
+import { join } from "node:path";
 import { MemorySaver } from "@langchain/langgraph";
 import { compileTeamGraph } from "../agents/teamGraph.ts";
 import { loadConfig, scaledOtSeconds, type AppConfig } from "../config.ts";
@@ -7,11 +8,13 @@ import type { MatchBudget } from "../llm/budgets.ts";
 import { hasInjectedChatModel } from "../llm/client.ts";
 import { MatchAborted, runMatch } from "../orchestrator/match.ts";
 import type { Db } from "../persist/db.ts";
+import { defaultSnapshotDir } from "../persist/playbookSnapshots.ts";
 import { latestPlaybook } from "../persist/playbooks.ts";
 import { loadPlaybook, loadTeam, SEED_TEAM_IDS } from "../playbook/store.ts";
+import { makeSeriesId, parseSeriesGames, runSeries, seriesMatchId } from "../sim/series.ts";
 import type { MatchEvent } from "../types/events.ts";
 import type { Roster } from "../types/hockey.ts";
-import type { StartMatchBody } from "../types/ws.ts";
+import type { StartMatchBody, StartSeriesBody } from "../types/ws.ts";
 
 /** Live LLM start: server key or test inject (FakeListChatModel). Never reads the key into WS. */
 export function llmMatchAllowed(config: Pick<AppConfig, "xaiApiKey">): boolean {
@@ -42,6 +45,9 @@ export type MatchControlEvent =
       periodSeconds: number;
       noLlm: boolean;
       rosters: { home: Roster; away: Roster };
+      seriesId?: string;
+      gameIndex?: number;
+      games?: number;
     }
   | { type: "tick"; world: WorldState; events: MatchEvent[]; budget: MatchBudget }
   | {
@@ -49,6 +55,10 @@ export type MatchControlEvent =
       matchId: string;
       score: { home: number; away: number };
       result: "home" | "away" | "tie" | "aborted";
+      seriesId?: string;
+      gameIndex?: number;
+      games?: number;
+      seriesComplete?: boolean;
     };
 
 export type MatchStatus = {
@@ -64,11 +74,17 @@ export type MatchStatus = {
   phase?: string;
   strength?: string;
   liveTick?: number;
+  seriesId?: string;
+  gameIndex?: number;
+  games?: number;
 };
 
 export type MatchControl = {
   start: (body: StartMatchBody) => { matchId: string; status: "running" } & StartMatchBody & { noLlm: boolean };
-  stop: () => Promise<{ stopped: boolean; matchId?: string }>;
+  startSeries: (
+    body: StartSeriesBody,
+  ) => { seriesId: string; matchId: string; status: "running"; games: number } & StartSeriesBody & { noLlm: boolean };
+  stop: () => Promise<{ stopped: boolean; matchId?: string; seriesId?: string }>;
   status: () => MatchStatus;
   subscribe: (fn: (event: MatchControlEvent) => void) => () => void;
 };
@@ -80,6 +96,8 @@ export type CreateMatchControlOpts = {
   config?: AppConfig;
   /** Wall-clock delay per engine step. Spectator uses 100 ms (10 Hz). */
   paceMs?: number;
+  /** Parent dir for series playbook snapshots (`<dir>/<seriesId>/`). */
+  snapshotDir?: string;
 };
 
 export function createMatchControl(opts: CreateMatchControlOpts): MatchControl {
@@ -97,6 +115,9 @@ export function createMatchControl(opts: CreateMatchControlOpts): MatchControl {
     away: string;
     seed: number;
     periodSeconds: number;
+    seriesId?: string;
+    gameIndex?: number;
+    games?: number;
   } | null = null;
 
   function emit(event: MatchControlEvent): void {
@@ -124,6 +145,9 @@ export function createMatchControl(opts: CreateMatchControlOpts): MatchControl {
       phase: liveWorld.current?.phase,
       strength: liveWorld.current?.strength,
       liveTick: liveWorld.current?.liveTick,
+      seriesId: live.seriesId,
+      gameIndex: live.gameIndex,
+      games: live.games,
     };
   }
 
@@ -237,9 +261,151 @@ export function createMatchControl(opts: CreateMatchControlOpts): MatchControl {
     };
   }
 
-  async function stop(): Promise<{ stopped: boolean; matchId?: string }> {
+  function startSeries(body: StartSeriesBody) {
+    if (live) throw new MatchBusyError(live.matchId);
+    const noLlm = body.noLlm !== false;
+    if (!noLlm && !llmMatchAllowed(config)) {
+      throw new MatchStartError("LLM matches need XAI_API_KEY (or an injected chat model); send noLlm: true");
+    }
+    const home = body.home;
+    const away = body.away;
+    if (!SEED_SET.has(home)) {
+      throw new MatchStartError(`unknown home team '${home}' (expected ${SEED_TEAM_IDS.join("|")})`);
+    }
+    if (!SEED_SET.has(away)) {
+      throw new MatchStartError(`unknown away team '${away}' (expected ${SEED_TEAM_IDS.join("|")})`);
+    }
+    let games: number;
+    try {
+      games = parseSeriesGames(body.games);
+    } catch (err) {
+      throw new MatchStartError(err instanceof Error ? err.message : String(err));
+    }
+    const seed = body.seed ?? (Math.floor(Math.random() * 0x1_0000_0000) >>> 0);
+    const periodSeconds = body.periodSeconds ?? config.periodSeconds;
+    const otSeconds = scaledOtSeconds(periodSeconds);
+    const seriesId = makeSeriesId(seed);
+    const firstMatchId = seriesMatchId(seriesId, 0);
+    const homeRoster = loadTeam(home);
+    const awayRoster = loadTeam(away);
+
+    const controller = new AbortController();
+    ac = controller;
+    live = {
+      matchId: firstMatchId,
+      home,
+      away,
+      seed,
+      periodSeconds,
+      seriesId,
+      gameIndex: 0,
+      games,
+    };
+    liveWorld.current = null;
+    lastScore = { home: 0, away: 0 };
+
+    job = (async () => {
+      try {
+        await runSeries({
+          db: opts.db,
+          homeTeamId: home,
+          awayTeamId: away,
+          seed,
+          games,
+          seriesId,
+          noLlm,
+          periodSeconds,
+          otSeconds,
+          timeoutMs: config.epochTimeoutMs,
+          paceMs,
+          snapshotDir: join(opts.snapshotDir ?? defaultSnapshotDir(), seriesId),
+          signal: controller.signal,
+          models: noLlm
+            ? { home: "none", away: "none" }
+            : { home: config.coachModel, away: config.coachModel },
+          onGameStart: (info) => {
+            live = {
+              matchId: info.matchId,
+              home,
+              away,
+              seed: info.seed,
+              periodSeconds,
+              seriesId,
+              gameIndex: info.gameIndex,
+              games,
+            };
+            liveWorld.current = null;
+            lastScore = { home: 0, away: 0 };
+            emit({
+              type: "start",
+              matchId: info.matchId,
+              home: info.home,
+              away: info.away,
+              seed: info.seed,
+              periodSeconds,
+              noLlm,
+              rosters: { home: homeRoster, away: awayRoster },
+              seriesId,
+              gameIndex: info.gameIndex,
+              games,
+            });
+          },
+          onTick: (next, events, budget) => {
+            liveWorld.current = next;
+            lastScore = { home: next.score.home, away: next.score.away };
+            emit({ type: "tick", world: next, events, budget });
+          },
+          onGameOver: (info) => {
+            emit({
+              type: "over",
+              matchId: info.matchId,
+              score: info.score,
+              result: info.result,
+              seriesId,
+              gameIndex: info.gameIndex,
+              games,
+              seriesComplete: info.seriesComplete,
+            });
+          },
+        });
+      } catch (err) {
+        if (!(err instanceof MatchAborted)) {
+          console.error(err);
+        }
+        emit({
+          type: "over",
+          matchId: live?.matchId ?? firstMatchId,
+          score: { ...lastScore },
+          result: "aborted",
+          seriesId,
+          gameIndex: live?.gameIndex,
+          games,
+          seriesComplete: true,
+        });
+      } finally {
+        if (live?.seriesId === seriesId) live = null;
+        if (ac === controller) ac = null;
+        job = null;
+      }
+    })();
+
+    return {
+      seriesId,
+      matchId: firstMatchId,
+      status: "running" as const,
+      home,
+      away,
+      seed,
+      noLlm,
+      periodSeconds,
+      games,
+    };
+  }
+
+  async function stop(): Promise<{ stopped: boolean; matchId?: string; seriesId?: string }> {
     if (!live || !ac) return { stopped: false };
     const matchId = live.matchId;
+    const seriesId = live.seriesId;
     ac.abort();
     if (job) {
       try {
@@ -248,11 +414,12 @@ export function createMatchControl(opts: CreateMatchControlOpts): MatchControl {
         // execute() swallows; job should resolve
       }
     }
-    return { stopped: true, matchId };
+    return { stopped: true, matchId, seriesId };
   }
 
   return {
     start,
+    startSeries,
     stop,
     status,
     subscribe: (fn) => {

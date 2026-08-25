@@ -133,6 +133,8 @@ export async function runMatch(opts: MatchOptions): Promise<MatchResult> {
     models: opts.models ?? { home: "none", away: "none" },
     periodSeconds,
     otSeconds,
+    seriesId: opts.seriesId,
+    gameIndex: opts.gameIndex,
   });
   insertMatch(opts.db, snap, opts.startedAt);
 

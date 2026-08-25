@@ -83,6 +83,9 @@ export const MatchStartSchema = z.object({
   seed: z.number(),
   periodSeconds: z.number(),
   noLlm: z.boolean(),
+  seriesId: z.string().optional(),
+  gameIndex: z.number().int().nonnegative().optional(),
+  games: z.number().int().positive().optional(),
 });
 export type MatchStart = z.infer<typeof MatchStartSchema>;
 
@@ -91,6 +94,10 @@ export const MatchOverSchema = z.object({
   matchId: z.string(),
   score: z.object({ home: z.number(), away: z.number() }),
   result: z.enum(["home", "away", "tie", "aborted"]),
+  seriesId: z.string().optional(),
+  gameIndex: z.number().int().nonnegative().optional(),
+  games: z.number().int().positive().optional(),
+  seriesComplete: z.boolean().optional(),
 });
 export type MatchOver = z.infer<typeof MatchOverSchema>;
 
@@ -113,3 +120,8 @@ export const StartMatchBodySchema = z.object({
   periodSeconds: z.number().positive().max(1200).optional(),
 });
 export type StartMatchBody = z.infer<typeof StartMatchBodySchema>;
+
+export const StartSeriesBodySchema = StartMatchBodySchema.extend({
+  games: z.number().int().min(1).max(21).default(7),
+});
+export type StartSeriesBody = z.infer<typeof StartSeriesBodySchema>;

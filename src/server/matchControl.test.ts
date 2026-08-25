@@ -1,3 +1,6 @@
+import { mkdtempSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { FakeListChatModel } from "@langchain/core/utils/testing";
 import { loadConfig } from "../config.ts";
@@ -77,6 +80,36 @@ describe("matchControl LLM gate", () => {
       expect(started.noLlm).toBe(false);
       expect(seen.some((e) => e.type === "start" && e.noLlm === false)).toBe(true);
       await control.stop();
+      expect(control.status().running).toBe(false);
+    } finally {
+      db.close();
+    }
+  });
+
+  it("starts a series and stop aborts remaining games", async () => {
+    const db = await openMemoryDb();
+    try {
+      const control = createMatchControl({
+        db,
+        config: loadConfig({ GRAPH_HOCKEY_PERIOD_SECONDS: "5" }),
+        paceMs: 0,
+        snapshotDir: mkdtempSync(join(tmpdir(), "gh-series-ctrl-")),
+      });
+      const started = control.startSeries({
+        home: "original-six",
+        away: "expansion",
+        seed: 100,
+        noLlm: true,
+        periodSeconds: 5,
+        games: 2,
+      });
+      expect(started.games).toBe(2);
+      expect(started.seriesId).toBeTruthy();
+      expect(control.status().running).toBe(true);
+      expect(control.status().seriesId).toBe(started.seriesId);
+      expect(control.status().games).toBe(2);
+      const stopped = await control.stop();
+      expect(stopped.stopped).toBe(true);
       expect(control.status().running).toBe(false);
     } finally {
       db.close();

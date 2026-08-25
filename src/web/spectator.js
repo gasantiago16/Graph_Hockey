@@ -10,6 +10,7 @@ const connEl = document.getElementById("conn");
 const errEl = document.getElementById("err");
 const costEl = document.getElementById("cost");
 const btnStart = document.getElementById("btnStart");
+const btnSeries = document.getElementById("btnSeries");
 const btnStop = document.getElementById("btnStop");
 const useLlmEl = document.getElementById("useLlm");
 
@@ -52,6 +53,7 @@ function setErr(msg) {
 function setRunning(on) {
   state.running = on;
   btnStart.disabled = on;
+  if (btnSeries) btnSeries.disabled = on;
   btnStop.disabled = !on;
 }
 
@@ -97,11 +99,16 @@ function onMessage(msg) {
     state.noLlm = msg.noLlm !== false;
     setRunning(true);
     costEl.textContent = formatCostHud(ZERO_COST, state.noLlm);
-    tickerEl.textContent = `Match ${msg.matchId} · period ${msg.periodSeconds}s · seed ${msg.seed}`;
+    const series =
+      msg.seriesId && msg.games != null && msg.gameIndex != null
+        ? `Series ${msg.seriesId} game ${msg.gameIndex + 1}/${msg.games} · `
+        : "";
+    tickerEl.textContent = `${series}Match ${msg.matchId} · period ${msg.periodSeconds}s · seed ${msg.seed}`;
     const post = document.getElementById("postMatch");
     if (post) post.hidden = true;
   } else if (msg.type === "match_over") {
-    setRunning(false);
+    const seriesOngoing = Boolean(msg.seriesId) && msg.seriesComplete === false;
+    setRunning(seriesOngoing);
     state.lastMatchId = msg.matchId;
     const href = `/film?match=${encodeURIComponent(msg.matchId)}`;
     const aar = aarHref({ matchId: msg.matchId });
@@ -192,6 +199,29 @@ async function startMatch() {
   setRunning(true);
 }
 
+async function startSeries() {
+  setErr("");
+  const body = {
+    home: document.getElementById("home").value,
+    away: document.getElementById("away").value,
+    seed: Number(document.getElementById("seed").value),
+    noLlm: !wantLlm(),
+    periodSeconds: Number(document.getElementById("periodSeconds").value),
+    games: 7,
+  };
+  const res = await fetch("/api/series/start", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    setErr(json.error ?? `series start failed (${res.status})`);
+    return;
+  }
+  setRunning(true);
+}
+
 async function stopMatch() {
   setErr("");
   const res = await fetch("/api/match/stop", { method: "POST" });
@@ -202,6 +232,11 @@ async function stopMatch() {
 btnStart.addEventListener("click", () => {
   void startMatch();
 });
+if (btnSeries) {
+  btnSeries.addEventListener("click", () => {
+    void startSeries();
+  });
+}
 btnStop.addEventListener("click", () => {
   void stopMatch();
 });

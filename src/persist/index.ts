@@ -45,9 +45,22 @@ export {
   latestPlaybook,
   listPlaybookVersions,
   listScoutNotes,
+  replaceTeamPlaybooks,
   resetPlaybookToSeed,
   type PlaybookRow,
 } from "./playbooks.ts";
+export {
+  PLAYBOOK_SNAPSHOT_DIRNAME,
+  PlaybookSnapshotSchema,
+  capturePlaybookSnapshot,
+  defaultSnapshotDir,
+  readPlaybookSnapshot,
+  restorePlaybookSnapshot,
+  snapshotFileName,
+  snapshotPlaybooksToDir,
+  writePlaybookSnapshot,
+  type PlaybookSnapshot,
+} from "./playbookSnapshots.ts";
 export {
   getClip,
   getFootage,

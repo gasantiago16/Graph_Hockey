@@ -9,6 +9,7 @@ import {
   MatchStartSchema,
   SpectatorFrameSchema,
   StartMatchBodySchema,
+  StartSeriesBodySchema,
 } from "../types/ws.ts";
 import {
   corsOrigins,
@@ -174,6 +175,10 @@ describe("WS protocol denylist", () => {
     expect(body.periodSeconds).toBeUndefined();
     expect(() => StartMatchBodySchema.parse({ noLlm: true, periodSeconds: 5 })).not.toThrow();
     expect(StartMatchBodySchema.parse({ noLlm: false }).noLlm).toBe(false);
+    const series = StartSeriesBodySchema.parse({});
+    expect(series.games).toBe(7);
+    expect(series.noLlm).toBe(true);
+    expect(StartSeriesBodySchema.parse({ games: 2 }).games).toBe(2);
   });
 
   it("CostTick with live budget is numbers only (denylist empty, no playId)", () => {
@@ -247,6 +252,14 @@ describe("WS protocol denylist", () => {
       noLlm: false,
     });
     expect(msg.noLlm).toBe(false);
+    const seriesStart = MatchStartSchema.parse({
+      ...msg,
+      seriesId: "ser-100",
+      gameIndex: 0,
+      games: 7,
+    });
+    expect(seriesStart.games).toBe(7);
+    expect(seriesStart.gameIndex).toBe(0);
     const json = JSON.stringify(msg);
     expect(json).not.toContain("playbooks");
     expect(json).not.toContain("XAI_API_KEY");

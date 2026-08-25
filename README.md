@@ -86,6 +86,7 @@ Headless CI path: `gh simulate --no-llm` (`gh` here is this project's CLI, not G
 ```bash
 npm run gh -- simulate --no-llm --seed 42 --home original-six --away expansion
 npm run gh -- replay --match <id>
+npm run gh -- series --games 7 --no-llm --seed 100
 ```
 
 Stub graphs use the seed-book default 5v5 play (`5v5-122-forecheck` vs `5v5-212-forecheck`) and do not call xAI.
@@ -106,12 +107,23 @@ $env:GRAPH_HOCKEY_PERIOD_SECONDS=5; npm test
 - Optional **Use LLM** checkbox is enabled only when `GET /api/health` reports `llmConfigured`
 - HUD: live `$` / prompt+output tokens / calls per side (`CostTick`)
 - `POST /api/match/stop` aborts the in-flight match
+- `POST /api/series/start` `{ games: 7, home, away, seed, noLlm, periodSeconds? }` runs a self-play series (`gameSeed = seed + gameIndex`)
+- `POST /api/series/stop` aborts the in-flight series (same as match stop)
+- `GET /api/series` live series/match status
 - `GET /api/health` `{ ok, llmConfigured, langsmith }`
 - `WS /ws` streams 10 Hz `SpectatorFrame` snapshots plus `cost` and inspect-side `inspect`
 - Inspect toggle **none / home / away** — the play **name** is sent only for the inspected side (never the opponent `playId`)
 - After `match_over`, **AAR / playbook** opens `/aar?match=` (supposed / actual / why / ops). **Watch** on `eventIds` jumps to `/film?match=&event=`
 
 The start form defaults to **5 second** periods so a demo is watchable. Engine/config default remains **1200 s** (3×20:00) unless you pass `periodSeconds` or set `GRAPH_HOCKEY_PERIOD_SECONDS`.
+
+**Start series (7)** runs seven games in a row. After each game, AAR auto-applies (unless `--no-llm`) so playbooks evolve. Restore-safe JSON snapshots land in `data/playbook-snapshots/<seriesId>/` (`before.json` plus `after-game-0.json` …).
+
+```bash
+npm run gh -- series --games 7 --no-llm --seed 100 --home original-six --away expansion
+```
+
+`--no-llm` series uses **5 second** periods unless you set `GRAPH_HOCKEY_PERIOD_SECONDS` or `--period-seconds`. Each game’s seed is `seed + gameIndex` (game 0 uses `seed`). Recordings store `series_id` + `game_index` for the later improvement board.
 
 ## Review footage (available now)
 
@@ -121,7 +133,7 @@ Every finished match is **auto-recorded** as deterministic game film (resimulati
 - plays them on the same Canvas rink (scrub, 0.25×–2×)
 - `/film` is the scripted demo series; `/film?match=ID` plays real match clips
 - `/aar?match=ID` is the post-game AAR + playbook version diff (`GET /api/aar/:matchId/:side`, `GET /api/playbook/:team?diff=1`)
-- series pairing / improvement board is a later PR
+- series pairing / improvement board is a later PR (`recordings.series_id` is stored now)
 
 ```bash
 npm install

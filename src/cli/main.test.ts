@@ -22,11 +22,13 @@ describe("gh CLI", () => {
       expect(printed).toContain("aar");
       expect(printed).toContain("playbook");
       expect(printed).toContain("series");
+      expect(printed).toContain("--games 7");
       expect(printed).toContain("footage");
       expect(printed).toContain("--no-record");
       expect(printed).toContain("--aar-mode");
       expect(printed).toContain("--reset-playbook");
       expect(printed).toContain("GRAPH_HOCKEY_PERIOD_SECONDS");
+      expect(printed).toContain("playbook-snapshots");
       expect(USAGE).toContain("xAI only");
     } finally {
       log.mockRestore();
@@ -38,6 +40,19 @@ describe("gh CLI", () => {
     try {
       expect(await main(["simulate", "--seed", "1"], {})).toBe(1);
       expect(String(err.mock.calls[0]?.[0])).toContain("--no-llm");
+    } finally {
+      err.mockRestore();
+    }
+  });
+
+  it("refuses series without --no-llm and rejects games 0", async () => {
+    const err = vi.spyOn(console, "error").mockImplementation(() => {});
+    try {
+      expect(await main(["series", "--seed", "1"], {})).toBe(1);
+      expect(String(err.mock.calls[0]?.[0])).toContain("--no-llm");
+      err.mockClear();
+      expect(await main(["series", "--no-llm", "--games", "0"], {})).toBe(1);
+      expect(String(err.mock.calls[0]?.[0])).toMatch(/games/);
     } finally {
       err.mockRestore();
     }
