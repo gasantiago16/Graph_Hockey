@@ -71,15 +71,31 @@ describe("structured helpers", () => {
     expect(isTimeoutErr(new Error("400 bad request"))).toBe(false);
   });
 
-  it("uses jsonMode only for Muse Spark slugs", () => {
+  it("uses jsonMode for Muse, Grok, and GPT Completions slugs", () => {
     expect(structuredMethodForModel("muse-spark-1.2")).toBe("jsonMode");
-    expect(structuredMethodForModel("grok-4.5")).toBeUndefined();
-    expect(structuredMethodForModel("gpt-5.6-sol")).toBeUndefined();
+    expect(structuredMethodForModel("grok-4.5")).toBe("jsonMode");
+    expect(structuredMethodForModel("gpt-5.6-sol")).toBe("jsonMode");
+    expect(structuredMethodForModel("gemini-3.1-pro-preview")).toBeUndefined();
     expect(structuredMethodForModel("")).toBeUndefined();
   });
 });
 
 describe("invokeStructured", () => {
+  it("coerces LLM pressure aliases like high/attack", async () => {
+    const fake = new FakeListChatModel({
+      responses: [
+        JSON.stringify({
+          supposedToHappen: "crash the net",
+          playId: "oz-crash-net",
+          pressure: "high",
+        }),
+      ],
+    });
+    const out = await invokeStructured(fake, CoachIntentSchema, messages, { label: "test-pressure" });
+    expect(out?.pressure).toBe("aggressive");
+    expect(out?.playId).toBe("oz-crash-net");
+  });
+
   it("parses FakeListChatModel withStructuredOutput JSON", async () => {
     const fake = new FakeListChatModel({ responses: [JSON.stringify(intent)] });
     const out = await invokeStructured(fake, CoachIntentSchema, messages, { label: "test-fake" });

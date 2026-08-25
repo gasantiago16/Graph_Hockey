@@ -1,6 +1,7 @@
 import { SystemMessage, type BaseMessage } from "@langchain/core/messages";
 import type { BaseChatModel } from "@langchain/core/language_models/chat_models";
 import type { z } from "zod";
+import { coercePressure } from "../types/hockey.ts";
 import { markReasoningNoneUnsupported } from "./client.ts";
 
 export type InvokeStructuredOpts = {
@@ -71,7 +72,9 @@ function modelName(llm: BaseChatModel): string {
  * on optional fields. json_object is enough; we still Zod-parse the object.
  */
 export function structuredMethodForModel(model: string): "jsonMode" | undefined {
-  return model.startsWith("muse-") ? "jsonMode" : undefined;
+  // ChatOpenAI jsonSchema + Zod .optional() 400s on grok/muse/gpt. json_object + Zod parse.
+  if (model.startsWith("muse-") || model.startsWith("grok-") || model.startsWith("gpt-")) return "jsonMode";
+  return undefined;
 }
 
 function logFail(label: string, phase: string, err: unknown): void {
@@ -87,6 +90,13 @@ function maybeMarkNone(err: unknown): void {
 function outboundMessages(messages: BaseMessage[], jsonObject: boolean): BaseMessage[] {
   if (!jsonObject) return messages;
   return [new SystemMessage("Respond with a JSON object matching the requested schema."), ...messages];
+}
+
+function normalizeLlmObject(raw: unknown): unknown {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return raw;
+  const rec = raw as Record<string, unknown>;
+  if (!("pressure" in rec)) return raw;
+  return { ...rec, pressure: coercePressure(rec.pressure) };
 }
 
 /**
@@ -110,7 +120,7 @@ export async function invokeStructured<T>(
       ? llm.withStructuredOutput(schema, { method })
       : llm.withStructuredOutput(schema);
     const raw: unknown = await runnable.invoke(outbound, invokeOpts);
-    const parsed = schema.safeParse(raw);
+    const parsed = schema.safeParse(normalizeLlmObject(raw));
     if (parsed.success) return parsed.data;
     console.warn(`structured:${label}:structured parse failed`);
   } catch (err) {
@@ -121,7 +131,7 @@ export async function invokeStructured<T>(
 
   try {
     const msg = await llm.invoke(outbound, invokeOpts);
-    const parsed = schema.safeParse(parseJsonValue(extractText(msg.content)));
+    const parsed = schema.safeParse(normalizeLlmObject(parseJsonValue(extractText(msg.content))));
     if (parsed.success) return parsed.data;
   } catch (err) {
     maybeMarkNone(err);

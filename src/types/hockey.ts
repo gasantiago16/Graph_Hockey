@@ -124,6 +124,16 @@ export const PRESSURES = ["passive", "neutral", "aggressive"] as const;
 export const PressureSchema = z.enum(PRESSURES);
 export type Pressure = z.infer<typeof PressureSchema>;
 
+/** LLM jsonMode often says high/attack instead of the enum. Engine still stores Pressure. */
+export function coercePressure(v: unknown): unknown {
+  if (typeof v !== "string") return v;
+  const s = v.trim().toLowerCase();
+  if (s === "high" || s === "attack" || s === "aggro" || s === "aggressive") return "aggressive";
+  if (s === "low" || s === "defend" || s === "passive") return "passive";
+  if (s === "medium" || s === "mid" || s === "neutral") return "neutral";
+  return v;
+}
+
 export const FWD_LINES = ["F1", "F2", "F3"] as const;
 export const FwdLineSchema = z.enum(FWD_LINES);
 export type FwdLine = z.infer<typeof FwdLineSchema>;

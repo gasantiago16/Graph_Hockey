@@ -69,7 +69,7 @@ export const CoachIntentSchema = z.object({
   supposedToHappen: z.string().max(800),
   playId: z.string(),
   pressure: PressureSchema,
-  matchingNotes: z.string().max(400).optional(),
+  matchingNotes: z.string().max(400).nullish(),
 });
 export type CoachIntent = z.infer<typeof CoachIntentSchema>;
 
