@@ -2,9 +2,9 @@
 
 Two **LangGraph.js** teams compete in a realistic hockey game. After every win, loss, or tie, each team runs an **After-Action Review** and patches a structured playbook so the next game is not the same.
 
-This is a **localhost Node.js browser game**. The server owns physics, rules, both team graphs, and xAI calls. The browser is a Canvas 2D spectator — it never scores a goal and never sees the opponent's playbook.
+This is a **localhost Node.js browser game**. The server owns physics, rules, both team graphs, and xAI calls. The browser is a Canvas 2D spectator — it never scores a goal, never sees the opponent's playbook, and **never receives `XAI_API_KEY`**.
 
-**Status:** private repo + approved design. Implementation follows the PR plan in [`docs/DESIGN.md`](docs/DESIGN.md).
+**Status:** private repo + approved design + Film Room demo. Implementation follows the PR plan in [`docs/DESIGN.md`](docs/DESIGN.md).
 
 ## What you are looking at
 
@@ -21,11 +21,13 @@ LLMs do **not** run every physics tick. Coaches act at decision epochs (faceoff,
 
 ## Stack (v1)
 
-- Node.js ≥ 20.11, TypeScript (strict), **pnpm**
+- Node.js ≥ 20.11, TypeScript (strict), **npm** (`package-lock.json`)
 - LangGraph.js (`@langchain/langgraph`)
 - xAI only: `XAI_API_KEY`, `https://api.x.ai/v1`, `grok-4.5` (coach/AAR) + `grok-4.3` (specialists)
-- Fastify + WebSocket + Canvas 2D on `127.0.0.1:8787`
+- Fastify + WebSocket + Canvas 2D on `127.0.0.1:8787` (match server lands in a later PR)
 - SQLite for matches, events, playbooks
+
+LangSmith tracing is **optional**. If `LANGSMITH_API_KEY` or `LANGCHAIN_API_KEY` is set, the app turns on `LANGSMITH_TRACING` itself. Leave those unset for local/CI.
 
 ## Repo layout (target)
 
@@ -40,7 +42,29 @@ src/orchestrator/   match loop
 src/server/         Fastify + WS
 src/web/            Canvas 2D rink + HUD + Film Room
 src/film/           auto-clips, pairing, improvement ledger
+src/cli/            `gh` headless CLI
+src/config.ts       env defaults (boots without keys)
 ```
+
+Contributor map (folders → LangGraph concepts): [`AGENTS.md`](AGENTS.md).
+
+## Setup
+
+```bash
+npm install
+cp .env.example .env   # set XAI_API_KEY for live LLM matches only
+npm test               # no API key required
+npm run typecheck
+npm run film           # Film Room demo — open http://127.0.0.1:8787/film
+npm run web            # same static server until the match server lands
+npm run gh -- --help
+```
+
+`XAI_API_KEY` lives in `.env` on the Node process. **Never** put it in `src/web/`, client JS, or WebSocket payloads. The browser never calls xAI.
+
+LangSmith keys in `.env.example` stay commented. CI does not set secrets.
+
+Headless CI path (later PRs): `gh simulate --no-llm` (`gh` here is this project's CLI, not GitHub's).
 
 ## Review footage (available now)
 
@@ -54,9 +78,9 @@ Every finished match will be **auto-recorded** as deterministic game film (repla
 A scripted 7-game demo series is in `fixtures/film/demo-series.json` so you can use the Film Room before the physics engine lands.
 
 ```bash
-pnpm install
-pnpm test
-pnpm film
+npm install
+npm test
+npm run film
 # open http://127.0.0.1:8787/film
 ```
 
@@ -66,18 +90,6 @@ Engine → stub graphs (`--no-llm`) → **watchable browser rink** → Film Room
 
 Full PR list: [`docs/DESIGN.md`](docs/DESIGN.md#pr-plan).
 
-## Setup (once the engine exists)
-
-```bash
-pnpm install
-cp .env.example .env   # set XAI_API_KEY; LangSmith optional
-pnpm test              # no API key required
-pnpm web               # http://127.0.0.1:8787
-pnpm film              # Film Room (works today on the demo series)
-```
-
-Headless CI path: `gh simulate --no-llm` (the `gh` here is this project's CLI, not GitHub's).
-
 ## License
 
-Private repository. All rights reserved until a license is added.
+MIT. See [`LICENSE`](LICENSE).

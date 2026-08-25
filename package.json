@@ -2,15 +2,21 @@
   "name": "graph-hockey",
   "version": "0.1.0",
   "private": true,
+  "license": "MIT",
   "type": "module",
   "engines": {
     "node": ">=20.11"
   },
   "scripts": {
+    "typecheck": "tsc --noEmit",
     "test": "vitest run",
+    "gh": "tsx src/cli/main.ts",
+    "web": "node scripts/serve-web.mjs",
     "film": "node scripts/serve-web.mjs"
   },
   "devDependencies": {
+    "@types/node": "^20.17.10",
+    "tsx": "^4.19.2",
     "typescript": "^5.6.3",
     "vitest": "^2.1.9"
   }

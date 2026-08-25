@@ -2,12 +2,16 @@ node_modules/
 dist/
 coverage/
 .env
-.env.local
+.env.*
+!.env.example
 *.log
 .DS_Store
 Thumbs.db
+*.sqlite
+*.sqlite-journal
 data/*.sqlite
 data/*.sqlite-journal
+data/checkpoints.sqlite
 checkpoints/
 *.tsbuildinfo
 .pnpm-store/

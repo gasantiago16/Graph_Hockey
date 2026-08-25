@@ -1,0 +1,20 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+# Dev machine is Windows. ubuntu-latest is used for CI speed; this job has no native addons.
+# Do not inject XAI_API_KEY, LangSmith keys, or other secrets — tests must stay LLM-free.
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
