@@ -25,10 +25,10 @@ import {
   type WorldState,
 } from "./world.ts";
 
-const PHYSICS_PHASES: ReadonlySet<Phase> = new Set(["live", "delayed_offside", "delayed_penalty"]);
-
-export function clockRuns(phase: Phase): boolean {
-  return PHYSICS_PHASES.has(phase);
+export function clockRuns(
+  phase: Phase,
+): phase is "live" | "delayed_offside" | "delayed_penalty" {
+  return phase === "live" || phase === "delayed_offside" || phase === "delayed_penalty";
 }
 
 function zoneFromPuck(world: WorldState): Zone {
@@ -81,18 +81,23 @@ export function stepLive(world: WorldState, dt: number, rng: Rng): MatchEvent[] 
 
   const bodies = onIceBodies(world);
   for (const body of bodies) {
-    integrateBody(world, body);
+    integrateBody(world, body, dt);
   }
 
   if (world.puck.possessor) {
     attachPuckToStick(world);
   } else {
-    integratePuck(world);
+    integratePuck(world, dt);
   }
 
   emitContacts(world, events, collideBodies(bodies));
   emitContacts(world, events, collidePuckPlayers(world));
 
+  for (const body of bodies) {
+    collideRink(body.pos, body.vel, body.radius, BODY_RESTITUTION);
+  }
+  collideRink(world.puck.pos, world.puck.vel, PUCK_RADIUS, PUCK_BOARD_RESTITUTION);
+  collideBodies(bodies);
   for (const body of bodies) {
     collideRink(body.pos, body.vel, body.radius, BODY_RESTITUTION);
   }
@@ -200,11 +205,10 @@ export function advanceWorld(
 ): MatchEvent[] {
   world.directives = dirs;
   world.playId = { home: dirs.home.playId, away: dirs.away.playId };
+  if (clockRuns(world.phase)) {
+    return stepLive(world, DT, rng);
+  }
   switch (world.phase) {
-    case "live":
-    case "delayed_offside":
-    case "delayed_penalty":
-      return stepLive(world, DT, rng);
     case "whistle":
       return setupFaceoff(world);
     case "faceoff_drop":

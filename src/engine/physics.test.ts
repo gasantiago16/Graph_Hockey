@@ -65,6 +65,19 @@ describe("stick possession", () => {
     expect(world.puck.lastStick).toBe("h-C");
   });
 
+  it("does not award possession when in reach but not facing", () => {
+    const world = createWorld({
+      onIce: { home: ["h-C"], away: [] },
+      bodies: {
+        "h-C": { pos: { x: 0, y: 0 }, vel: { x: 0, y: 0 }, heading: Math.PI },
+      },
+      puck: { pos: { x: 4, y: 0 }, vel: { x: 0, y: 0 }, possessor: null, lastStick: "a-C" },
+    });
+    updatePossession(world, createRng(1));
+    expect(world.puck.possessor).toBeNull();
+    expect(world.puck.lastStick).toBe("a-C");
+  });
+
   it("breaks a facing-distance tie with RNG (same seed → same winner)", () => {
     const make = () =>
       createWorld({
@@ -81,6 +94,24 @@ describe("stick possession", () => {
     updatePossession(b, createRng(99));
     expect(a.puck.possessor).toBe(b.puck.possessor);
     expect(a.puck.possessor === "h-C" || a.puck.possessor === "a-C").toBe(true);
+  });
+
+  it("consumes RNG on a facing-distance tie (stub next picks each side)", () => {
+    const make = () =>
+      createWorld({
+        onIce: { home: ["h-C"], away: ["a-C"] },
+        bodies: {
+          "h-C": { pos: { x: -4, y: 0 }, vel: { x: 0, y: 0 }, heading: 0 },
+          "a-C": { pos: { x: 4, y: 0 }, vel: { x: 0, y: 0 }, heading: Math.PI },
+        },
+        puck: { pos: { x: 0, y: 0 }, vel: { x: 0, y: 0 }, possessor: null },
+      });
+    const first = make();
+    const second = make();
+    updatePossession(first, { next: () => 0 });
+    updatePossession(second, { next: () => 0.99 });
+    expect(first.puck.possessor).not.toBe(second.puck.possessor);
+    expect(new Set([first.puck.possessor, second.puck.possessor])).toEqual(new Set(["a-C", "h-C"]));
   });
 });
 

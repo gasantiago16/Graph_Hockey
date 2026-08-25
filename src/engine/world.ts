@@ -148,6 +148,7 @@ export function onIceBodies(world: WorldState): Body[] {
     const b = world.bodies[id];
     if (b) out.push(b);
   }
+  out.sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
   return out;
 }
 

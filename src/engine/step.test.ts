@@ -144,6 +144,31 @@ describe("advanceWorld kinematics", () => {
     expect(pose(a)).toEqual(pose(b));
   });
 
+  it("does not let onIce array order change live physics", () => {
+    const home = ["h-C", "h-LW", "h-RW", "h-LD", "h-RD", "h-G"];
+    const away = ["a-C", "a-LW", "a-RW", "a-LD", "a-RD", "a-G"];
+    const make = (onIce: { home: string[]; away: string[] }) =>
+      createWorld({
+        seed: 42,
+        phase: "live",
+        onIce,
+        puck: { pos: { x: 0, y: 0 }, vel: { x: 18, y: -11 }, possessor: null },
+        bodies: {
+          "h-C": { vel: { x: 12, y: 6 } },
+          "a-C": { vel: { x: -9, y: -7 } },
+        },
+      });
+    const a = make({ home, away });
+    const b = make({ home: [...home].reverse(), away: [...away].reverse() });
+    const rngA = createRng(42);
+    const rngB = createRng(42);
+    for (let i = 0; i < 20; i++) {
+      advanceWorld(a, dirs, rngA);
+      advanceWorld(b, dirs, rngB);
+    }
+    expect(pose(a)).toEqual(pose(b));
+  });
+
   it("keeps puck and players inside 200×85 ice with r=28 corners", () => {
     const shots: { puckVel: { x: number; y: number }; playerVel: { x: number; y: number } }[] = [
       { puckVel: { x: PUCK_MAX_SPEED, y: 0 }, playerVel: { x: SKATER_MAX_SPEED, y: 0 } },
@@ -186,5 +211,24 @@ describe("advanceWorld kinematics", () => {
         (e) => e.type === "Contact" && (e.payload as { kind?: string } | undefined)?.kind === "stick-puck",
       ),
     ).toBe(true);
+  });
+
+  it("does not award stick possession when the only in-reach player faces away", () => {
+    const world = createWorld({
+      phase: "live",
+      onIce: { home: ["h-C"], away: [] },
+      bodies: {
+        "h-C": { pos: { x: 0, y: 0 }, vel: { x: 0, y: 0 }, heading: Math.PI },
+      },
+      puck: { pos: { x: 4, y: 0 }, vel: { x: 0, y: 0 }, possessor: null, lastStick: null },
+    });
+    advanceWorld(world, dirs, createRng(5));
+    expect(world.puck.possessor).toBeNull();
+    expect(world.puck.lastStick).toBeNull();
+    expect(
+      world.lastEvents.some(
+        (e) => e.type === "Contact" && (e.payload as { kind?: string } | undefined)?.kind === "stick-puck",
+      ),
+    ).toBe(false);
   });
 });

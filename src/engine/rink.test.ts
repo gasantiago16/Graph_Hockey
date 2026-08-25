@@ -17,8 +17,10 @@ import {
   NZ_FACEOFF_DOTS,
   RINK_LENGTH,
   RINK_WIDTH,
+  TICKS_PER_PERIOD,
   attackingDir,
   isInsideRink,
+  DT,
 } from "./rink.ts";
 
 describe("rink geometry", () => {
@@ -29,6 +31,8 @@ describe("rink geometry", () => {
     expect(GOAL_WIDTH).toBe(6);
     expect(GOAL_HEIGHT).toBe(4);
     expect(GOAL_DEPTH).toBe(2);
+    expect(DT).toBe(0.1);
+    expect(TICKS_PER_PERIOD).toBe(12_000);
   });
 
   it("places the goal line at x=±89 and blue lines at x=±25", () => {

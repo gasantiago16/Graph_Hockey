@@ -251,37 +251,37 @@ export function desiredVelocity(world: WorldState, body: Body): Vec2 {
   return { x: (delta.x / d) * speed, y: (delta.y / d) * speed };
 }
 
-export function integrateBody(world: WorldState, body: Body): void {
+export function integrateBody(world: WorldState, body: Body, dt: number = DT): void {
   const desired = desiredVelocity(world, body);
-  const accel = clampMag(scale(sub(desired, body.vel), 1 / DT), maxAccelOf(body));
-  body.vel.x += accel.x * DT;
-  body.vel.y += accel.y * DT;
+  const accel = clampMag(scale(sub(desired, body.vel), 1 / dt), maxAccelOf(body));
+  body.vel.x += accel.x * dt;
+  body.vel.y += accel.y * dt;
   body.vel = clampMag(body.vel, maxSpeedOf(body));
 
   const fwd = headingVec(body.heading);
   const along = dot(body.vel, fwd);
   const lat = sub(body.vel, scale(fwd, along));
-  const damp = Math.exp(-DT / LATERAL_TAU);
+  const damp = Math.exp(-dt / LATERAL_TAU);
   body.vel.x = fwd.x * along + lat.x * damp;
   body.vel.y = fwd.y * along + lat.y * damp;
 
-  body.pos.x += body.vel.x * DT;
-  body.pos.y += body.vel.y * DT;
+  body.pos.x += body.vel.x * dt;
+  body.pos.y += body.vel.y * dt;
 
   const aim =
     hypotVec(desired) > 0.4
       ? Math.atan2(desired.y, desired.x)
       : angleTo(body.pos, world.puck.pos);
-  body.heading = turnToward(body.heading, aim, turnRateOf(body) * DT);
+  body.heading = turnToward(body.heading, aim, turnRateOf(body) * dt);
 }
 
-export function integratePuck(world: WorldState): void {
-  const damp = Math.exp(-DT / PUCK_FRICTION_TAU);
+export function integratePuck(world: WorldState, dt: number = DT): void {
+  const damp = Math.exp(-dt / PUCK_FRICTION_TAU);
   world.puck.vel.x *= damp;
   world.puck.vel.y *= damp;
   world.puck.vel = clampMag(world.puck.vel, PUCK_MAX_SPEED);
-  world.puck.pos.x += world.puck.vel.x * DT;
-  world.puck.pos.y += world.puck.vel.y * DT;
+  world.puck.pos.x += world.puck.vel.x * dt;
+  world.puck.pos.y += world.puck.vel.y * dt;
 }
 
 export function attachPuckToStick(world: WorldState): void {
@@ -311,27 +311,24 @@ function pickTied(candidates: Body[], rng: Rng): Body {
 }
 
 /**
- * Stick possession: reach 6.5 ft and facing ≤ 70°.
- * If nobody is facing, fall back to closer player in reach. Ties consume RNG.
+ * Stick possession: reach 6.5 ft AND facing ≤ 70°.
+ * Nobody facing → loose puck; lastStick is unchanged. Closest facing wins; tie → RNG.
  */
 export function updatePossession(world: WorldState, rng: Rng): void {
   const puckPos = world.puck.pos;
-  const inReach: Body[] = [];
   const facing: Body[] = [];
   for (const body of onIceBodies(world)) {
     if (dist(body.pos, puckPos) > STICK_REACH) continue;
-    inReach.push(body);
     if (isFacing(body, puckPos)) facing.push(body);
   }
-  const pool = facing.length > 0 ? facing : inReach;
-  if (pool.length === 0) {
+  if (facing.length === 0) {
     world.puck.possessor = null;
     return;
   }
-  pool.sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
+  facing.sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
   let bestD = Infinity;
   let best: Body[] = [];
-  for (const b of pool) {
+  for (const b of facing) {
     const d = dist(b.pos, puckPos);
     if (d < bestD - 1e-9) {
       bestD = d;
