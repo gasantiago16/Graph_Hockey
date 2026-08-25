@@ -899,6 +899,8 @@ function clearLiveFlags(world: WorldState): void {
   world.icingRace = null;
   world.icingTrack = null;
   world.delayedOffside = null;
+  world.shotLock.home = false;
+  world.shotLock.away = false;
 }
 
 function blowWhistle(

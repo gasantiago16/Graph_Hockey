@@ -283,6 +283,120 @@ describe("pass / shoot release", () => {
     expect(released).toBe(true);
   });
 
+  it("shotLock blocks a second shot until Save or opponent possession", () => {
+    const book = loadPlaybook("expansion");
+    const world = createWorld({
+      playId: { home: "5v5-212-forecheck", away: DEFAULT_PLAY_ID },
+      playbooks: { home: book, away: book },
+      directives: {
+        home: { playId: "5v5-212-forecheck", pressure: "aggressive", playParams: { shotPolicy: "shoot" } },
+        away: defaultDirective(),
+      },
+      puck: { pos: { x: 50, y: 0 }, possessor: "h-C" },
+      bodies: {
+        "h-C": { pos: { x: 50, y: 0 }, heading: 0, vel: { x: 0, y: 0 } },
+      },
+    });
+    expect(maybeReleasePuck(world)).toBe(true);
+    expect(world.stickRelease).toBe("shot");
+    expect(world.shotLock.home).toBe(true);
+
+    world.puck.possessor = "h-C";
+    world.puck.pos = { x: 50, y: 0 };
+    world.puck.vel = { x: 0, y: 0 };
+    world.bodies["h-C"]!.pos = { x: 50, y: 0 };
+    world.bodies["h-C"]!.heading = 0;
+    world.stickRelease = null;
+    expect(maybeReleasePuck(world)).toBe(false);
+    expect(world.puck.possessor).toBe("h-C");
+    expect(world.shotLock.home).toBe(true);
+
+    world.shotLock.home = false;
+    expect(maybeReleasePuck(world)).toBe(true);
+    expect(world.stickRelease).toBe("shot");
+  });
+
+  it("locked overlay shoot with a receiver passes instead of holding", () => {
+    const book = loadPlaybook("expansion");
+    const world = createWorld({
+      playId: { home: "5v5-212-forecheck", away: DEFAULT_PLAY_ID },
+      playbooks: { home: book, away: book },
+      shotLock: { home: true, away: false },
+      directives: {
+        home: { playId: "5v5-212-forecheck", pressure: "aggressive", playParams: { shotPolicy: "shoot" } },
+        away: defaultDirective(),
+      },
+      puck: { pos: { x: 50, y: 0 }, possessor: "h-C" },
+      bodies: {
+        "h-C": { pos: { x: 50, y: 0 }, heading: 0, vel: { x: 0, y: 0 } },
+        "h-LW": { pos: { x: 68, y: 10 }, heading: 0 },
+      },
+    });
+    const c = findBySlot(world, "home", "C")!;
+    const target = steeringTarget(world, c);
+    expect(Math.hypot(target.x - 68, target.y - 10)).toBeLessThan(0.5);
+    world.bodies["h-C"]!.heading = Math.atan2(10, 18);
+    expect(maybeReleasePuck(world)).toBe(true);
+    expect(world.stickRelease).toBe("pass");
+    expect(world.shotLock.home).toBe(true);
+  });
+
+  it("after a Shot, recapture without Save does not emit another Shot", () => {
+    const book = loadPlaybook("expansion");
+    const world = createWorld({
+      playId: { home: "5v5-212-forecheck", away: DEFAULT_PLAY_ID },
+      playbooks: { home: book, away: book },
+      directives: {
+        home: { playId: "5v5-212-forecheck", pressure: "aggressive", playParams: { shotPolicy: "shoot" } },
+        away: defaultDirective(),
+      },
+      puck: { pos: { x: 50, y: 0 }, possessor: "h-C" },
+      bodies: {
+        "h-C": { pos: { x: 50, y: 0 }, heading: 0, vel: { x: 0, y: 0 } },
+      },
+    });
+    const rng = createRng(3);
+    let shots = 0;
+    for (let i = 0; i < 40; i++) {
+      const ev = advanceWorld(world, world.directives, rng);
+      shots += ev.filter((e) => e.type === "Shot").length;
+      if (shots > 0) {
+        expect(world.shotLock.home).toBe(true);
+        break;
+      }
+    }
+    expect(shots).toBe(1);
+
+    for (let i = 0; i < 20; i++) {
+      world.whistle = null;
+      world.phase = "live";
+      world.puck.possessor = "h-C";
+      world.puck.pos = { x: 50, y: 0 };
+      world.puck.vel = { x: 0, y: 0 };
+      const c = world.bodies["h-C"]!;
+      c.pos = { x: 50, y: 0 };
+      c.vel = { x: 0, y: 0 };
+      c.heading = 0;
+      const ev = advanceWorld(world, world.directives, rng);
+      expect(ev.some((e) => e.type === "Shot")).toBe(false);
+      expect(ev.some((e) => e.type === "Save")).toBe(false);
+    }
+    expect(world.shotLock.home).toBe(true);
+  });
+
+  it("Save clears the shooter's shotLock for a rebound chance", () => {
+    const world = createWorld({
+      shotLock: { home: true, away: false },
+      puck: { pos: { x: GOAL_LINE_X - 3, y: 0 }, vel: { x: 20, y: 0 }, possessor: null },
+      bodies: {
+        "a-G": { pos: { x: GOAL_LINE_X - 2, y: 0 }, vel: { x: 0, y: 0 } },
+      },
+    });
+    const ev = advanceWorld(world, world.directives, createRng(1));
+    expect(ev.some((e) => e.type === "Save")).toBe(true);
+    expect(world.shotLock.home).toBe(false);
+  });
+
   it("coach dump overlay does not release even when ice would shoot", () => {
     const book = loadPlaybook("original-six");
     const world = createWorld({

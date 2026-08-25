@@ -125,6 +125,8 @@ export type WorldState = {
   iceIntents?: { home: IceIntent; away: IceIntent };
   /** Last stick release this tick. Pass/clear must not become Shot. */
   stickRelease: "shot" | "pass" | "clear" | null;
+  /** One shot per possession. Save/Rebound clears for a second chance. */
+  shotLock: { home: boolean; away: boolean };
 };
 
 export type CreateWorldInput = {
@@ -166,6 +168,7 @@ export type CreateWorldInput = {
   playbooks?: { home: Playbook; away: Playbook };
   iceIntents?: { home: IceIntent; away: IceIntent };
   stickRelease?: "shot" | "pass" | "clear" | null;
+  shotLock?: { home: boolean; away: boolean };
 };
 
 export function vec(x: number, y: number): Vec2 {
@@ -401,6 +404,9 @@ export function createWorld(input: CreateWorldInput = {}): WorldState {
     playbooks: input.playbooks,
     iceIntents: input.iceIntents,
     stickRelease: input.stickRelease ?? null,
+    shotLock: input.shotLock
+      ? { home: input.shotLock.home, away: input.shotLock.away }
+      : { home: false, away: false },
   };
 }
 

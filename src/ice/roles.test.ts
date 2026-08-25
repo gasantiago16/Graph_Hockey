@@ -44,6 +44,15 @@ describe("computeIceIntent five-man", () => {
     expect(computeIceIntent(dz, "home").f1Action).toBe("clear");
   });
 
+  it("F1 in OZ passes instead of shooting while shotLock is set", () => {
+    const oz = createWorld({
+      puck: { pos: { x: 40, y: 0 }, possessor: "h-C" },
+      bodies: { "h-C": { pos: { x: 40, y: 0 } } },
+      shotLock: { home: true, away: false },
+    });
+    expect(computeIceIntent(oz, "home").f1Action).toBe("pass");
+  });
+
   it("F1 hunts a loose puck and Ds does not sit in our crease", () => {
     const world = createWorld({
       puck: { pos: { x: 20, y: 0 }, possessor: null },

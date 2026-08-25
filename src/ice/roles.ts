@@ -79,7 +79,11 @@ export function computeIceIntent(world: WorldState, side: Side): IceIntent {
       }
     } else {
       const z = zoneAlongAttack(puck.x, dir);
-      intent.f1Action = z === "OZ" ? "shoot" : z === "DZ" ? "clear" : "pass";
+      if (z === "OZ" && world.shotLock[side]) {
+        intent.f1Action = "pass";
+      } else {
+        intent.f1Action = z === "OZ" ? "shoot" : z === "DZ" ? "clear" : "pass";
+      }
     }
   }
 

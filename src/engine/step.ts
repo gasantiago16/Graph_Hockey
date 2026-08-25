@@ -99,6 +99,8 @@ function emitGoalieSaves(world: WorldState, collected: MatchEvent[], contacts: C
     if (saved) continue;
     saved = true;
     world.lastSaveLiveTick = world.liveTick;
+    const shooterSide = body.side === "home" ? "away" : "home";
+    world.shotLock[shooterSide] = false;
     const lastShot = [...world.lastEvents].reverse().find((e) => e.type === "Shot");
     pushEvent(world, collected, {
       type: "Save",
@@ -176,6 +178,11 @@ export function stepLive(world: WorldState, dt: number, rng: Rng): MatchEvent[] 
       possessor: world.puck.possessor,
       actor: world.puck.possessor ?? prevPossessor ?? undefined,
     });
+    const holder = world.puck.possessor ? world.bodies[world.puck.possessor] : undefined;
+    if (holder) {
+      const them = holder.side === "home" ? "away" : "home";
+      world.shotLock[them] = false;
+    }
     if (world.puck.possessor) {
       emitContacts(world, events, [{ kind: "stick-puck", a: world.puck.possessor, b: "puck" }]);
     }
@@ -228,6 +235,8 @@ export function startNextPeriod(world: WorldState): MatchEvent[] {
   world.icingTrack = null;
   world.delayedOffside = null;
   world.delayedPenalty = null;
+  world.shotLock.home = false;
+  world.shotLock.away = false;
   if (next === "OT") applyOtRoster(world);
   return events;
 }

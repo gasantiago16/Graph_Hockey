@@ -157,17 +157,36 @@ function iceActionToPolicy(action: IceF1Action | undefined): ShotPolicy | undefi
   return undefined;
 }
 
-/** Overlay beats ice F1; ice beats seed assignment. */
+function isShotPolicy(policy: ShotPolicy): boolean {
+  return policy === "shoot" || policy === "crash";
+}
+
+/** Overlay beats ice F1; ice beats seed assignment. Locked shoot/crash demote to pass. */
 function releasePolicy(
   world: WorldState,
   side: Side,
   play: Play,
 ): { policy: ShotPolicy; source: "overlay" | "ice" | "assignment" } {
   const overlay = overlayShotPolicy(world, side);
-  if (overlay) return { policy: overlay, source: "overlay" };
-  const ice = iceActionToPolicy(world.iceIntents?.[side]?.f1Action);
-  if (ice) return { policy: ice, source: "ice" };
-  return { policy: play.assignments.shotPolicy, source: "assignment" };
+  let policy: ShotPolicy;
+  let source: "overlay" | "ice" | "assignment";
+  if (overlay) {
+    policy = overlay;
+    source = "overlay";
+  } else {
+    const ice = iceActionToPolicy(world.iceIntents?.[side]?.f1Action);
+    if (ice) {
+      policy = ice;
+      source = "ice";
+    } else {
+      policy = play.assignments.shotPolicy;
+      source = "assignment";
+    }
+  }
+  if (isShotPolicy(policy) && world.shotLock[side]) {
+    return { policy: "pass", source };
+  }
+  return { policy, source };
 }
 
 /** Nearest on-ice teammate who can take a pass. Goalies and gap/crease slots skipped. */
@@ -229,6 +248,7 @@ function facingRelease(body: Body, dest: Vec2): Vec2 | undefined {
 /**
  * Overlay dump/cycle/hold never release. Ice dump (clear) does.
  * Missing iceIntents keeps seed dump on the stick.
+ * Shot lock: one shot per possession; locked shoot demotes to pass (or hold).
  */
 export function maybeReleasePuck(world: WorldState): boolean {
   const id = world.puck.possessor;
@@ -262,7 +282,9 @@ export function maybeReleasePuck(world: WorldState): boolean {
   if (n.x * world.attackingDir[body.side] < 0) return false;
   if (inOwnCrease(world, body.side, dest)) return false;
   const launch = STICK_REACH + 1.1;
-  world.stickRelease = policy === "pass" ? "pass" : policy === "dump" ? "clear" : "shot";
+  const kind = policy === "pass" ? "pass" : policy === "dump" ? "clear" : "shot";
+  world.stickRelease = kind;
+  if (kind === "shot") world.shotLock[body.side] = true;
   world.puck.possessor = null;
   world.puck.pos = { x: body.pos.x + n.x * launch, y: body.pos.y + n.y * launch };
   world.puck.vel = { x: n.x * speed, y: n.y * speed };
