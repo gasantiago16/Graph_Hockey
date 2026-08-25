@@ -10,6 +10,7 @@ import { createWorld, defaultDirective } from "../engine/world.ts";
 import { createBudget } from "../llm/budgets.ts";
 import { resetLlmClientForTests, setCreateChatModel } from "../llm/client.ts";
 import { listEpochInvocations, listEvents } from "../persist/events.ts";
+import { getAarReport } from "../persist/matches.ts";
 import { openMemoryDb } from "../persist/db.ts";
 import { loadPlaybook } from "../playbook/store.ts";
 import { collectReplayEvents, eventStreamHash } from "../sim/replay.ts";
@@ -94,6 +95,11 @@ describe("runMatch --no-llm stub graphs", () => {
       expect(result.epochs).toBe(fixture.epochs);
       expect(fixture.seed).toBe(42);
       expect(fixture.periodSeconds).toBe(SHORT_PERIOD);
+      expect(result.aar?.home.noLlm).toBe(true);
+      expect(result.aar?.away.noLlm).toBe(true);
+      expect(result.aar?.home.actualSummary).toBeTruthy();
+      expect(getAarReport(db, "golden-pr8", "home")?.applied).toBe(false);
+      expect(getAarReport(db, "golden-pr8", "away")?.body).toBeTruthy();
     } finally {
       db.close();
     }

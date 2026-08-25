@@ -1,15 +1,17 @@
 #!/usr/bin/env node
 import { MemorySaver } from "@langchain/langgraph";
+import { compileAarGraph, runPostMatchAar, sideResult } from "../aar/index.ts";
 import { compileTeamGraph } from "../agents/teamGraph.ts";
 import { loadConfig, type EnvMap } from "../config.ts";
 import { formatCostSummary } from "../llm/budgets.ts";
 import { hasInjectedChatModel, hasXaiApiKey } from "../llm/client.ts";
 import { defaultDbPath, openDb, type Db } from "../persist/db.ts";
-import { getMatch } from "../persist/matches.ts";
+import { getAarReport, getMatch, type MatchResultLabel } from "../persist/matches.ts";
 import { ensureSeedPlaybooks, latestPlaybook } from "../persist/playbooks.ts";
 import { loadPlaybook, SEED_TEAM_IDS } from "../playbook/store.ts";
 import { runMatch } from "../orchestrator/match.ts";
 import { collectReplayEvents, eventStreamHash, replayMatch } from "../sim/replay.ts";
+import type { Side } from "../types/hockey.ts";
 
 export const USAGE = `graph-hockey — competing LangGraph teams on a hockey rink
 
@@ -26,7 +28,9 @@ Usage:
 
 simulate --no-llm skips grok-4.5 / grok-4.3 and writes events to SQLite.
 Without --no-llm, live epochs call xAI (needs XAI_API_KEY) and print a cost summary.
+AAR runs after every result; --no-llm skips AAR LLM and stores a code-only digest.
 replay resimulates from seed + stored DirectiveApplied events (zero LLM).
+aar dumps stored reports or re-runs the AAR graph (--no-llm for code-only).
 
 CI / tests may set GRAPH_HOCKEY_PERIOD_SECONDS=5 so a match is not 36,000 ticks
 (default regulation is 3×1200s). GRAPH_HOCKEY_OT_SECONDS is optional; when the
@@ -217,6 +221,76 @@ async function cmdReplay(argv: string[], env: EnvMap): Promise<number> {
   });
 }
 
+function asMatchResultLabel(raw: string | null): MatchResultLabel {
+  if (raw === "home" || raw === "away" || raw === "tie") return raw;
+  return "tie";
+}
+
+async function cmdAar(argv: string[], env: EnvMap): Promise<number> {
+  const matchId = opt(argv, "match");
+  if (!matchId) {
+    console.error("gh aar: --match ID is required");
+    return 1;
+  }
+  const sideRaw = opt(argv, "side");
+  const sides: Side[] =
+    sideRaw === "home" || sideRaw === "away" ? [sideRaw] : sideRaw === undefined ? ["home", "away"] : [];
+  if (sides.length === 0) {
+    console.error("gh aar: --side must be home or away");
+    return 1;
+  }
+  const noLlm = flag(argv, "no-llm");
+  const dump = flag(argv, "dump");
+  if (!noLlm && !dump && !hasXaiApiKey(env) && !hasInjectedChatModel()) {
+    console.error("gh aar: live AAR needs XAI_API_KEY (or pass --no-llm / --dump)");
+    return 1;
+  }
+  const dbPath = opt(argv, "db") ?? defaultDbPath();
+  return withDb(dbPath, async (db) => {
+    const row = getMatch(db, matchId);
+    if (!row) {
+      console.error(`gh aar: no match ${matchId}`);
+      return 1;
+    }
+    if (dump) {
+      const reports = sides.map((side) => ({ side, report: getAarReport(db, matchId, side) }));
+      const payload = { matchId, reports };
+      if (flag(argv, "json")) console.log(JSON.stringify(payload, null, 2));
+      else {
+        for (const { side, report } of reports) {
+          const body = report?.body as { actualSummary?: string; result?: string } | undefined;
+          console.log(`aar ${matchId} ${side} ${body?.result ?? "?"} ${body?.actualSummary ?? "(none)"}`);
+        }
+      }
+      return 0;
+    }
+    ensureSeedPlaybooks(db);
+    const homePlaybook = latestPlaybook(db, row.homeTeam)?.body ?? loadPlaybook(row.homeTeam);
+    const awayPlaybook = latestPlaybook(db, row.awayTeam)?.body ?? loadPlaybook(row.awayTeam);
+    const both = await runPostMatchAar({
+      db,
+      matchId,
+      matchResult: asMatchResultLabel(row.result),
+      homePlaybook,
+      awayPlaybook,
+      noLlm,
+      graph: noLlm ? undefined : compileAarGraph({ db, checkpointer: new MemorySaver(), noLlm: false }),
+    });
+    const picked = sides.map((side) => ({ side, result: sideResult(asMatchResultLabel(row.result), side), report: both[side] }));
+    if (flag(argv, "json")) {
+      console.log(JSON.stringify({ matchId, aar: Object.fromEntries(picked.map((p) => [p.side, p.report])) }, null, 2));
+    } else {
+      for (const p of picked) {
+        const ops = p.report.revision?.ops.length ?? 0;
+        const dropped = p.report.rejectedOps?.length ?? 0;
+        console.log(`aar ${matchId} ${p.side} ${p.result} ops=${ops} rejected=${dropped}`);
+        if (p.report.actualSummary) console.log(p.report.actualSummary);
+      }
+    }
+    return 0;
+  });
+}
+
 export async function main(argv: string[], env: EnvMap = process.env): Promise<number> {
   loadConfig(env);
   if (argv.length === 0 || argv.includes("-h") || argv.includes("--help")) {
@@ -235,6 +309,8 @@ export async function main(argv: string[], env: EnvMap = process.env): Promise<n
         return await cmdSimulate(rest, env);
       case "replay":
         return await cmdReplay(rest, env);
+      case "aar":
+        return await cmdAar(rest, env);
       default:
         console.error(`gh ${cmd}: not implemented yet`);
         return 1;

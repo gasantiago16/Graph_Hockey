@@ -51,8 +51,26 @@ export type {
   TeamObservation,
 } from "../types/observation.ts";
 
-export { AarCauseSchema, AarReportMetaSchema, AarResultSchema } from "../types/aar.ts";
-export type { AarCause, AarReportMeta, AarResult } from "../types/aar.ts";
+export {
+  AarCauseSchema,
+  AarIntentOutputSchema,
+  AarLensOutputSchema,
+  AarReportMetaSchema,
+  AarReportSchema,
+  AarResultSchema,
+  AarWhyOutputSchema,
+  MatchAggregatesSchema,
+} from "../types/aar.ts";
+export type {
+  AarCause,
+  AarIntentOutput,
+  AarLensOutput,
+  AarReport,
+  AarReportMeta,
+  AarResult,
+  AarWhyOutput,
+  MatchAggregates,
+} from "../types/aar.ts";
 
 export { EventDigestSchema } from "../types/events.ts";
 export type { EventDigest } from "../types/events.ts";

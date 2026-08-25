@@ -11,6 +11,7 @@ import {
   EpochKindSchema,
   PlayDigestSchema,
   PlayMutationSchema,
+  MatchAggregatesSchema,
   PlaybookRevisionSchema,
   TeamDirectiveSchema,
   TeamObservationSchema,
@@ -24,6 +25,19 @@ describe("llm/schemas re-exports", () => {
     expect(TeamDirectiveSchema).toBe(TypeDirective);
     expect(PlayDigestSchema).toBe(TypeDigest);
     expect(PlayMutationSchema).toBe(TypeMutation);
+    expect(MatchAggregatesSchema.parse({
+      xgFor: 1,
+      xgAgainst: 0,
+      cfPct: 50,
+      zoneTimeOZ: 0,
+      zoneTimeDZ: 0,
+      turnovers: 0,
+      foPct: 50,
+      ppPct: null,
+      pkPct: null,
+      goalsFor: 1,
+      goalsAgainst: 0,
+    }).goalsFor).toBe(1);
     expect(TeamObservationSchema).toBe(TypeObs);
     expect(EpochKindSchema).toBe(TypeEpoch);
     const src = readFileSync(join(here, "schemas.ts"), "utf8");

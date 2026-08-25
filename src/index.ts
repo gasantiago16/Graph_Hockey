@@ -19,6 +19,7 @@ export * from "./playbook/index.ts";
 export * from "./persist/index.ts";
 export * from "./sim/replay.ts";
 export * from "./agents/index.ts";
+export * from "./aar/index.ts";
 export * from "./orchestrator/index.ts";
 export {
   UsageTap,

@@ -50,8 +50,14 @@ describe("gh CLI", () => {
       pressure: "neutral",
     };
     const fast = { memo: "hold structure", playIdSuggestion: "5v5-122-forecheck" };
+    const aar = {
+      summary: "hold the 1-2-2",
+      notes: "lock what worked",
+      causes: [],
+      ops: [] as { op: string; playId: string; reason: string; eventIds: string[] }[],
+    };
     setCreateChatModel((kind) => {
-      const payload = kind === "coach" ? coach : fast;
+      const payload = kind === "coach" ? coach : kind === "aar" ? aar : fast;
       return new FakeListChatModel({
         responses: Array.from({ length: 80 }, () => JSON.stringify(payload)),
       });
@@ -131,6 +137,16 @@ describe("gh CLI", () => {
       expect(replayCode).toBe(0);
       const replayOut = JSON.parse(String(log.mock.calls.at(-1)?.[0])) as { eventHash: string };
       expect(replayOut.eventHash).toBe(simOut.eventHash);
+
+      log.mockClear();
+      const aarCode = await main(["aar", "--match", "cli-pr8", "--db", dbPath, "--dump", "--json"], env);
+      expect(aarCode).toBe(0);
+      const aarOut = JSON.parse(String(log.mock.calls.at(-1)?.[0])) as {
+        reports: { side: string; report: { body: { noLlm?: boolean; actualSummary?: string } } | undefined }[];
+      };
+      expect(aarOut.reports).toHaveLength(2);
+      expect(aarOut.reports[0]?.report?.body.noLlm).toBe(true);
+      expect(aarOut.reports[0]?.report?.body.actualSummary).toBeTruthy();
     } finally {
       log.mockRestore();
     }

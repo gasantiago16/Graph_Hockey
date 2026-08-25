@@ -31,7 +31,7 @@ export type InvokableTeamGraph = {
 };
 
 export type TeamInvokeResult =
-  | { ok: true; directive: TeamDirective; usage: TokenUsage; billed: boolean; threadId: string }
+  | { ok: true; directive: TeamDirective; usage: TokenUsage; billed: boolean; threadId: string; coachIntent?: string }
   | {
       ok: false;
       directive: TeamDirective;
@@ -39,7 +39,22 @@ export type TeamInvokeResult =
       billed: boolean;
       usage: TokenUsage;
       threadId: string;
+      coachIntent?: string;
     };
+
+function parseCoachIntentText(out: unknown): string | undefined {
+  if (!out || typeof out !== "object") return undefined;
+  const ci = (out as { coachIntent?: unknown }).coachIntent;
+  if (typeof ci === "string" && ci.trim()) return ci;
+  if (ci && typeof ci === "object") {
+    try {
+      return JSON.stringify(ci);
+    } catch {
+      return undefined;
+    }
+  }
+  return undefined;
+}
 
 export function epochThreadId(matchId: string, side: Side, epochIndex: number): string {
   return `match:${matchId}:team:${side}:epoch:${epochIndex}`;
@@ -76,7 +91,14 @@ export async function invokeTeam(args: {
   const threadId = epochThreadId(args.matchId, args.side, args.epochIndex);
 
   if (teamTripped(args.budget, args.side) || gameTripped(args.budget)) {
-    return { ok: false, directive: args.last, reason: "circuit", billed: false, usage: emptyUsage(), threadId };
+    return {
+      ok: false,
+      directive: args.last,
+      reason: "circuit",
+      billed: false,
+      usage: emptyUsage(),
+      threadId,
+    };
   }
 
   const tap = new UsageTap(args.side, args.budget);
@@ -108,11 +130,20 @@ export async function invokeTeam(args: {
       },
     );
     const usage = copyUsage(tap.usage);
+    const coachIntent = parseCoachIntentText(out);
     const parsed = parseDirective(out, args.last);
     if (!parsed.ok) {
-      return { ok: false, directive: args.last, reason: "parse", billed: usage.calls > 0, usage, threadId };
+      return {
+        ok: false,
+        directive: args.last,
+        reason: "parse",
+        billed: usage.calls > 0,
+        usage,
+        threadId,
+        coachIntent,
+      };
     }
-    return { ok: true, directive: parsed.directive, usage, billed: usage.calls > 0, threadId };
+    return { ok: true, directive: parsed.directive, usage, billed: usage.calls > 0, threadId, coachIntent };
   } catch (err) {
     const usage = copyUsage(tap.usage);
     const reason = ac.signal.aborted || isAbortError(err) ? "timeout" : "error";

@@ -109,12 +109,9 @@ export function finishMatch(
 }
 
 export function insertAarReport(db: Db, matchId: string, side: Side, body: unknown, applied: boolean): void {
-  db.prepare("INSERT INTO aar_reports (match_id, side, body_json, applied) VALUES (?, ?, ?, ?)").run(
-    matchId,
-    side,
-    JSON.stringify(body),
-    applied ? 1 : 0,
-  );
+  db.prepare(
+    "INSERT OR REPLACE INTO aar_reports (match_id, side, body_json, applied) VALUES (?, ?, ?, ?)",
+  ).run(matchId, side, JSON.stringify(body), applied ? 1 : 0);
 }
 
 export function getAarReport(

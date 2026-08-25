@@ -1,21 +1,23 @@
 import { setTimeout as delay } from "node:timers/promises";
+import { runPostMatchAar } from "../aar/runAar.ts";
+import type { CompiledTeamGraph } from "../agents/teamGraph.ts";
+import { DEFAULT_COACH_MODEL, DEFAULT_FAST_MODEL } from "../config.ts";
 import { DT, OT_SECONDS, PERIOD_SECONDS } from "../engine/rink.ts";
 import { createRng } from "../engine/rng.ts";
 import { advanceWorld } from "../engine/step.ts";
 import { defaultDirective, type WorldState } from "../engine/world.ts";
-import { DEFAULT_COACH_MODEL, DEFAULT_FAST_MODEL } from "../config.ts";
 import { copyBudget, createBudget, EPOCH_TIMEOUT_MS, type MatchBudget } from "../llm/budgets.ts";
+import type { Db } from "../persist/db.ts";
 import { insertEvents, persistEpoch } from "../persist/events.ts";
 import { finishMatch, insertMatch, type MatchResultLabel } from "../persist/matches.ts";
 import { makeOpeningSnapshot, type OpeningSnapshot } from "../persist/snapshot.ts";
-import type { Db } from "../persist/db.ts";
 import { loadPlaybook } from "../playbook/store.ts";
 import { collectReplayEvents, eventStreamHash, pushDirectiveApplied, worldFromSnapshot } from "../sim/replay.ts";
+import type { AarReport } from "../types/aar.ts";
 import type { TeamDirective } from "../types/directive.ts";
 import type { MatchEvent } from "../types/events.ts";
 import type { Side } from "../types/hockey.ts";
 import type { Playbook } from "../types/play.ts";
-import type { CompiledTeamGraph } from "../agents/teamGraph.ts";
 import { createEpochTracker, shouldDecide } from "./epochs.ts";
 import { invokeTeam } from "./invokeTeam.ts";
 import { observe } from "./observe.ts";
@@ -79,6 +81,7 @@ export type MatchResult = {
   epochs: number;
   snapshot: OpeningSnapshot;
   budget: MatchBudget;
+  aar?: { home: AarReport; away: AarReport };
 };
 
 export function matchIterCap(periodSeconds: number, otSeconds: number): number {
@@ -103,7 +106,8 @@ function epochModel(opts: MatchOptions, kind: "macro" | "micro"): string {
 
 /**
  * Host loop: tick world, observe, invoke team graphs at decision epochs. Not a LangGraph.
- * Does not run AAR (later PR). Independent 8s AbortController per side inside invokeTeam.
+ * After game_over, runs AAR for both sides (LLM skipped when noLlm). Independent 8s
+ * AbortController per side inside invokeTeam.
  */
 export async function runMatch(opts: MatchOptions): Promise<MatchResult> {
   const periodSeconds = opts.periodSeconds ?? PERIOD_SECONDS;
@@ -189,6 +193,7 @@ export async function runMatch(opts: MatchOptions): Promise<MatchResult> {
           ok: r.ok,
           billed: r.billed,
           directive: r.directive,
+          coachIntent: r.coachIntent,
         });
       }
       events.push(...dirEvents);
@@ -203,6 +208,18 @@ export async function runMatch(opts: MatchOptions): Promise<MatchResult> {
   const result = resultLabel(world.score);
   finishMatch(opts.db, opts.matchId, world.score, result);
 
+  const aar = await runPostMatchAar({
+    db: opts.db,
+    matchId: opts.matchId,
+    matchResult: result,
+    homePlaybook: opts.homePlaybook,
+    awayPlaybook: opts.awayPlaybook,
+    events,
+    noLlm,
+    budget,
+    signal: opts.signal,
+  });
+
   return {
     matchId: opts.matchId,
     seed: opts.seed,
@@ -215,6 +232,7 @@ export async function runMatch(opts: MatchOptions): Promise<MatchResult> {
     epochs: epochIndex,
     snapshot: snap,
     budget: copyBudget(budget),
+    aar,
   };
 }
 
