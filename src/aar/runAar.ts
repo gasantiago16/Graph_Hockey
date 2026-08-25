@@ -63,6 +63,7 @@ export function codeOnlyAarReport(args: {
   events: readonly MatchEvent[];
   epochs?: { seq: number; side: Side; reason: string; epochKind?: string | null; coachIntent?: string | null; directive?: { playId: string } | null }[];
   playbook?: Playbook;
+  themPlaybook?: Playbook;
 }): AarReport {
   const playbook = args.playbook ?? { teamId: "", version: 1, plays: [] };
   const actual = computeActual(args.matchId, args.events, args.side);
@@ -79,6 +80,7 @@ export function codeOnlyAarReport(args: {
     side: args.side,
     result: args.result,
     playbook,
+    themPlaybook: args.themPlaybook,
     events: [...args.events],
     epochs: args.epochs as never,
     eventLogDigest: actual.digest,
@@ -133,6 +135,7 @@ export async function runAarForSide(
   const events = opts.events ?? listEvents(opts.db, opts.matchId);
   const epochs = listEpochInvocations(opts.db, opts.matchId).filter((e) => e.side === opts.side);
   const tap = opts.budget ? new UsageTap(opts.side, opts.budget) : undefined;
+  const themPlaybook = opts.side === "home" ? opts.awayPlaybook : opts.homePlaybook;
   const fallback = () =>
     codeOnlyAarReport({
       matchId: opts.matchId,
@@ -141,6 +144,7 @@ export async function runAarForSide(
       events,
       epochs,
       playbook: opts.playbook,
+      themPlaybook,
     });
   try {
     let timer: ReturnType<typeof setTimeout> | undefined;
@@ -151,6 +155,7 @@ export async function runAarForSide(
           side: opts.side,
           result,
           playbook: opts.playbook,
+          themPlaybook,
           events,
           epochs,
         },
@@ -220,6 +225,7 @@ export async function runPostMatchAar(opts: PostMatchAarOpts): Promise<{ home: A
       events,
       epochs,
       playbook: opts.homePlaybook,
+      themPlaybook: opts.awayPlaybook,
     });
     const away = codeOnlyAarReport({
       matchId: opts.matchId,
@@ -228,6 +234,7 @@ export async function runPostMatchAar(opts: PostMatchAarOpts): Promise<{ home: A
       events,
       epochs,
       playbook: opts.awayPlaybook,
+      themPlaybook: opts.homePlaybook,
     });
     persistAarReport(opts.db, home, false);
     persistAarReport(opts.db, away, false);

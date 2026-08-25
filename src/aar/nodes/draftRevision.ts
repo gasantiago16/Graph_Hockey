@@ -3,7 +3,7 @@ import { TIE_BOOST_XG_SHARE } from "../../types/aar.ts";
 import { DEFAULT_PLAY_ID, type Play, type PlayMutation, type PlaybookRevision } from "../../types/play.ts";
 import type { AarGraphNode, AarGraphStateType } from "../state.ts";
 import { invokeAarStructured, type AarLlmOpts } from "../llm.ts";
-import { playWithXgShare, topPlay, type PlayUsage } from "./actual.ts";
+import { playWithXgShare, themFamilyFromEvents, topPlay, type PlayUsage } from "./actual.ts";
 
 export type DraftOpts = AarLlmOpts;
 
@@ -93,7 +93,9 @@ export function ensureLoserCounter(state: AarGraphStateType, revision: PlaybookR
   const eventId = firstCite(state, play?.id);
   if (!play || !eventId) return revision;
 
+  const themFamily = themFamilyFromEvents(state.events ?? [], state.side, state.themPlaybook);
   const family =
+    (themFamily && !play.counters.includes(themFamily) ? themFamily : undefined) ??
     play.vulnerableTo.find((f) => !play.counters.includes(f)) ??
     state.playbook.plays.map((p) => p.family).find((f) => f !== play.family && !play.counters.includes(f));
   if (!family) return revision;

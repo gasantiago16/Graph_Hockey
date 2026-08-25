@@ -20,7 +20,11 @@ export type RetrieveQuery = {
   zone: Zone;
   scoreState?: ScoreState;
   limit?: number;
+  /** Public-geometry guess. Never opponent playId. */
+  themFamily?: string;
 };
+
+export const COUNTER_BONUS = 0.25;
 
 export function zoneForSide(world: WorldState, side: Side): Zone {
   const x = world.puck.pos.x * world.attackingDir[side];
@@ -115,7 +119,32 @@ export function toDigest(play: Play): PlayDigest {
     strength: play.strength,
     zoneBias: play.zoneBias,
     stats: { ...play.stats },
+    counters: [...play.counters],
   };
+}
+
+type PublicSkater = { side: "us" | "them"; position: string; pos: { x: number; y: number } };
+
+/** Attacking +X frame. Goalies ignored. Names match seed `play.family` / AAR counters. */
+export function inferThemFamily(players: readonly PublicSkater[]): string | undefined {
+  const them = players.filter((p) => p.side === "them" && p.position !== "G");
+  let inDz = 0;
+  let deepDz = 0;
+  let inNz = 0;
+  for (const p of them) {
+    if (p.pos.x < -BLUE_LINE_X) {
+      inDz += 1;
+      if (p.pos.x < -BLUE_LINE_X - 16) deepDz += 1;
+    } else if (p.pos.x <= BLUE_LINE_X) {
+      inNz += 1;
+    }
+  }
+  if (deepDz >= 2) return "crash-net";
+  if (inDz >= 2) return "forecheck-212";
+  if (inDz === 1 && inNz >= 2) return "stretch-pass";
+  if (inDz === 1) return "forecheck-122";
+  if (inNz >= 4) return "trap-122";
+  return undefined;
 }
 
 function netXg(play: Play): number {
@@ -131,6 +160,11 @@ function scoreTriggerBoost(play: Play, scoreState: ScoreState | undefined): numb
   return 0;
 }
 
+function counterBoost(play: Play, themFamily: string | undefined): number {
+  if (!themFamily) return 0;
+  return play.counters.includes(themFamily) ? COUNTER_BONUS : 0;
+}
+
 /** Filter active plays by strength/zone, rank by net xG, return top 6 digests. */
 export function retrievePlays(book: Playbook, query: RetrieveQuery): PlayDigest[] {
   const strength = asPlayStrength(query.strength);
@@ -142,8 +176,8 @@ export function retrievePlays(book: Playbook, query: RetrieveQuery): PlayDigest[
     return play.zoneBias.includes("any") || play.zoneBias.includes(query.zone);
   });
   matched.sort((a, b) => {
-    const db = netXg(b) + scoreTriggerBoost(b, query.scoreState);
-    const da = netXg(a) + scoreTriggerBoost(a, query.scoreState);
+    const db = netXg(b) + scoreTriggerBoost(b, query.scoreState) + counterBoost(b, query.themFamily);
+    const da = netXg(a) + scoreTriggerBoost(a, query.scoreState) + counterBoost(a, query.themFamily);
     if (db !== da) return db - da;
     return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
   });

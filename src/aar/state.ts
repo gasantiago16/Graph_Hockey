@@ -50,6 +50,7 @@ export type AarGraphStateType = {
   side: Side;
   result: AarResult;
   playbook: Playbook;
+  themPlaybook?: Playbook;
   events?: MatchEvent[];
   epochs?: EpochInvocationRow[];
   eventLogDigest?: EventDigest;
@@ -71,6 +72,7 @@ export type AarGraphInputType = {
   side: Side;
   result: AarResult;
   playbook: Playbook;
+  themPlaybook?: Playbook;
   events?: MatchEvent[];
   epochs?: EpochInvocationRow[];
 };
@@ -95,6 +97,7 @@ const fields = {
   side: z.enum(["home", "away"]),
   result: z.enum(["win", "loss", "tie"]),
   playbook: PlaybookZ,
+  themPlaybook: PlaybookZ.optional(),
   events: z.array(z.object({ id: z.string() }).passthrough()).optional(),
   epochs: z.array(z.object({}).passthrough()).optional(),
   eventLogDigest: DigestZ.optional(),
@@ -117,6 +120,7 @@ export const AarGraphInput = new StateSchema({
   side: z.enum(["home", "away"]),
   result: z.enum(["win", "loss", "tie"]),
   playbook: PlaybookZ,
+  themPlaybook: PlaybookZ.optional(),
   events: z.array(z.object({ id: z.string() }).passthrough()).optional(),
   epochs: z.array(z.object({}).passthrough()).optional(),
 } as never) as StateSchema<any>;

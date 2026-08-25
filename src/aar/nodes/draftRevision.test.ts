@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { loadPlaybook } from "../../playbook/store.ts";
+import type { MatchEvent } from "../../types/events.ts";
 import { makeEventId } from "../../types/ids.ts";
 import type { PlaybookRevision } from "../../types/play.ts";
 import type { AarGraphStateType } from "../state.ts";
@@ -74,6 +75,46 @@ describe("codeDraft", () => {
     };
     const rev = ensureLoserCounter(state({ result: "loss" }), existing);
     expect(rev.ops.some((o) => o.op === "add_counter")).toBe(true);
+  });
+
+  it("loser add_counter uses the opponent family that generated xG", () => {
+    const them = loadPlaybook("expansion");
+    const events: MatchEvent[] = [
+      {
+        id: makeEventId("m", 0),
+        seq: 0,
+        liveTick: 10,
+        stoppageSeq: 0,
+        period: 1,
+        type: "DirectiveApplied",
+        payload: { side: "away", directive: { playId: "oz-crash-net", pressure: "aggressive" } },
+      },
+      {
+        id: makeEventId("m", 1),
+        seq: 1,
+        liveTick: 20,
+        stoppageSeq: 0,
+        period: 1,
+        type: "Shot",
+        actor: "a-C",
+        xG: 0.3,
+        payload: { side: "away" },
+      },
+    ];
+    const rev = codeDraft(
+      state({
+        result: "loss",
+        themPlaybook: them,
+        events,
+        knownEventIds: [makeEventId("m", 0), makeEventId("m", 1)],
+        eventLogDigest: {
+          matchId: "m",
+          events: [{ id: makeEventId("m", 1), type: "Shot", liveTick: 20, xG: 0.3 }],
+        },
+      }),
+    );
+    const op = rev.ops.find((o) => o.op === "add_counter");
+    expect(op).toMatchObject({ op: "add_counter", playId: "5v5-122-forecheck", family: "crash-net" });
   });
 
   it("skips loser counter when the revision already has one", () => {

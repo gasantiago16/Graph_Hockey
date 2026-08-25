@@ -155,6 +155,56 @@ describe("applyAarRevision", () => {
     }
   });
 
+  it("rolls match xG into play stats when ops are empty", async () => {
+    const db = await openMemoryDb();
+    try {
+      insertMatch(db, makeOpeningSnapshot({ matchId: "m1", seed: 1 }));
+      insertEvents(db, "m1", [
+        {
+          id: makeEventId("m1", 0),
+          seq: 0,
+          liveTick: 5,
+          stoppageSeq: 0,
+          period: 1,
+          type: "DirectiveApplied",
+          payload: { side: "home", directive: { playId: "5v5-122-forecheck", pressure: "neutral" } },
+        },
+        {
+          id: makeEventId("m1", 1),
+          seq: 1,
+          liveTick: 20,
+          stoppageSeq: 0,
+          period: 1,
+          type: "Shot",
+          zone: "OZ",
+          xG: 0.4,
+          actor: "h-C",
+          payload: { side: "home" },
+        },
+      ]);
+      ensureSeedPlaybooks(db);
+      const out = applyAarRevision({
+        db,
+        teamId: "original-six",
+        playbook: loadPlaybook("original-six"),
+        report: {
+          matchId: "m1",
+          side: "home",
+          result: "loss",
+          revision: { summary: "no ops", ops: [] },
+        },
+        mode: "auto",
+      });
+      expect(out.applied).toBe(true);
+      expect(out.toVersion).toBe(2);
+      const play = latestPlaybook(db, "original-six")?.body.plays.find((p) => p.id === "5v5-122-forecheck");
+      expect(play?.stats.games).toBe(1);
+      expect(play?.stats.xgFor).toBeCloseTo(0.4);
+    } finally {
+      db.close();
+    }
+  });
+
   it("noLlm never applies even in auto mode", async () => {
     const db = await primed();
     try {

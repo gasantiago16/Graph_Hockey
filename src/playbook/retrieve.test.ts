@@ -3,7 +3,7 @@ import { DEFAULT_PLAY_ID, type Play } from "../types/play.ts";
 import { createWorld } from "../engine/world.ts";
 import { defaultStructurePlay } from "./schema.ts";
 import { loadPlaybook } from "./store.ts";
-import { playStillValid, retrievePlays } from "./retrieve.ts";
+import { inferThemFamily, playStillValid, retrievePlays, toDigest } from "./retrieve.ts";
 
 function play(partial: Partial<Play> & Pick<Play, "id" | "triggers" | "strength" | "zoneBias" | "status">): Play {
   return {
@@ -196,5 +196,117 @@ describe("retrievePlays", () => {
     expect(ids).toContain("5v5-122-forecheck");
     expect(ids).not.toContain(DEFAULT_PLAY_ID);
     expect(defaultStructurePlay().id).toBe(DEFAULT_PLAY_ID);
+  });
+
+  it("toDigest copies counters", () => {
+    const p = play({
+      id: "c",
+      status: "active",
+      strength: ["5v5"],
+      zoneBias: ["any"],
+      triggers: [],
+      counters: ["stretch-pass"],
+    });
+    expect(toDigest(p).counters).toEqual(["stretch-pass"]);
+  });
+
+  it("ranks a countering play above higher net xG when themFamily matches", () => {
+    const book = {
+      teamId: "t",
+      version: 1,
+      plays: [
+        play({
+          id: "z-high",
+          status: "active",
+          strength: ["5v5"],
+          zoneBias: ["OZ"],
+          triggers: [],
+          stats: { games: 1, xgFor: 0.4, xgAgainst: 0.1 },
+        }),
+        play({
+          id: "z-counter",
+          status: "active",
+          strength: ["5v5"],
+          zoneBias: ["OZ"],
+          triggers: [],
+          counters: ["stretch-pass"],
+          stats: { games: 1, xgFor: 0.1, xgAgainst: 0 },
+        }),
+      ],
+    };
+    expect(retrievePlays(book, { strength: "5v5", zone: "OZ" }).map((d) => d.id)).toEqual([
+      "z-high",
+      "z-counter",
+    ]);
+    expect(
+      retrievePlays(book, { strength: "5v5", zone: "OZ", themFamily: "stretch-pass" }).map((d) => d.id),
+    ).toEqual(["z-counter", "z-high"]);
+  });
+
+  it("inferThemFamily uses public geometry, never a playId field", () => {
+    expect(
+      inferThemFamily([
+        { side: "them", position: "C", pos: { x: -30, y: 0 } },
+        { side: "them", position: "LW", pos: { x: -28, y: 8 } },
+        { side: "us", position: "C", pos: { x: 10, y: 0 } },
+      ]),
+    ).toBe("forecheck-212");
+    expect(
+      inferThemFamily([
+        { side: "them", position: "C", pos: { x: -55, y: 0 } },
+        { side: "them", position: "LW", pos: { x: -52, y: 6 } },
+      ]),
+    ).toBe("crash-net");
+    expect(
+      inferThemFamily([
+        { side: "them", position: "C", pos: { x: -30, y: 0 } },
+        { side: "them", position: "LW", pos: { x: 0, y: 8 } },
+        { side: "them", position: "RW", pos: { x: 2, y: -8 } },
+      ]),
+    ).toBe("stretch-pass");
+    expect(
+      inferThemFamily([{ side: "them", position: "C", pos: { x: -30, y: 0 } }]),
+    ).toBe("forecheck-122");
+    expect(
+      inferThemFamily([
+        { side: "them", position: "C", pos: { x: 0, y: 0 } },
+        { side: "them", position: "LW", pos: { x: 2, y: 8 } },
+        { side: "them", position: "RW", pos: { x: 2, y: -8 } },
+        { side: "them", position: "LD", pos: { x: -2, y: 10 } },
+      ]),
+    ).toBe("trap-122");
+    expect(inferThemFamily([{ side: "them", position: "G", pos: { x: -80, y: 0 } }])).toBeUndefined();
+  });
+
+  it("AAR crash-net counter is the family inferThemFamily emits for a deep DZ look", () => {
+    const book = {
+      teamId: "t",
+      version: 1,
+      plays: [
+        play({
+          id: "plain",
+          status: "active",
+          strength: ["5v5"],
+          zoneBias: ["OZ"],
+          triggers: [],
+          stats: { games: 1, xgFor: 0.4, xgAgainst: 0.1 },
+        }),
+        play({
+          id: "learned",
+          status: "active",
+          strength: ["5v5"],
+          zoneBias: ["OZ"],
+          triggers: [],
+          counters: ["crash-net"],
+          stats: { games: 1, xgFor: 0.1, xgAgainst: 0 },
+        }),
+      ],
+    };
+    const themFamily = inferThemFamily([
+      { side: "them", position: "C", pos: { x: -55, y: 0 } },
+      { side: "them", position: "LW", pos: { x: -52, y: 4 } },
+    ]);
+    expect(themFamily).toBe("crash-net");
+    expect(retrievePlays(book, { strength: "5v5", zone: "OZ", themFamily }).map((d) => d.id)[0]).toBe("learned");
   });
 });

@@ -128,6 +128,8 @@ export const PlayDigestSchema = z.object({
   stats: PlayStatsSchema.extend({
     cfPct: z.number().optional(),
   }),
+  /** Families this play is designed to beat. Ours, never opponent playIds. */
+  counters: z.array(z.string()).optional(),
 });
 export type PlayDigest = z.infer<typeof PlayDigestSchema>;
 

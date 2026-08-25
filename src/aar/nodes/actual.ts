@@ -1,6 +1,6 @@
 import { DT } from "../../engine/rink.ts";
 import { MINOR_SECONDS } from "../../engine/rules.ts";
-import { DEFAULT_PLAY_ID } from "../../types/play.ts";
+import { DEFAULT_PLAY_ID, type Playbook } from "../../types/play.ts";
 import type { MatchEvent } from "../../types/events.ts";
 import type { Period, Side, Zone } from "../../types/hockey.ts";
 import {
@@ -389,6 +389,37 @@ export function computeAggregates(annotated: readonly AnnotatedEvent[], side: Si
     goalsAgainst,
     dumpInRecoveryPct: dumpDen === 0 ? null : (100 * zoneEntries) / dumpDen,
   };
+}
+
+/**
+ * Opponent family that generated the most shot xG against `side`.
+ * Uses their DirectiveApplied playId + themPlaybook.family — never live observe.
+ */
+export function themFamilyFromEvents(
+  events: readonly MatchEvent[],
+  side: Side,
+  themPlaybook: Playbook | undefined,
+): string | undefined {
+  if (!themPlaybook || events.length === 0) return undefined;
+  const them: Side = side === "home" ? "away" : "home";
+  let themPlayId: string | undefined;
+  const xgByPlay = new Map<string, number>();
+  for (const event of events) {
+    const rec = payloadRecord(event.payload);
+    if (event.type === "DirectiveApplied" && rec?.side === them) {
+      const dir = rec.directive;
+      if (dir && typeof dir === "object" && "playId" in dir && typeof (dir as { playId: unknown }).playId === "string") {
+        themPlayId = (dir as { playId: string }).playId;
+      }
+    }
+    if (event.type === "Shot" && eventSide(event) === them && themPlayId) {
+      xgByPlay.set(themPlayId, (xgByPlay.get(themPlayId) ?? 0) + (event.xG ?? 0));
+    }
+  }
+  const ranked = [...xgByPlay.entries()].sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0));
+  const playId = ranked[0]?.[0] ?? themPlayId;
+  if (!playId) return undefined;
+  return themPlaybook.plays.find((p) => p.id === playId)?.family;
 }
 
 export function playUsage(annotated: readonly AnnotatedEvent[], side: Side): PlayUsage[] {

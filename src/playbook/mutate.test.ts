@@ -50,7 +50,7 @@ describe("applyPlaybookRevision caps", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     try {
       const book = loadPlaybook("original-six");
-      const out = applyPlaybookRevision(book, rev([boost({ eventIds: ["ghost:1"] })]), ctx());
+      const out = applyPlaybookRevision(book, rev([boost({ eventIds: ["ghost:1"] })]), ctx({ playUsage: [] }));
       expect(out.applied).toEqual([]);
       expect(out.bumped).toBe(false);
       expect(out.book.version).toBe(book.version);
@@ -99,9 +99,22 @@ describe("applyPlaybookRevision caps", () => {
     const after = out.book.plays.find((p) => p.id === PLAY)!;
     expect(out.applied).toHaveLength(1);
     expect(out.applied[0]?.op).toBe("boost");
-    expect(after.stats.xgFor).toBeCloseTo(before.stats.xgFor + BOOST_XG);
+    expect(after.stats.xgFor).toBeCloseTo(before.stats.xgFor + BOOST_XG + 0.5);
+    expect(after.stats.games).toBe(before.stats.games + 1);
     expect(out.book.version).toBe(book.version + 1);
     expect(book.plays.find((p) => p.id === PLAY)?.stats.xgFor).toBe(before.stats.xgFor);
+  });
+
+  it("rolls playUsage into stats and bumps with empty ops", () => {
+    const book = loadPlaybook("original-six");
+    const before = book.plays.find((p) => p.id === PLAY)!;
+    const out = applyPlaybookRevision(book, rev([]), ctx({ result: "loss" }));
+    const after = out.book.plays.find((p) => p.id === PLAY)!;
+    expect(out.applied).toEqual([]);
+    expect(out.bumped).toBe(true);
+    expect(after.stats.games).toBe(before.stats.games + 1);
+    expect(after.stats.xgFor).toBeCloseTo(before.stats.xgFor + 0.5);
+    expect(out.book.version).toBe(book.version + 1);
   });
 
   it("winner cannot retire a used play", () => {

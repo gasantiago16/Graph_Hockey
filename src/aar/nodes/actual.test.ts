@@ -9,7 +9,9 @@ import {
   extractSequences,
   findMintClusters,
   isHighValueEvent,
+  themFamilyFromEvents,
 } from "./actual.ts";
+import { loadPlaybook } from "../../playbook/store.ts";
 
 function ev(over: Partial<MatchEvent> & { seq: number; type: string }): MatchEvent {
   return {
@@ -99,5 +101,18 @@ describe("actual.ts (code, not LLM)", () => {
     expect(extractSequences(actual.annotated).length).toBeGreaterThanOrEqual(3);
     expect(actual.mintEligible).toBe(true);
     expect(findMintClusters(actual.sequences).length).toBeGreaterThan(0);
+  });
+
+  it("themFamilyFromEvents maps opponent shots to their play family", () => {
+    const events: MatchEvent[] = [
+      ev({
+        seq: 0,
+        type: "DirectiveApplied",
+        payload: { side: "away", directive: { playId: "oz-crash-net", pressure: "aggressive" } },
+      }),
+      ev({ seq: 1, type: "Shot", xG: 0.4, payload: { side: "away" }, actor: "a-C" }),
+    ];
+    expect(themFamilyFromEvents(events, "home", loadPlaybook("expansion"))).toBe("crash-net");
+    expect(themFamilyFromEvents(events, "home", undefined)).toBeUndefined();
   });
 });

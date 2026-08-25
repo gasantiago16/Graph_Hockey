@@ -1,5 +1,5 @@
 import type { Playbook } from "../../types/play.ts";
-import { retrievePlays } from "../../playbook/retrieve.ts";
+import { inferThemFamily, retrievePlays } from "../../playbook/retrieve.ts";
 import type { TeamGraphNode } from "../state.ts";
 import { scoreStateFromObservation } from "./situation.ts";
 
@@ -13,6 +13,7 @@ export function makeRetrievePlays(playbook: Playbook): TeamGraphNode {
         strength: obs.strength,
         zone: obs.zone,
         scoreState,
+        themFamily: inferThemFamily(obs.players),
         limit: 6,
       }),
     };

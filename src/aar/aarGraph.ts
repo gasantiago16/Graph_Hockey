@@ -49,6 +49,7 @@ export type AarGraphInvokeInput = {
   side: Side;
   result: AarResult;
   playbook: Playbook;
+  themPlaybook?: Playbook;
   events?: MatchEvent[];
   epochs?: EpochInvocationRow[];
 };

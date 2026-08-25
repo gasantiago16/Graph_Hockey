@@ -355,6 +355,24 @@ function tweakTriggers(
   return next;
 }
 
+/** DESIGN: play.stats come from events, not the LLM. Returns true if any row landed. */
+export function applyUsageStats(book: Playbook, usage: readonly MutatePlayUsage[] | undefined): boolean {
+  if (!usage || usage.length === 0) return false;
+  let rolled = false;
+  for (const u of usage) {
+    if (u.seconds <= 0 && u.xgFor <= 0 && u.xgAgainst <= 0) continue;
+    const play = findPlay(book, resolveTargetPlayId(book, u.playId));
+    if (!play) continue;
+    play.stats = {
+      games: play.stats.games + 1,
+      xgFor: play.stats.xgFor + u.xgFor,
+      xgAgainst: play.stats.xgAgainst + u.xgAgainst,
+    };
+    rolled = true;
+  }
+  return rolled;
+}
+
 function applyOp(book: Playbook, op: PlayMutation): boolean {
   switch (op.op) {
     case "boost": {
@@ -524,6 +542,8 @@ export function applyPlaybookRevision(
     if (applyOp(next, op)) applied.push(op);
     else reject(op, "apply-failed", rejected);
   }
-  if (applied.length > 0) next.version = book.version + 1;
-  return { book: next, applied, rejected, bumped: applied.length > 0 };
+  const rolled = applyUsageStats(next, ctx.playUsage);
+  const bumped = applied.length > 0 || rolled;
+  if (bumped) next.version = book.version + 1;
+  return { book: next, applied, rejected, bumped };
 }
