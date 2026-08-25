@@ -15,6 +15,7 @@ export {
   type TeamInvokeResult,
 } from "./invokeTeam.ts";
 export {
+  MatchAborted,
   matchIterCap,
   replayHash,
   runMatch,

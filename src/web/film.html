@@ -122,6 +122,8 @@
     </section>
   </div>
   <script type="module">
+    import { drawIce, drawOverlay, drawPlayers, drawPuck, sizeRinkCanvas } from "/src/web/rink.js";
+
     const ICE = { w: 200, h: 85, gl: 89 };
 
     const HOME = [
@@ -219,82 +221,21 @@
       },
     };
 
-    function worldTo(c, x, y) {
-      const pad = 18;
-      const iceW = c.width - pad * 2;
-      const iceH = c.height - pad * 2;
-      return {
-        x: pad + ((x + 100) / 200) * iceW,
-        y: pad + ((42.5 - y) / 85) * iceH,
-      };
-    }
-
     function drawRink(ctx, frame, label) {
-      const { width: W, height: H } = ctx.canvas;
-      ctx.clearRect(0, 0, W, H);
-      ctx.fillStyle = "#123044";
-      ctx.fillRect(0, 0, W, H);
-      const tl = worldTo(ctx, -100, 42.5);
-      const br = worldTo(ctx, 100, -42.5);
-      const rw = br.x - tl.x, rh = br.y - tl.y;
-      ctx.fillStyle = "#d9e7f0";
-      roundRect(ctx, tl.x, tl.y, rw, rh, 28 * (rw / 200));
-      ctx.fill();
-      ctx.strokeStyle = "#8aa4b8";
-      ctx.lineWidth = 2;
-      ctx.stroke();
-      const line = (x0, y0, x1, y1, color, w = 1.5) => {
-        const a = worldTo(ctx, x0, y0), b = worldTo(ctx, x1, y1);
-        ctx.strokeStyle = color; ctx.lineWidth = w;
-        ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
-      };
-      line(0, 42.5, 0, -42.5, "#c8102e", 2);
-      line(-25, 42.5, -25, -42.5, "#2e6da4", 2);
-      line(25, 42.5, 25, -42.5, "#2e6da4", 2);
-      line(-89, 22, -89, -22, "#c8102e", 1);
-      line(89, 22, 89, -22, "#c8102e", 1);
-      for (const gx of [-89, 89]) {
-        const g0 = worldTo(ctx, gx, 3), g1 = worldTo(ctx, gx + Math.sign(gx) * 2, -3);
-        ctx.strokeStyle = "#111"; ctx.lineWidth = 3;
-        ctx.strokeRect(Math.min(g0.x, g1.x), Math.min(g0.y, g1.y), Math.abs(g1.x - g0.x), Math.abs(g1.y - g0.y));
-      }
-      const dots = [[0, 0], [-69, 22], [-69, -22], [69, 22], [69, -22], [-20, 22], [-20, -22], [20, 22], [20, -22]];
-      ctx.fillStyle = "#c8102e";
-      for (const [x, y] of dots) {
-        const p = worldTo(ctx, x, y);
-        ctx.beginPath(); ctx.arc(p.x, p.y, 3, 0, Math.PI * 2); ctx.fill();
-      }
+      drawIce(ctx);
       if (!frame) return;
-      const drawP = (id, side) => {
-        const p = frame[id]; if (!p) return;
-        const c = worldTo(ctx, p.x, p.y);
-        const roster = side === "home" ? HOME : AWAY;
-        const rec = roster.find((r) => r.id === id);
-        ctx.fillStyle = side === "home" ? "#c8102e" : "#1d4e89";
-        ctx.beginPath(); ctx.arc(c.x, c.y, rec.pos === "G" ? 8 : 7, 0, Math.PI * 2); ctx.fill();
-        ctx.fillStyle = "#fff"; ctx.font = "8px sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
-        ctx.fillText(String(rec.n), c.x, c.y);
-      };
-      for (const p of HOME) drawP(p.id, "home");
-      for (const p of AWAY) drawP(p.id, "away");
-      const pk = worldTo(ctx, frame.puck.x, frame.puck.y);
-      ctx.fillStyle = "#111"; ctx.beginPath(); ctx.arc(pk.x, pk.y, 4, 0, Math.PI * 2); ctx.fill();
-      if (label) {
-        ctx.fillStyle = "rgba(7,11,18,.72)";
-        ctx.fillRect(10, 8, 220, 22);
-        ctx.fillStyle = "#e8eef4"; ctx.font = "12px sans-serif"; ctx.textAlign = "left";
-        ctx.fillText(label, 16, 23);
+      const players = [];
+      for (const rec of HOME) {
+        const p = frame[rec.id];
+        if (p) players.push({ side: "home", number: rec.n, position: rec.pos, x: p.x, y: p.y });
       }
-    }
-
-    function roundRect(ctx, x, y, w, h, r) {
-      ctx.beginPath();
-      ctx.moveTo(x + r, y);
-      ctx.arcTo(x + w, y, x + w, y + h, r);
-      ctx.arcTo(x + w, y + h, x, y + h, r);
-      ctx.arcTo(x, y + h, x, y, r);
-      ctx.arcTo(x, y, x + w, y, r);
-      ctx.closePath();
+      for (const rec of AWAY) {
+        const p = frame[rec.id];
+        if (p) players.push({ side: "away", number: rec.n, position: rec.pos, x: p.x, y: p.y });
+      }
+      drawPlayers(ctx, players);
+      if (frame.puck) drawPuck(ctx, frame.puck);
+      if (label) drawOverlay(ctx, label);
     }
 
     const data = await fetch("/fixtures/film/demo-series.json").then((r) => r.json());
@@ -310,9 +251,7 @@
 
     const canvases = [];
     function sizeCanvas(cv) {
-      const rect = cv.getBoundingClientRect();
-      cv.width = Math.max(320, Math.floor(rect.width * devicePixelRatio));
-      cv.height = Math.floor(cv.width * (85 / 200) * 0.92);
+      sizeRinkCanvas(cv);
     }
 
     function renderRinkSlots() {

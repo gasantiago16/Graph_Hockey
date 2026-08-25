@@ -4,7 +4,7 @@ Two **LangGraph.js** teams compete in a realistic hockey game. After every win, 
 
 This is a **localhost Node.js browser game**. The server owns physics, rules, both team graphs, and xAI calls. The browser is a Canvas 2D spectator — it never scores a goal, never sees the opponent's playbook, and **never receives `XAI_API_KEY`**.
 
-**Status:** private repo + approved design + Film Room demo. Implementation follows the PR plan in [`docs/DESIGN.md`](docs/DESIGN.md).
+**Status:** private repo + approved design + **watchable `--no-llm` rink** + Film Room demo. Implementation follows the PR plan in [`docs/DESIGN.md`](docs/DESIGN.md).
 
 ## What you are looking at
 
@@ -24,7 +24,7 @@ LLMs do **not** run every physics tick. Coaches act at decision epochs (faceoff,
 - Node.js ≥ 20.11, TypeScript (strict), **npm** (`package-lock.json`)
 - LangGraph.js (`@langchain/langgraph`)
 - xAI only: `XAI_API_KEY`, `https://api.x.ai/v1`, `grok-4.5` (coach/AAR) + `grok-4.3` (specialists)
-- Fastify + WebSocket + Canvas 2D on `127.0.0.1:8787` (match server lands in a later PR)
+- Node HTTP + WebSocket + Canvas 2D on `127.0.0.1:8787` (v1 is localhost only)
 - SQLite for matches, events, playbooks (`sql.js` WASM adapter — see Persistence)
 
 LangSmith tracing is **optional**. If `LANGSMITH_API_KEY` or `LANGCHAIN_API_KEY` is set, the app turns on `LANGSMITH_TRACING` itself. Leave those unset for local/CI.
@@ -57,12 +57,21 @@ npm install
 cp .env.example .env   # set XAI_API_KEY for live LLM matches only
 npm test               # no API key required
 npm run typecheck
-npm run film           # Film Room demo — open http://127.0.0.1:8787/film
-npm run web            # same static server until the match server lands
+npm run web            # live rink — open http://127.0.0.1:8787/
+npm run film           # same server; Film Room at /film
 npm run gh -- --help
 ```
 
 `XAI_API_KEY` lives in `.env` on the Node process. **Never** put it in `src/web/`, client JS, or WebSocket payloads. The browser never calls xAI.
+
+If port **8787** is already taken:
+
+```bash
+# Windows PowerShell
+$env:GRAPH_HOCKEY_HTTP_PORT=8788; npm run web
+```
+
+CORS and WebSocket origin are locked to `http://127.0.0.1:$PORT` and `http://localhost:$PORT`. The server binds loopback only (`GRAPH_HOCKEY_HTTP_HOST`, default `127.0.0.1`).
 
 ## Persistence
 
@@ -87,6 +96,18 @@ Stub graphs use the seed-book default 5v5 play (`5v5-122-forecheck` vs `5v5-212-
 # Windows PowerShell
 $env:GRAPH_HOCKEY_PERIOD_SECONDS=5; npm test
 ```
+
+## Watch a match (available now)
+
+`npm run web` serves the Canvas 2D rink and a `--no-llm` match API:
+
+- `POST /api/match/start` `{ home, away, seed, noLlm: true, periodSeconds? }` starts `runMatch` in the background
+- `POST /api/match/stop` aborts the in-flight match
+- `GET /api/health` `{ ok, llmConfigured, langsmith }`
+- `WS /ws` streams 10 Hz `SpectatorFrame` snapshots (world frame: players, puck, score, clock, period, lastEvent)
+- Inspect toggle **none / home / away** — the play **name** is sent only for the inspected side (never the opponent `playId`)
+
+The start form defaults to **5 second** periods so a demo is watchable. Engine/config default remains **1200 s** (3×20:00) unless you pass `periodSeconds` or set `GRAPH_HOCKEY_PERIOD_SECONDS`.
 
 ## Review footage (available now)
 

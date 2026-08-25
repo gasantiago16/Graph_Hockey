@@ -1,3 +1,4 @@
+import { setTimeout as delay } from "node:timers/promises";
 import { DT, OT_SECONDS, PERIOD_SECONDS } from "../engine/rink.ts";
 import { createRng } from "../engine/rng.ts";
 import { advanceWorld } from "../engine/step.ts";
@@ -34,7 +35,33 @@ export type MatchOptions = {
   startedAt?: string;
   homePlaybookVersion?: number;
   awayPlaybookVersion?: number;
+  signal?: AbortSignal;
+  onTick?: (world: WorldState, events: MatchEvent[]) => void | Promise<void>;
+  /** Wall-clock ms after each engine step. Spectator uses 100 (10 Hz). CLI omits. */
+  paceMs?: number;
 };
+
+export class MatchAborted extends Error {
+  constructor(readonly matchId: string) {
+    super(`match ${matchId} aborted`);
+    this.name = "MatchAborted";
+  }
+}
+
+function throwIfAborted(signal: AbortSignal | undefined, matchId: string): void {
+  if (signal?.aborted) throw new MatchAborted(matchId);
+}
+
+async function maybePace(ms: number | undefined, signal: AbortSignal | undefined, matchId: string): Promise<void> {
+  if (ms === undefined || ms <= 0) return;
+  throwIfAborted(signal, matchId);
+  try {
+    await delay(ms, undefined, { signal });
+  } catch {
+    throwIfAborted(signal, matchId);
+    throw new MatchAborted(matchId);
+  }
+}
 
 export type MatchResult = {
   matchId: string;
@@ -97,7 +124,11 @@ export async function runMatch(opts: MatchOptions): Promise<MatchResult> {
   const maxIters = matchIterCap(periodSeconds, otSeconds);
   let iters = 0;
 
+  throwIfAborted(opts.signal, opts.matchId);
+  if (opts.onTick) await opts.onTick(world, []);
+
   while (true) {
+    throwIfAborted(opts.signal, opts.matchId);
     if (world.phase === "game_over") break;
     if (iters >= maxIters) {
       throw new Error(`runMatch ${opts.matchId} exceeded ${maxIters} iterations`);
@@ -109,46 +140,52 @@ export async function runMatch(opts: MatchOptions): Promise<MatchResult> {
 
     const decision = shouldDecide(world, ev, homeDir, awayDir);
     const sides = (["home", "away"] as const).filter((s) => decision[s]);
-    if (sides.length === 0) continue;
-
-    const jobs = sides.map((side) => {
-      const obs = observe(world, side, decision[side]!);
-      return invokeTeam({
-        graph: side === "home" ? opts.homeGraph : opts.awayGraph,
-        side,
-        obs,
-        last: side === "home" ? homeDir : awayDir,
-        epochIndex,
-        matchId: opts.matchId,
-        budget,
-        timeoutMs,
-      }).then((r) => ({ side, r, reason: decision[side]!.reason, kind: decision[side]!.kind }));
-    });
-
-    const settled = await Promise.all(jobs);
-    const dirEvents: MatchEvent[] = [];
-    for (const { side, r, reason, kind } of settled) {
-      if (side === "home") homeDir = r.directive;
-      else awayDir = r.directive;
-      dirEvents.push(pushDirectiveApplied(world, side, r.directive));
-      persistEpoch(opts.db, {
-        matchId: opts.matchId,
-        seq: epochIndex,
-        side,
-        reason,
-        epochKind: kind,
-        model: "none",
-        promptTokens: r.usage.promptTokens,
-        completionTokens: r.usage.completionTokens,
-        reasoningTokens: r.usage.reasoningTokens,
-        ok: r.ok,
-        billed: r.billed,
-        directive: r.directive,
+    const tickEvents: MatchEvent[] = [...ev];
+    if (sides.length > 0) {
+      const jobs = sides.map((side) => {
+        const obs = observe(world, side, decision[side]!);
+        return invokeTeam({
+          graph: side === "home" ? opts.homeGraph : opts.awayGraph,
+          side,
+          obs,
+          last: side === "home" ? homeDir : awayDir,
+          epochIndex,
+          matchId: opts.matchId,
+          budget,
+          timeoutMs,
+          signal: opts.signal,
+        }).then((r) => ({ side, r, reason: decision[side]!.reason, kind: decision[side]!.kind }));
       });
+
+      const settled = await Promise.all(jobs);
+      throwIfAborted(opts.signal, opts.matchId);
+      const dirEvents: MatchEvent[] = [];
+      for (const { side, r, reason, kind } of settled) {
+        if (side === "home") homeDir = r.directive;
+        else awayDir = r.directive;
+        dirEvents.push(pushDirectiveApplied(world, side, r.directive));
+        persistEpoch(opts.db, {
+          matchId: opts.matchId,
+          seq: epochIndex,
+          side,
+          reason,
+          epochKind: kind,
+          model: "none",
+          promptTokens: r.usage.promptTokens,
+          completionTokens: r.usage.completionTokens,
+          reasoningTokens: r.usage.reasoningTokens,
+          ok: r.ok,
+          billed: r.billed,
+          directive: r.directive,
+        });
+      }
+      events.push(...dirEvents);
+      insertEvents(opts.db, opts.matchId, dirEvents);
+      tickEvents.push(...dirEvents);
+      epochIndex += 1;
     }
-    events.push(...dirEvents);
-    insertEvents(opts.db, opts.matchId, dirEvents);
-    epochIndex += 1;
+    if (opts.onTick) await opts.onTick(world, tickEvents);
+    await maybePace(opts.paceMs, opts.signal, opts.matchId);
   }
 
   const result = resultLabel(world.score);

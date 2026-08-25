@@ -68,6 +68,7 @@ export async function invokeTeam(args: {
   matchId: string;
   budget: MatchBudget;
   timeoutMs: number;
+  signal?: AbortSignal;
 }): Promise<TeamInvokeResult> {
   const threadId = epochThreadId(args.matchId, args.side, args.epochIndex);
   const usage = emptyUsage();
@@ -77,6 +78,11 @@ export async function invokeTeam(args: {
   }
 
   const ac = new AbortController();
+  const onExternalAbort = () => ac.abort();
+  if (args.signal) {
+    if (args.signal.aborted) ac.abort();
+    else args.signal.addEventListener("abort", onExternalAbort);
+  }
   let timer: ReturnType<typeof setTimeout> | undefined;
   if (args.timeoutMs > 0) {
     timer = setTimeout(() => ac.abort(), args.timeoutMs);
@@ -105,6 +111,7 @@ export async function invokeTeam(args: {
     const reason = ac.signal.aborted || isAbortError(err) ? "timeout" : "error";
     return { ok: false, directive: args.last, reason, billed: usage.calls > 0, usage, threadId };
   } finally {
+    if (args.signal) args.signal.removeEventListener("abort", onExternalAbort);
     if (timer) clearTimeout(timer);
   }
 }
