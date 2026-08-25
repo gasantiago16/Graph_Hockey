@@ -1,6 +1,6 @@
 import { SystemMessage, type BaseMessage } from "@langchain/core/messages";
 import type { BaseChatModel } from "@langchain/core/language_models/chat_models";
-import type { z } from "zod";
+import { z } from "zod";
 import { coercePressure } from "../types/hockey.ts";
 import { markReasoningNoneUnsupported } from "./client.ts";
 
@@ -94,10 +94,14 @@ function outboundMessages(messages: BaseMessage[], jsonObject: boolean): BaseMes
 
 function normalizeLlmObject(raw: unknown): unknown {
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) return raw;
-  const rec = raw as Record<string, unknown>;
-  if (!("pressure" in rec)) return raw;
-  return { ...rec, pressure: coercePressure(rec.pressure) };
+  const rec = { ...(raw as Record<string, unknown>) };
+  if ("pressure" in rec) rec.pressure = coercePressure(rec.pressure);
+  if (typeof rec.memo !== "string" && typeof rec.advice === "string") rec.memo = rec.advice;
+  return rec;
 }
+
+/** jsonMode: do not let LangChain Zod-parse the vendor object (pressure: high 400s the enum). */
+const LooseJsonObject = z.object({}).passthrough();
 
 /**
  * Native `.withStructuredOutput` first (FakeListChatModel JSON and vendor json_schema).
@@ -117,7 +121,7 @@ export async function invokeStructured<T>(
 
   try {
     const runnable = method
-      ? llm.withStructuredOutput(schema, { method })
+      ? llm.withStructuredOutput(LooseJsonObject, { method })
       : llm.withStructuredOutput(schema);
     const raw: unknown = await runnable.invoke(outbound, invokeOpts);
     const parsed = schema.safeParse(normalizeLlmObject(raw));

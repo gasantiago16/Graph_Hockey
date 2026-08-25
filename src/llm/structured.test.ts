@@ -183,6 +183,42 @@ describe("invokeStructured", () => {
     expect(chatModelSpec("fast", {}).effort).toBe("low");
   });
 
+  it("jsonMode returns a loose object then coerces pressure high", async () => {
+    const capturing = {
+      model: "grok-4.5",
+      withStructuredOutput: (_schema: unknown, config?: { method?: string }) => {
+        expect(config?.method).toBe("jsonMode");
+        return {
+          invoke: async () => ({
+            supposedToHappen: "crash the net",
+            playId: "oz-crash-net",
+            pressure: "high",
+            intent: "extra-field",
+          }),
+        };
+      },
+      invoke: async () => ({ content: "" }),
+    };
+    const out = await invokeStructured(
+      capturing as unknown as BaseChatModel,
+      CoachIntentSchema,
+      messages,
+    );
+    expect(out?.pressure).toBe("aggressive");
+    expect(out?.playId).toBe("oz-crash-net");
+  });
+
+  it("maps specialist advice to memo", async () => {
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    const { SpecialistAdviceSchema } = await import("../agents/specialists/compile.ts");
+    const llm = fakeLlm({
+      structured: async () => ({ advice: "pass to the slot", params: { shotPolicy: "pass" } }),
+    });
+    const out = await invokeStructured(llm, SpecialistAdviceSchema, messages);
+    expect(out?.memo).toBe("pass to the slot");
+    expect(out?.params?.shotPolicy).toBe("pass");
+  });
+
   it("prepends a JSON-object hint when the model is Muse Spark", async () => {
     vi.spyOn(console, "warn").mockImplementation(() => {});
     let seen: unknown;

@@ -128,7 +128,9 @@ export type Pressure = z.infer<typeof PressureSchema>;
 export function coercePressure(v: unknown): unknown {
   if (typeof v !== "string") return v;
   const s = v.trim().toLowerCase();
-  if (s === "high" || s === "attack" || s === "aggro" || s === "aggressive") return "aggressive";
+  if (s === "high" || s === "attack" || s === "aggro" || s === "push" || s === "forecheck" || s === "aggressive") {
+    return "aggressive";
+  }
   if (s === "low" || s === "defend" || s === "passive") return "passive";
   if (s === "medium" || s === "mid" || s === "neutral") return "neutral";
   return v;
