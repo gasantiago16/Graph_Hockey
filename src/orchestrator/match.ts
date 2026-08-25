@@ -8,6 +8,8 @@ import { createRng } from "../engine/rng.ts";
 import { advanceWorld } from "../engine/step.ts";
 import { defaultDirective, type WorldState } from "../engine/world.ts";
 import { copyBudget, createBudget, EPOCH_TIMEOUT_MS, type MatchBudget } from "../llm/budgets.ts";
+import { aarCiteEventIds } from "../film/clipper.ts";
+import { recordMatchFilm } from "../persist/clips.ts";
 import type { Db } from "../persist/db.ts";
 import { insertEvents, persistEpoch } from "../persist/events.ts";
 import { finishMatch, insertMatch, type MatchResultLabel } from "../persist/matches.ts";
@@ -48,6 +50,10 @@ export type MatchOptions = {
   /** Default auto-apply with caps. propose writes AAR JSON and does not bump playbooks. */
   aarMode?: AarMode;
   models?: { home: string; away: string };
+  /** Default true. `false` is `--no-record`: events stay, clip index is skipped. */
+  record?: boolean;
+  seriesId?: string;
+  gameIndex?: number;
 };
 
 export class MatchAborted extends Error {
@@ -223,6 +229,17 @@ export async function runMatch(opts: MatchOptions): Promise<MatchResult> {
     budget,
     signal: opts.signal,
   });
+
+  if (opts.record !== false) {
+    recordMatchFilm(opts.db, {
+      matchId: opts.matchId,
+      events,
+      durationLiveTicks: world.liveTick,
+      seriesId: opts.seriesId,
+      gameIndex: opts.gameIndex,
+      aarEventIds: aarCiteEventIds([aar.home, aar.away]),
+    });
+  }
 
   return {
     matchId: opts.matchId,

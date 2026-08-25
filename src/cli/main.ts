@@ -5,6 +5,7 @@ import { compileTeamGraph } from "../agents/teamGraph.ts";
 import { loadConfig, type EnvMap } from "../config.ts";
 import { formatCostSummary } from "../llm/budgets.ts";
 import { hasInjectedChatModel, hasXaiApiKey } from "../llm/client.ts";
+import { getFootage } from "../persist/clips.ts";
 import { defaultDbPath, openDb, type Db } from "../persist/db.ts";
 import { getAarReport, getMatch, type MatchResultLabel } from "../persist/matches.ts";
 import { ensureSeedPlaybooks, latestPlaybook, listPlaybookVersions, resetPlaybookToSeed } from "../persist/playbooks.ts";
@@ -18,7 +19,7 @@ export const USAGE = `graph-hockey — competing LangGraph teams on a hockey rin
 
 Usage:
   gh --help
-  gh simulate [--home ID] [--away ID] [--seed N] [--no-llm] [--aar-mode auto|propose] [--db PATH] [--match ID]
+  gh simulate [--home ID] [--away ID] [--seed N] [--no-llm] [--no-record] [--aar-mode auto|propose] [--db PATH] [--match ID]
   gh replay --match ID [--to-tick N] [--db PATH]
   gh aar --match ID [--side home|away] [--aar-mode auto|propose|hitl]
   gh playbook --team ID [--diff] [--version N] [--reset-playbook]
@@ -32,6 +33,8 @@ Without --no-llm, live epochs call xAI (needs XAI_API_KEY) and print a cost summ
 AAR runs after every result; default --aar-mode auto applies capped playbook patches.
 --aar-mode propose writes the AAR JSON and does not bump playbook versions.
 --no-llm skips AAR LLM, stores a code-only digest, and never mutates playbooks.
+--no-record skips the clip index (events still stored). CI golden hashes use --no-record.
+footage --match lists auto-clips + open ticks. --series is PR15b.
 replay resimulates from seed + stored DirectiveApplied events (zero LLM).
 aar dumps stored reports or re-runs the AAR graph (--no-llm for code-only).
 playbook --diff prints version N vs N-1 (latest by default). --reset-playbook restores the seed.
@@ -107,6 +110,7 @@ async function cmdSimulate(argv: string[], env: EnvMap): Promise<number> {
   const aarMode = parseAarMode(opt(argv, "aar-mode"));
   const dbPath = opt(argv, "db") ?? defaultDbPath();
   const matchId = opt(argv, "match") ?? `sim-${seed}-${Date.now().toString(36)}`;
+  const record = !flag(argv, "no-record");
 
   const result = await withDb(dbPath, async (db) => {
     ensureSeedPlaybooks(db);
@@ -144,6 +148,7 @@ async function cmdSimulate(argv: string[], env: EnvMap): Promise<number> {
       homePlaybookVersion: homeRow?.version ?? 1,
       awayPlaybookVersion: awayRow?.version ?? 1,
       models: noLlm ? { home: "none", away: "none" } : { home: cfg.coachModel, away: cfg.coachModel },
+      record,
     });
   });
 
@@ -167,6 +172,7 @@ async function cmdSimulate(argv: string[], env: EnvMap): Promise<number> {
     eventHash: result.eventHash,
     db: dbPath,
     noLlm,
+    recorded: record,
     periodSeconds: cfg.periodSeconds,
     cost,
   };
@@ -226,6 +232,56 @@ async function cmdReplay(argv: string[], env: EnvMap): Promise<number> {
         `replay ${matchId}  ${payload.score.home}-${payload.score.away} ${payload.result}  events=${payload.events} tick=${payload.liveTick} ${payload.phase}`,
       );
       console.log(`eventHash ${payload.eventHash}`);
+    }
+    return 0;
+  });
+}
+
+async function cmdFootage(argv: string[], env: EnvMap): Promise<number> {
+  loadConfig(env);
+  const seriesId = opt(argv, "series");
+  if (seriesId) {
+    console.error("gh footage: --series is not implemented yet (PR15b)");
+    return 1;
+  }
+  const matchId = opt(argv, "match");
+  if (!matchId) {
+    console.error("gh footage: --match ID is required");
+    return 1;
+  }
+  const dbPath = opt(argv, "db") ?? defaultDbPath();
+  return withDb(dbPath, async (db) => {
+    const footage = getFootage(db, matchId);
+    if (!footage) {
+      console.error(`gh footage: no recording for ${matchId}`);
+      return 1;
+    }
+    const payload = {
+      matchId,
+      recording: footage.recording,
+      clips: footage.clips.map((c) => ({
+        id: c.id,
+        kind: c.kind,
+        title: c.title,
+        startLiveTick: c.startLiveTick,
+        endLiveTick: c.endLiveTick,
+        side: c.side,
+        xG: c.xG,
+        playId: c.playId,
+        source: c.source,
+      })),
+    };
+    if (flag(argv, "json")) {
+      console.log(JSON.stringify(payload, null, 2));
+    } else {
+      console.log(
+        `footage ${matchId}  duration=${footage.recording.durationLiveTicks} ticks  clips=${footage.clips.length}`,
+      );
+      for (const c of footage.clips) {
+        const ticks = `${c.startLiveTick}-${c.endLiveTick}`;
+        const xg = c.xG !== undefined ? `  xG ${c.xG.toFixed(2)}` : "";
+        console.log(`  ${c.id}  ${c.kind.padEnd(10)} ${ticks.padEnd(12)} ${c.title}${xg}`);
+      }
     }
     return 0;
   });
@@ -400,6 +456,8 @@ export async function main(argv: string[], env: EnvMap = process.env): Promise<n
         return await cmdAar(rest, env);
       case "playbook":
         return await cmdPlaybook(rest, env);
+      case "footage":
+        return await cmdFootage(rest, env);
       default:
         console.error(`gh ${cmd}: not implemented yet`);
         return 1;

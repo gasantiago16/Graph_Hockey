@@ -1,3 +1,4 @@
+import type { MatchEvent } from "../types/events.ts";
 import {
   AUTO_CLIP_CAP,
   AUTO_PLUS_AAR_CAP,
@@ -6,6 +7,8 @@ import {
   type Clip,
   type ClipEvent,
   type ClipKind,
+  type Side,
+  type Zone,
 } from "../types/film.ts";
 
 const PRIORITY_INDEX = new Map(CLIP_PRIORITY.map((k, i) => [k, i]));
@@ -190,4 +193,80 @@ export function resolveEventToTick(events: ClipEvent[], eventId: string): { even
   const event = events.find((e) => e.id === eventId);
   if (!event) return null;
   return { event, liveTick: event.liveTick };
+}
+
+function asZone(raw: string | undefined): Zone | undefined {
+  if (raw === "DZ" || raw === "NZ" || raw === "OZ") return raw;
+  return undefined;
+}
+
+function payloadRecord(payload: unknown): Record<string, unknown> | undefined {
+  return payload && typeof payload === "object" ? (payload as Record<string, unknown>) : undefined;
+}
+
+function eventSide(event: MatchEvent): Side | undefined {
+  const rec = payloadRecord(event.payload);
+  if (rec) {
+    if (rec.side === "home" || rec.side === "away") return rec.side;
+    if (rec.against === "home" || rec.against === "away") return rec.against;
+    if (rec.sideDumping === "home" || rec.sideDumping === "away") return rec.sideDumping;
+    if (rec.attacking === "home" || rec.attacking === "away") return rec.attacking;
+  }
+  const actor = event.actor ?? (typeof event.possessor === "string" ? event.possessor : undefined);
+  if (typeof actor === "string") {
+    if (actor.startsWith("h-")) return "home";
+    if (actor.startsWith("a-")) return "away";
+  }
+  return undefined;
+}
+
+function directivePlayId(payload: unknown): { side: Side; playId: string } | undefined {
+  const rec = payloadRecord(payload);
+  if (!rec) return undefined;
+  if (rec.side !== "home" && rec.side !== "away") return undefined;
+  const dir = rec.directive;
+  if (!dir || typeof dir !== "object") return undefined;
+  const playId = (dir as { playId?: unknown }).playId;
+  if (typeof playId !== "string" || playId.length === 0) return undefined;
+  return { side: rec.side, playId };
+}
+
+/** Map stored match events into the clipper's minimal event shape. */
+export function toClipEvents(events: readonly MatchEvent[]): ClipEvent[] {
+  let homePlay: string | undefined;
+  let awayPlay: string | undefined;
+  const out: ClipEvent[] = [];
+  for (const ev of events) {
+    if (ev.type === "DirectiveApplied") {
+      const applied = directivePlayId(ev.payload);
+      if (applied?.side === "home") homePlay = applied.playId;
+      if (applied?.side === "away") awayPlay = applied.playId;
+    }
+    const side = eventSide(ev);
+    const playId =
+      ev.playId ?? (side === "home" ? homePlay : side === "away" ? awayPlay : undefined);
+    out.push({
+      id: ev.id,
+      type: ev.type,
+      liveTick: ev.liveTick,
+      zone: asZone(ev.zone),
+      playId,
+      side,
+      xG: ev.xG,
+    });
+  }
+  return out;
+}
+
+/** Event ids cited by applied (or proposed) AAR mutations. */
+export function aarCiteEventIds(
+  reports: Array<{ revision?: { ops?: Array<{ eventIds?: string[] }> } } | undefined>,
+): string[] {
+  const ids: string[] = [];
+  for (const report of reports) {
+    for (const op of report?.revision?.ops ?? []) {
+      if (op.eventIds) ids.push(...op.eventIds);
+    }
+  }
+  return [...new Set(ids)];
 }

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { makeEventId } from "../types/ids.ts";
 import { DEFAULT_PLAY_ID } from "../types/play.ts";
-import { insertClip, insertRecording, listClips } from "./clips.ts";
+import { getClip, getFootage, insertClip, insertRecording, listClips } from "./clips.ts";
 import { openMemoryDb } from "./db.ts";
 import { insertEvents, listEvents, listEpochInvocations, loadDirectivesByTick, persistEpoch } from "./events.ts";
 import { insertImprovementRow, listImprovement } from "./improvement.ts";
@@ -156,6 +156,8 @@ describe("persist matches/events", () => {
         signature: "oz-cycle-low|OZ|Goal",
       });
       expect(listClips(db, "m1")).toHaveLength(1);
+      expect(getClip(db, "m1:clip:0")?.kind).toBe("goal");
+      expect(getFootage(db, "m1")?.clips).toHaveLength(1);
       insertImprovementRow(db, {
         seriesId: "s1",
         teamId: "original-six",

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { autoClips } from "./clipper.ts";
+import { autoClips, toClipEvents } from "./clipper.ts";
 import { jaccard, pairClips } from "./pairClips.ts";
 import { formatDelta, seriesImprovement } from "./improvement.ts";
 import type { Clip, ClipEvent, MatchAggregates, SeriesGameRow } from "../types/film.ts";
@@ -76,6 +76,46 @@ describe("autoClips", () => {
     });
     expect(clips.length).toBeLessThanOrEqual(48);
     expect(clips.some((c) => c.kind === "goal" || c.relatedEventIds.includes("m:goal"))).toBe(true);
+  });
+
+  it("maps match events (payload side + directive playId) into clip events", () => {
+    const mapped = toClipEvents([
+      {
+        id: "m:0",
+        seq: 0,
+        liveTick: 4,
+        stoppageSeq: 1,
+        period: 1,
+        type: "DirectiveApplied",
+        payload: { side: "home", directive: { playId: "oz-cycle-low", pressure: "neutral" } },
+      },
+      {
+        id: "m:1",
+        seq: 1,
+        liveTick: 90,
+        stoppageSeq: 1,
+        period: 1,
+        type: "Shot",
+        zone: "OZ",
+        xG: 0.22,
+        payload: { side: "home" },
+      },
+      {
+        id: "m:2",
+        seq: 2,
+        liveTick: 91,
+        stoppageSeq: 1,
+        period: 1,
+        type: "Goal",
+        zone: "OZ",
+        xG: 0.22,
+        payload: { side: "home" },
+      },
+    ]);
+    expect(mapped[1]?.side).toBe("home");
+    expect(mapped[1]?.playId).toBe("oz-cycle-low");
+    const clips = autoClips(mapped, { matchId: "m", durationLiveTicks: 200 });
+    expect(clips.some((c) => c.kind === "goal")).toBe(true);
   });
 });
 

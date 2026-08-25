@@ -4,7 +4,16 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { loadConfig, type AppConfig, type EnvMap } from "../config.ts";
 import { DT } from "../engine/rink.ts";
+import {
+  framesToJsonl,
+  materializeClipFrames,
+  resolveClip,
+  resolveEventFootage,
+} from "../film/frames.ts";
+import { getFootage, getRecording } from "../persist/clips.ts";
+import type { Clip } from "../types/film.ts";
 import { defaultDbPath, openDb, type Db } from "../persist/db.ts";
+import { getMatch, listMatches } from "../persist/matches.ts";
 import { ensureSeedPlaybooks } from "../persist/playbooks.ts";
 import { StartMatchBodySchema } from "../types/ws.ts";
 import { createMatchControl, MatchBusyError, MatchStartError, type MatchControl } from "./matchControl.ts";
@@ -31,6 +40,7 @@ type Ctx = {
   control: MatchControl;
   port: number;
   root: string;
+  db: Db;
 };
 
 function applyCors(req: IncomingMessage, res: ServerResponse, port: number): boolean {
@@ -52,6 +62,30 @@ function applyCors(req: IncomingMessage, res: ServerResponse, port: number): boo
 function sendJson(res: ServerResponse, status: number, body: unknown): void {
   res.writeHead(status, { "Content-Type": "application/json; charset=utf-8" });
   res.end(JSON.stringify(body));
+}
+
+function wantJsonl(req: IncomingMessage, url: URL): boolean {
+  const format = (url.searchParams.get("format") ?? "").toLowerCase();
+  const accept = req.headers.accept ?? "";
+  return format === "jsonl" || format === "ndjson" || accept.includes("application/x-ndjson");
+}
+
+function sendClipFrames(
+  req: IncomingMessage,
+  res: ServerResponse,
+  url: URL,
+  method: string,
+  clip: Clip,
+  db: Db,
+): void {
+  const frames = materializeClipFrames(clip, db);
+  if (wantJsonl(req, url)) {
+    res.writeHead(200, { "Content-Type": "application/x-ndjson; charset=utf-8" });
+    if (method !== "HEAD") res.write(framesToJsonl(frames));
+    res.end();
+    return;
+  }
+  sendJson(res, 200, { frames, clip });
 }
 
 function readBody(req: IncomingMessage): Promise<string> {
@@ -169,6 +203,104 @@ async function handleRequest(req: IncomingMessage, res: ServerResponse, ctx: Ctx
     return;
   }
 
+  if (method === "GET" && url.pathname === "/api/matches") {
+    const matches = listMatches(ctx.db).map((row) => {
+      const footage = getFootage(ctx.db, row.id);
+      return {
+        id: row.id,
+        home: row.homeTeam,
+        away: row.awayTeam,
+        seed: row.seed,
+        result: row.result,
+        score: { home: row.finalHome, away: row.finalAway },
+        recorded: Boolean(footage),
+        clipCount: footage?.clips.length ?? 0,
+      };
+    });
+    sendJson(res, 200, { matches });
+    return;
+  }
+
+  if (method === "GET") {
+    const eventHit = /^\/api\/footage\/event\/(.+)$/.exec(url.pathname);
+    if (eventHit) {
+      const eventId = decodeURIComponent(eventHit[1] ?? "");
+      const resolved = resolveEventFootage(ctx.db, eventId);
+      if (!resolved) {
+        sendJson(res, 404, { error: `no event ${eventId}` });
+        return;
+      }
+      sendJson(res, 200, resolved);
+      return;
+    }
+
+    const framesHit = /^\/api\/footage\/([^/]+)\/clips\/(.+)\/frames$/.exec(url.pathname);
+    if (framesHit) {
+      const matchId = decodeURIComponent(framesHit[1] ?? "");
+      const clipId = decodeURIComponent(framesHit[2] ?? "");
+      const clip = resolveClip(ctx.db, matchId, clipId);
+      if (!clip) {
+        sendJson(res, 404, { error: `no clip ${clipId} for ${matchId}` });
+        return;
+      }
+      sendClipFrames(req, res, url, method, clip, ctx.db);
+      return;
+    }
+
+    const windowHit = /^\/api\/footage\/([^/]+)\/frames$/.exec(url.pathname);
+    if (windowHit) {
+      const matchId = decodeURIComponent(windowHit[1] ?? "");
+      const recording = getRecording(ctx.db, matchId);
+      if (!recording) {
+        sendJson(res, 404, { error: `no recording for ${matchId}` });
+        return;
+      }
+      const fromRaw = Number.parseInt(url.searchParams.get("from") ?? "0", 10);
+      const toRaw = Number.parseInt(url.searchParams.get("to") ?? String(recording.durationLiveTicks), 10);
+      const start = Number.isFinite(fromRaw) ? Math.max(0, fromRaw) : 0;
+      const end = Number.isFinite(toRaw) ? Math.min(recording.durationLiveTicks, toRaw) : recording.durationLiveTicks;
+      const clip: Clip = {
+        id: `${matchId}:clip:window:${start}-${end}`,
+        matchId,
+        startLiveTick: start,
+        endLiveTick: end,
+        anchorEventId: `${matchId}:0`,
+        relatedEventIds: [],
+        kind: "user",
+        title: `Ticks ${start}–${end}`,
+        source: "user",
+      };
+      sendClipFrames(req, res, url, method, clip, ctx.db);
+      return;
+    }
+
+    const footageHit = /^\/api\/footage\/([^/]+)$/.exec(url.pathname);
+    if (footageHit) {
+      const matchId = decodeURIComponent(footageHit[1] ?? "");
+      const footage = getFootage(ctx.db, matchId);
+      if (!footage) {
+        sendJson(res, 404, { error: `no recording for ${matchId}` });
+        return;
+      }
+      const match = getMatch(ctx.db, matchId);
+      sendJson(res, 200, {
+        recording: footage.recording,
+        clips: footage.clips,
+        match: match
+          ? {
+              id: match.id,
+              home: match.homeTeam,
+              away: match.awayTeam,
+              seed: match.seed,
+              result: match.result,
+              score: { home: match.finalHome, away: match.finalAway },
+            }
+          : undefined,
+      });
+      return;
+    }
+  }
+
   if (method !== "GET" && method !== "HEAD") {
     sendJson(res, 405, { error: "method not allowed" });
     return;
@@ -241,7 +373,7 @@ export async function listenAndServe(opts: ListenOpts = {}): Promise<Server> {
   });
 
   const server = createServer((req, res) => {
-    void handleRequest(req, res, { config, control, port, root }).catch((err) => {
+    void handleRequest(req, res, { config, control, port, root, db }).catch((err) => {
       console.error(err);
       if (!res.headersSent) sendJson(res, 500, { error: "internal" });
     });

@@ -114,20 +114,20 @@ The start form defaults to **5 second** periods so a demo is watchable. Engine/c
 
 ## Review footage (available now)
 
-Every finished match will be **auto-recorded** as deterministic game film (replay the engine — no MP4). The Film Room:
+Every finished match is **auto-recorded** as deterministic game film (resimulation — no MP4). `--no-record` skips the clip index (CI goldens). The Film Room:
 
 - builds clips around goals, chances, turnovers, penalties, and AAR citations
 - plays them on the same Canvas rink (scrub, 0.25×–2×)
-- pairs **the same play** in game 1 vs game 7 so you can see whether AAR actually changed the ice
-- writes an **improvement ledger** (xG, CF%, goals, playbook version)
-
-A scripted 7-game demo series is in `fixtures/film/demo-series.json` so you can use the Film Room before the physics engine lands.
+- `/film` is the scripted demo series; `/film?match=ID` plays real match clips
+- series pairing / improvement board is a later PR
 
 ```bash
 npm install
 npm test
 npm run film
 # open http://127.0.0.1:8787/film
+# after a match: http://127.0.0.1:8787/film?match=ID
+npx tsx src/cli/main.ts footage --match ID
 ```
 
 ## Implementation order

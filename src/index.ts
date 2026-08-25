@@ -21,6 +21,8 @@ export * from "./sim/replay.ts";
 export * from "./agents/index.ts";
 export * from "./aar/index.ts";
 export * from "./orchestrator/index.ts";
+export { aarCiteEventIds, autoClips, toClipEvents } from "./film/clipper.ts";
+export { framesForClip, framesForWindow, materializeClipFrames } from "./film/frames.ts";
 export {
   UsageTap,
   createBudget,

@@ -9,6 +9,7 @@ import { scaledOtSeconds } from "../config.ts";
 import { createWorld, defaultDirective } from "../engine/world.ts";
 import { createBudget } from "../llm/budgets.ts";
 import { resetLlmClientForTests, setCreateChatModel } from "../llm/client.ts";
+import { getFootage } from "../persist/clips.ts";
 import { listEpochInvocations, listEvents } from "../persist/events.ts";
 import { getAarReport } from "../persist/matches.ts";
 import { openMemoryDb } from "../persist/db.ts";
@@ -100,6 +101,48 @@ describe("runMatch --no-llm stub graphs", () => {
       expect(result.aar?.home.actualSummary).toBeTruthy();
       expect(getAarReport(db, "golden-pr8", "home")?.applied).toBe(false);
       expect(getAarReport(db, "golden-pr8", "away")?.body).toBeTruthy();
+      const footage = getFootage(db, "golden-pr8");
+      expect(footage?.recording.durationLiveTicks).toBe(result.liveTick);
+      expect(footage?.clips).toBeDefined();
+    } finally {
+      db.close();
+    }
+  });
+
+  it("skips clip index when record: false", async () => {
+    const db = await openMemoryDb();
+    try {
+      const homePlaybook = loadPlaybook("original-six");
+      const awayPlaybook = loadPlaybook("expansion");
+      await runMatch({
+        matchId: "no-record",
+        seed: 42,
+        homeTeamId: "original-six",
+        awayTeamId: "expansion",
+        homePlaybook,
+        awayPlaybook,
+        homeGraph: compileTeamGraph({
+          side: "home",
+          playbook: homePlaybook,
+          checkpointer: new MemorySaver(),
+          noLlm: true,
+        }),
+        awayGraph: compileTeamGraph({
+          side: "away",
+          playbook: awayPlaybook,
+          checkpointer: new MemorySaver(),
+          noLlm: true,
+        }),
+        db,
+        periodSeconds: SHORT_PERIOD,
+        otSeconds: scaledOtSeconds(SHORT_PERIOD),
+        startedAt: "2026-08-24T00:00:00.000Z",
+        timeoutMs: 2000,
+        noLlm: true,
+        record: false,
+      });
+      expect(getFootage(db, "no-record")).toBeUndefined();
+      expect(listEvents(db, "no-record").length).toBeGreaterThan(0);
     } finally {
       db.close();
     }

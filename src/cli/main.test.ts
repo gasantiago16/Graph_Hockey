@@ -23,6 +23,7 @@ describe("gh CLI", () => {
       expect(printed).toContain("playbook");
       expect(printed).toContain("series");
       expect(printed).toContain("footage");
+      expect(printed).toContain("--no-record");
       expect(printed).toContain("--aar-mode");
       expect(printed).toContain("--reset-playbook");
       expect(printed).toContain("GRAPH_HOCKEY_PERIOD_SECONDS");
@@ -174,6 +175,43 @@ describe("gh CLI", () => {
       expect(diffOut.fromVersion).toBe(1);
       expect(diffOut.toVersion).toBe(1);
       expect(diffOut.changed).toEqual([]);
+
+      log.mockClear();
+      const footageCode = await main(["footage", "--match", "cli-pr8", "--db", dbPath, "--json"], env);
+      expect(footageCode).toBe(0);
+      const footageOut = JSON.parse(String(log.mock.calls.at(-1)?.[0])) as {
+        matchId: string;
+        recording: { durationLiveTicks: number };
+        clips: unknown[];
+      };
+      expect(footageOut.matchId).toBe("cli-pr8");
+      expect(footageOut.recording.durationLiveTicks).toBeGreaterThan(0);
+      expect(Array.isArray(footageOut.clips)).toBe(true);
+
+      log.mockClear();
+      const noRecCode = await main(
+        [
+          "simulate",
+          "--no-llm",
+          "--no-record",
+          "--seed",
+          "42",
+          "--db",
+          dbPath,
+          "--match",
+          "cli-norecord",
+          "--json",
+        ],
+        env,
+      );
+      expect(noRecCode).toBe(0);
+      const noRecOut = JSON.parse(String(log.mock.calls.at(-1)?.[0])) as { recorded: boolean };
+      expect(noRecOut.recorded).toBe(false);
+      log.mockClear();
+      const miss = vi.spyOn(console, "error").mockImplementation(() => {});
+      expect(await main(["footage", "--match", "cli-norecord", "--db", dbPath], env)).toBe(1);
+      expect(String(miss.mock.calls[0]?.[0])).toContain("no recording");
+      miss.mockRestore();
     } finally {
       log.mockRestore();
     }

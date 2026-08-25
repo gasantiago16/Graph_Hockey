@@ -1,4 +1,6 @@
+import { autoClips, toClipEvents } from "../film/clipper.ts";
 import type { Clip, ClipKind } from "../types/film.ts";
+import type { MatchEvent } from "../types/events.ts";
 import type { Db } from "./db.ts";
 
 export type RecordingRow = {
@@ -116,4 +118,59 @@ export function listClips(db: Db, matchId: string): Clip[] {
     .prepare("SELECT * FROM clips WHERE match_id = ? ORDER BY start_live_tick ASC")
     .all<ClipSqlRow>(matchId)
     .map(rowToClip);
+}
+
+export function getClip(db: Db, clipId: string): Clip | undefined {
+  const row = db.prepare("SELECT * FROM clips WHERE id = ?").get<ClipSqlRow>(clipId);
+  return row ? rowToClip(row) : undefined;
+}
+
+export function insertClips(db: Db, clips: readonly Clip[], createdAt: string = new Date().toISOString()): void {
+  if (clips.length === 0) return;
+  db.transaction(() => {
+    for (const clip of clips) insertClip(db, clip, createdAt);
+  });
+}
+
+export type FootageIndex = {
+  recording: RecordingRow;
+  clips: Clip[];
+};
+
+export function getFootage(db: Db, matchId: string): FootageIndex | undefined {
+  const recording = getRecording(db, matchId);
+  if (!recording) return undefined;
+  return { recording, clips: listClips(db, matchId) };
+}
+
+export type RecordMatchFilmInput = {
+  matchId: string;
+  events: readonly MatchEvent[];
+  durationLiveTicks: number;
+  seriesId?: string;
+  gameIndex?: number;
+  aarEventIds?: string[];
+  recordedAt?: string;
+};
+
+/** Insert recordings + auto-clip index. Caller skipped this when `--no-record`. */
+export function recordMatchFilm(db: Db, input: RecordMatchFilmInput): FootageIndex {
+  const recordedAt = input.recordedAt ?? new Date().toISOString();
+  const recording: RecordingRow = {
+    matchId: input.matchId,
+    seriesId: input.seriesId ?? null,
+    gameIndex: input.gameIndex ?? null,
+    recordedAt,
+    durationLiveTicks: input.durationLiveTicks,
+  };
+  insertRecording(db, recording);
+  const clips = autoClips(toClipEvents(input.events), {
+    matchId: input.matchId,
+    durationLiveTicks: input.durationLiveTicks,
+    seriesId: input.seriesId,
+    gameIndex: input.gameIndex,
+    aarEventIds: input.aarEventIds,
+  });
+  insertClips(db, clips, recordedAt);
+  return { recording, clips };
 }

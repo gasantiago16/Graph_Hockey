@@ -47,7 +47,19 @@ export {
   resetPlaybookToSeed,
   type PlaybookRow,
 } from "./playbooks.ts";
-export { getRecording, insertClip, insertRecording, listClips, type RecordingRow } from "./clips.ts";
+export {
+  getClip,
+  getFootage,
+  getRecording,
+  insertClip,
+  insertClips,
+  insertRecording,
+  listClips,
+  recordMatchFilm,
+  type FootageIndex,
+  type RecordingRow,
+  type RecordMatchFilmInput,
+} from "./clips.ts";
 export { insertImprovementRow, listImprovement, type ImprovementMetrics, type ImprovementRow } from "./improvement.ts";
 export {
   defaultDirectiveFromSnapshot,

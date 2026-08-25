@@ -97,7 +97,10 @@ function onMessage(msg) {
     tickerEl.textContent = `Match ${msg.matchId} · period ${msg.periodSeconds}s · seed ${msg.seed}`;
   } else if (msg.type === "match_over") {
     setRunning(false);
-    tickerEl.textContent = `Final ${msg.score.home}–${msg.score.away} (${msg.result})`;
+    const href = `/film?match=${encodeURIComponent(msg.matchId)}`;
+    tickerEl.innerHTML = `Final ${msg.score.home}–${msg.score.away} (${msg.result}) · <a href="${href}">Review footage</a>`;
+    const review = document.getElementById("reviewFootage");
+    if (review) review.setAttribute("href", href);
   } else if (msg.type === "cost") {
     costEl.textContent = formatCostHud(msg, state.noLlm);
   }

@@ -12,6 +12,7 @@ Thumbs.db
 data/*.sqlite
 data/*.sqlite-journal
 data/checkpoints.sqlite
+data/clip-cache/
 checkpoints/
 *.tsbuildinfo
 .pnpm-store/
