@@ -1,0 +1,121 @@
+import { describe, expect, it } from "vitest";
+import { openMemoryDb } from "../persist/db.ts";
+import { insertEvents } from "../persist/events.ts";
+import { insertMatch } from "../persist/matches.ts";
+import { ensureSeedPlaybooks, latestPlaybook } from "../persist/playbooks.ts";
+import { makeOpeningSnapshot } from "../persist/snapshot.ts";
+import { loadPlaybook } from "../playbook/store.ts";
+import { makeEventId } from "../types/ids.ts";
+import type { MatchEvent } from "../types/events.ts";
+import type { CompiledAarGraph } from "./aarGraph.ts";
+import { codeOnlyAarReport, runPostMatchAar } from "./runAar.ts";
+import { shouldApplyRevision } from "./apply.ts";
+
+function ev(seq: number, type: string, over: Partial<MatchEvent> = {}): MatchEvent {
+  return {
+    id: makeEventId("m1", seq),
+    seq,
+    liveTick: seq * 8,
+    stoppageSeq: 0,
+    period: 1,
+    type,
+    zone: over.zone ?? "OZ",
+    xG: over.xG,
+    actor: over.actor ?? "h-C",
+    payload: over.payload ?? { side: "home" },
+    playId: over.playId ?? "5v5-122-forecheck",
+  };
+}
+
+const EVENTS: MatchEvent[] = [
+  ev(0, "FaceoffWin", { zone: "NZ" }),
+  ev(1, "Shot", { xG: 0.22 }),
+  ev(2, "Goal", { xG: 0.22 }),
+];
+
+const throwingGraph: CompiledAarGraph = {
+  nodes: {},
+  invoke: async () => {
+    throw new Error("aar home timed out after 45000ms");
+  },
+  stream: async () => {
+    throw new Error("unused");
+  },
+};
+
+describe("codeOnlyAarReport", () => {
+  it("drafts a cited boost for a win when the book is present", () => {
+    const report = codeOnlyAarReport({
+      matchId: "m1",
+      side: "home",
+      result: "win",
+      events: EVENTS,
+      playbook: loadPlaybook("original-six"),
+    });
+    expect(report.revision?.ops.some((o) => o.op === "boost")).toBe(true);
+    expect(report.noLlm).toBe(true);
+  });
+
+  it("drafts a cited add_counter for a loss", () => {
+    const report = codeOnlyAarReport({
+      matchId: "m1",
+      side: "home",
+      result: "loss",
+      events: EVENTS,
+      playbook: loadPlaybook("original-six"),
+    });
+    expect(report.revision?.ops.some((o) => o.op === "add_counter")).toBe(true);
+  });
+});
+
+describe("runPostMatchAar", () => {
+  it("live timeout still applies cited codeDraft ops", async () => {
+    const db = await openMemoryDb();
+    try {
+      insertMatch(db, makeOpeningSnapshot({ matchId: "m1", seed: 1 }));
+      insertEvents(db, "m1", EVENTS);
+      ensureSeedPlaybooks(db);
+      expect(shouldApplyRevision({ noLlm: false, aarMode: "auto" })).toBe(true);
+      const book = loadPlaybook("original-six");
+      const out = await runPostMatchAar({
+        db,
+        matchId: "m1",
+        matchResult: "home",
+        homePlaybook: book,
+        awayPlaybook: loadPlaybook("expansion"),
+        events: EVENTS,
+        noLlm: false,
+        homeGraph: throwingGraph,
+        awayGraph: throwingGraph,
+      });
+      expect(out.home.revision?.ops.some((o) => o.op === "boost")).toBe(true);
+      expect(latestPlaybook(db, "original-six")?.version).toBeGreaterThan(1);
+    } finally {
+      db.close();
+    }
+  });
+
+  it("--no-llm still never mutates the playbook", async () => {
+    const db = await openMemoryDb();
+    try {
+      insertMatch(db, makeOpeningSnapshot({ matchId: "m1", seed: 1 }));
+      insertEvents(db, "m1", EVENTS);
+      ensureSeedPlaybooks(db);
+      const book = loadPlaybook("original-six");
+      const out = await runPostMatchAar({
+        db,
+        matchId: "m1",
+        matchResult: "home",
+        homePlaybook: book,
+        awayPlaybook: loadPlaybook("expansion"),
+        events: EVENTS,
+        noLlm: true,
+      });
+      expect(out.home.revision?.ops.length).toBeGreaterThan(0);
+      expect(out.home.noLlm).toBe(true);
+      expect(latestPlaybook(db, "original-six")?.version).toBe(1);
+    } finally {
+      db.close();
+    }
+  });
+});

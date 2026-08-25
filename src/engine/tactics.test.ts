@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { computeIceIntent } from "../ice/roles.ts";
 import { DEFAULT_PLAY_ID } from "../types/play.ts";
 import { playStillValid } from "../playbook/retrieve.ts";
 import { loadPlaybook } from "../playbook/store.ts";
@@ -228,6 +229,79 @@ describe("pass / shoot release", () => {
       }
     }
     expect(sawShot).toBe(true);
+  });
+
+  it("ice F1 shoot in OZ releases a Shot without a coach overlay (seed dump)", () => {
+    const book = loadPlaybook("original-six");
+    const world = createWorld({
+      playId: { home: "5v5-122-forecheck", away: DEFAULT_PLAY_ID },
+      playbooks: { home: book, away: book },
+      puck: { pos: { x: 50, y: 0 }, possessor: "h-C" },
+      bodies: {
+        "h-C": { pos: { x: 50, y: 0 }, heading: 0, vel: { x: 0, y: 0 } },
+      },
+    });
+    const rng = createRng(3);
+    let sawShot = false;
+    for (let i = 0; i < 40; i++) {
+      const ev = advanceWorld(world, world.directives, rng);
+      if (ev.some((e) => e.type === "Shot")) {
+        sawShot = true;
+        const shot = ev.find((e) => e.type === "Shot");
+        expect(shot?.xG).toBeGreaterThanOrEqual(0.01);
+        break;
+      }
+    }
+    expect(sawShot).toBe(true);
+  });
+
+  it("pass release does not emit a Shot", () => {
+    const book = loadPlaybook("expansion");
+    const world = createWorld({
+      playId: { home: "stretch-pass-nz", away: DEFAULT_PLAY_ID },
+      playbooks: { home: book, away: book },
+      directives: {
+        home: { playId: "stretch-pass-nz", pressure: "neutral", playParams: { shotPolicy: "pass" } },
+        away: defaultDirective(),
+      },
+      puck: { pos: { x: 0, y: 0 }, possessor: "h-C" },
+      bodies: {
+        "h-C": { pos: { x: 0, y: 0 }, heading: Math.atan2(10, 22), vel: { x: 0, y: 0 } },
+        "h-LW": { pos: { x: 22, y: 10 }, heading: 0 },
+      },
+    });
+    const rng = createRng(3);
+    let released = false;
+    for (let i = 0; i < 40; i++) {
+      const ev = advanceWorld(world, world.directives, rng);
+      expect(ev.some((e) => e.type === "Shot")).toBe(false);
+      if (world.puck.possessor === null) {
+        released = true;
+        break;
+      }
+    }
+    expect(released).toBe(true);
+  });
+
+  it("coach dump overlay does not release even when ice would shoot", () => {
+    const book = loadPlaybook("original-six");
+    const world = createWorld({
+      playId: { home: "5v5-122-forecheck", away: DEFAULT_PLAY_ID },
+      playbooks: { home: book, away: book },
+      directives: {
+        home: { playId: "5v5-122-forecheck", pressure: "neutral", playParams: { shotPolicy: "dump" } },
+        away: defaultDirective(),
+      },
+      puck: { pos: { x: 50, y: 0 }, possessor: "h-C" },
+      bodies: { "h-C": { pos: { x: 50, y: 0 }, heading: 0 } },
+    });
+    world.iceIntents = {
+      home: computeIceIntent(world, "home"),
+      away: computeIceIntent(world, "away"),
+    };
+    expect(world.iceIntents.home.f1Action).toBe("shoot");
+    expect(maybeReleasePuck(world)).toBe(false);
+    expect(world.puck.possessor).toBe("h-C");
   });
 });
 

@@ -1,6 +1,6 @@
 import { PlaybookRevisionSchema } from "../../llm/schemas.ts";
 import { TIE_BOOST_XG_SHARE } from "../../types/aar.ts";
-import type { PlayMutation, PlaybookRevision } from "../../types/play.ts";
+import { DEFAULT_PLAY_ID, type Play, type PlayMutation, type PlaybookRevision } from "../../types/play.ts";
 import type { AarGraphNode, AarGraphStateType } from "../state.ts";
 import { invokeAarStructured, type AarLlmOpts } from "../llm.ts";
 import { playWithXgShare, topPlay, type PlayUsage } from "./actual.ts";
@@ -35,6 +35,16 @@ function firstCite(state: AarGraphStateType, playId?: string): string | undefine
   return hit?.id ?? events[0]?.id ?? state.knownEventIds?.[0];
 }
 
+/** `default-structure` is a code fallback, not a seed row. */
+function targetPlay(state: AarGraphStateType, playId?: string): Play | undefined {
+  const plays = state.playbook.plays ?? [];
+  if (playId && playId !== DEFAULT_PLAY_ID) {
+    const hit = plays.find((p) => p.id === playId);
+    if (hit) return hit;
+  }
+  return plays.find((p) => p.status === "active") ?? plays[0];
+}
+
 function makeBoost(playId: string, eventId: string, reason: string): PlayMutation {
   return { op: "boost", playId, reason, eventIds: [eventId] };
 }
@@ -51,17 +61,50 @@ export function ensureMandatoryBoost(state: AarGraphStateType, revision: Playboo
   if (revision.ops.some((op) => op.op === "boost")) return revision;
 
   const usage: PlayUsage | undefined = sharePlay ?? topPlay(state.playUsage ?? []);
-  const playId = usage?.playId ?? state.playbook.plays[0]?.id;
-  const eventId = firstCite(state, playId);
-  if (!playId || !eventId) return revision;
+  const play = targetPlay(state, usage?.playId);
+  const eventId = firstCite(state, play?.id);
+  if (!play || !eventId) return revision;
 
   const boost = makeBoost(
-    playId,
+    play.id,
     eventId,
     needTieBoost ? "tie: play had xG share > 0.4" : "winner: lock what worked",
   );
   const rest = revision.ops.filter((op) => !(state.result === "win" && op.op === "retire"));
   return { summary: revision.summary, ops: [boost, ...rest].slice(0, 3) };
+}
+
+function opIsCited(state: AarGraphStateType, op: PlayMutation): boolean {
+  const ids = op.eventIds;
+  if (!ids || ids.length === 0) return false;
+  const known = new Set(state.knownEventIds ?? []);
+  return ids.every((id) => known.has(id));
+}
+
+/** Loser always leaves a cited add_counter when a play + event exist. */
+export function ensureLoserCounter(state: AarGraphStateType, revision: PlaybookRevision): PlaybookRevision {
+  if (state.result !== "loss") return revision;
+  if (revision.ops.some((op) => (op.op === "add_counter" || op.op === "nerf") && opIsCited(state, op))) {
+    return revision;
+  }
+
+  const usage = topPlay(state.playUsage ?? []);
+  const play = targetPlay(state, usage?.playId);
+  const eventId = firstCite(state, play?.id);
+  if (!play || !eventId) return revision;
+
+  const family =
+    play.vulnerableTo.find((f) => !play.counters.includes(f)) ??
+    state.playbook.plays.map((p) => p.family).find((f) => f !== play.family && !play.counters.includes(f));
+  if (!family) return revision;
+
+  const op: PlayMutation = {
+    op: "add_counter",
+    playId: play.id,
+    family,
+    eventIds: [eventId],
+  };
+  return { summary: revision.summary, ops: [op, ...revision.ops].slice(0, 3) };
 }
 
 export function stripWinnerRetires(state: AarGraphStateType, revision: PlaybookRevision): PlaybookRevision {
@@ -75,7 +118,7 @@ export function stripWinnerRetires(state: AarGraphStateType, revision: PlaybookR
 
 export function codeDraft(state: AarGraphStateType): PlaybookRevision {
   const summary = [state.intentSummary, state.actualSummary, state.lensNotes].filter(Boolean).join(" ").slice(0, 1200);
-  return ensureMandatoryBoost(state, emptyRevision(summary || "code-only AAR digest"));
+  return ensureLoserCounter(state, ensureMandatoryBoost(state, emptyRevision(summary || "code-only AAR digest")));
 }
 
 export function makeDraftRevision(opts: DraftOpts = {}): AarGraphNode {
@@ -85,6 +128,8 @@ export function makeDraftRevision(opts: DraftOpts = {}): AarGraphNode {
     }
     const out = await invokeAarStructured(PlaybookRevisionSchema, SYSTEM, prompt(state), opts.profile);
     const base = out ?? emptyRevision(state.lensNotes ?? state.actualSummary ?? "draft fallback");
-    return { revision: ensureMandatoryBoost(state, stripWinnerRetires(state, base)) };
+    return {
+      revision: ensureLoserCounter(state, ensureMandatoryBoost(state, stripWinnerRetires(state, base))),
+    };
   };
 }

@@ -1,4 +1,5 @@
 import type { PlayParams } from "../types/directive.ts";
+import type { IceF1Action } from "../ice/types.ts";
 import type { Position, Side, ShotPolicy, Vec2 } from "../types/hockey.ts";
 import type { FormationSlot, Landmark, Play, SlotRole } from "../types/play.ts";
 import { resolvePlay } from "../playbook/store.ts";
@@ -144,9 +145,29 @@ export function shotPolicyOf(world: WorldState, side: Side, play: Play): ShotPol
   return params?.shotPolicy ?? play.assignments.shotPolicy;
 }
 
-/** LLM overlay only. Seed assignment pass/shoot still uses the old skate-to-net path (goldens). */
+/** LLM overlay only. */
 function overlayShotPolicy(world: WorldState, side: Side): ShotPolicy | undefined {
   return world.directives[side].playParams?.shotPolicy;
+}
+
+function iceActionToPolicy(action: IceF1Action | undefined): ShotPolicy | undefined {
+  if (action === "shoot") return "shoot";
+  if (action === "pass") return "pass";
+  if (action === "clear") return "dump";
+  return undefined;
+}
+
+/** Overlay beats ice F1; ice beats seed assignment. */
+function releasePolicy(
+  world: WorldState,
+  side: Side,
+  play: Play,
+): { policy: ShotPolicy; source: "overlay" | "ice" | "assignment" } {
+  const overlay = overlayShotPolicy(world, side);
+  if (overlay) return { policy: overlay, source: "overlay" };
+  const ice = iceActionToPolicy(world.iceIntents?.[side]?.f1Action);
+  if (ice) return { policy: ice, source: "ice" };
+  return { policy: play.assignments.shotPolicy, source: "assignment" };
 }
 
 /** Nearest on-ice teammate who can take a pass. Goalies and gap/crease slots skipped. */
@@ -176,8 +197,7 @@ export function passReceiver(world: WorldState, carrier: Body): Body | undefined
 
 function possessorTarget(world: WorldState, body: Body, play: Play): Vec2 {
   const dir = world.attackingDir[body.side];
-  const overlay = overlayShotPolicy(world, body.side);
-  const policy = overlay ?? play.assignments.shotPolicy;
+  const { policy } = releasePolicy(world, body.side, play);
   const dumpSpot = play.assignments.dumpSpot ?? "strong-corner";
   if (policy === "dump" || policy === "cycle") {
     return routeClearOfOwnNet(world, body, dumpTarget(world, body.side, dumpSpot));
@@ -189,7 +209,7 @@ function possessorTarget(world: WorldState, body: Body, play: Play): Vec2 {
     }
     return { x: body.pos.x, y: body.pos.y };
   }
-  if (overlay === "pass") {
+  if (policy === "pass") {
     const recv = passReceiver(world, body);
     if (recv) return routeClearOfOwnNet(world, body, { x: recv.pos.x, y: recv.pos.y });
   }
@@ -207,8 +227,8 @@ function facingRelease(body: Body, dest: Vec2): Vec2 | undefined {
 }
 
 /**
- * Directed pass/shot: impulse the puck and clear possession.
- * dump/cycle/hold never release here (goldens).
+ * Overlay dump/cycle/hold never release. Ice dump (clear) does.
+ * Missing iceIntents keeps seed dump on the stick.
  */
 export function maybeReleasePuck(world: WorldState): boolean {
   const id = world.puck.possessor;
@@ -216,15 +236,19 @@ export function maybeReleasePuck(world: WorldState): boolean {
   const body = world.bodies[id];
   if (!body || isGoalie(body)) return false;
   const play = playForSide(world, body.side);
-  const overlay = overlayShotPolicy(world, body.side);
-  if (!overlay || overlay === "dump" || overlay === "cycle" || overlay === "hold") return false;
+  const { policy, source } = releasePolicy(world, body.side, play);
+  if (policy === "cycle" || policy === "hold") return false;
+  if (policy === "dump" && source !== "ice") return false;
 
   let dest: Vec2;
   let speed: number;
-  if (overlay === "pass") {
+  if (policy === "pass") {
     const recv = passReceiver(world, body);
     if (!recv) return false;
     dest = recv.pos;
+    speed = PASS_RELEASE_SPEED;
+  } else if (policy === "dump") {
+    dest = dumpTarget(world, body.side, play.assignments.dumpSpot ?? "strong-corner");
     speed = PASS_RELEASE_SPEED;
   } else {
     const dir = world.attackingDir[body.side];
@@ -238,6 +262,7 @@ export function maybeReleasePuck(world: WorldState): boolean {
   if (n.x * world.attackingDir[body.side] < 0) return false;
   if (inOwnCrease(world, body.side, dest)) return false;
   const launch = STICK_REACH + 1.1;
+  world.stickRelease = policy === "pass" ? "pass" : policy === "dump" ? "clear" : "shot";
   world.puck.possessor = null;
   world.puck.pos = { x: body.pos.x + n.x * launch, y: body.pos.y + n.y * launch };
   world.puck.vel = { x: n.x * speed, y: n.y * speed };

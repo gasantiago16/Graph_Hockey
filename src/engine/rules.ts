@@ -1202,7 +1202,13 @@ function maybeIcing(
   return false;
 }
 
-function maybeShot(world: WorldState, prev: LiveSnapshot, emit: RuleEmit): void {
+function maybeShot(
+  world: WorldState,
+  prev: LiveSnapshot,
+  emit: RuleEmit,
+  stickRelease: WorldState["stickRelease"],
+): void {
+  if (stickRelease === "pass" || stickRelease === "clear") return;
   if (!prev.possessor || world.puck.possessor) return;
   const shooter = world.bodies[prev.possessor];
   if (!shooter || isGoalie(shooter)) return;
@@ -1239,12 +1245,14 @@ export function applyLiveRules(
   puckContacts: ContactEvent[],
   playerContacts: ContactEvent[] = [],
 ): void {
+  const stickRelease = world.stickRelease;
+  world.stickRelease = null;
   if (world.whistle !== null) return;
   maybePenalties(world, rng, emit, playerContacts);
   if (world.whistle !== null) return;
   if (maybeResolveDelayedTurnover(world, emit)) return;
   if (updateSmother(world, emit, dt)) return;
-  maybeShot(world, prev, emit);
+  maybeShot(world, prev, emit, stickRelease);
   if (maybeGoal(world, prev, emit)) return;
   if (maybeNetOff(world, emit)) return;
   if (maybeOffside(world, prev, emit, puckContacts)) return;

@@ -123,6 +123,8 @@ export type WorldState = {
   playbooks?: { home: Playbook; away: Playbook };
   /** Five-man ice roles/targets for this tick. Filled in stepLive. */
   iceIntents?: { home: IceIntent; away: IceIntent };
+  /** Last stick release this tick. Pass/clear must not become Shot. */
+  stickRelease: "shot" | "pass" | "clear" | null;
 };
 
 export type CreateWorldInput = {
@@ -163,6 +165,7 @@ export type CreateWorldInput = {
   lastEvents?: MatchEvent[];
   playbooks?: { home: Playbook; away: Playbook };
   iceIntents?: { home: IceIntent; away: IceIntent };
+  stickRelease?: "shot" | "pass" | "clear" | null;
 };
 
 export function vec(x: number, y: number): Vec2 {
@@ -397,6 +400,7 @@ export function createWorld(input: CreateWorldInput = {}): WorldState {
     lastEvents: input.lastEvents ? [...input.lastEvents] : [],
     playbooks: input.playbooks,
     iceIntents: input.iceIntents,
+    stickRelease: input.stickRelease ?? null,
   };
 }
 

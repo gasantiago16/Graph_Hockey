@@ -167,6 +167,6 @@ describe("compileAarGraph", () => {
     )) as { actualSummary?: string; revision?: PlaybookRevision };
     expect(factory).not.toHaveBeenCalled();
     expect(out.actualSummary).toBeTruthy();
-    expect(out.revision?.ops ?? []).toEqual([]);
+    expect((out.revision?.ops ?? []).some((o) => o.op === "add_counter")).toBe(true);
   });
 });

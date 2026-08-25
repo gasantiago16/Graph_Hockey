@@ -14,7 +14,10 @@ import { AAR_RECURSION_LIMIT, aarThreadId, compileAarGraph, type CompiledAarGrap
 export const AAR_SIDE_TIMEOUT_MS = 45_000;
 import { applyAarRevision, persistAarReport, shouldApplyRevision, type AarMode } from "./apply.ts";
 import { computeActual } from "./nodes/actual.ts";
+import { filterCitedOps } from "./nodes/citeCheck.ts";
+import { codeDraft } from "./nodes/draftRevision.ts";
 import { codeIntentSummary } from "./nodes/intent.ts";
+import type { AarGraphStateType } from "./state.ts";
 
 export function sideResult(matchResult: MatchResultLabel, side: Side): AarResult {
   if (matchResult === "tie") return "tie";
@@ -52,23 +55,43 @@ function reportFromOutput(
   };
 }
 
-/** Code-only AAR: digest + aggregates, no grok-4.5. */
+/** Code-only AAR: digest + aggregates + cited codeDraft ops. No grok-4.5. */
 export function codeOnlyAarReport(args: {
   matchId: string;
   side: Side;
   result: AarResult;
   events: readonly MatchEvent[];
   epochs?: { seq: number; side: Side; reason: string; epochKind?: string | null; coachIntent?: string | null; directive?: { playId: string } | null }[];
+  playbook?: Playbook;
 }): AarReport {
+  const playbook = args.playbook ?? { teamId: "", version: 1, plays: [] };
   const actual = computeActual(args.matchId, args.events, args.side);
   const intentSummary = codeIntentSummary({
     matchId: args.matchId,
     side: args.side,
     result: args.result,
-    playbook: { teamId: "", version: 1, plays: [] },
+    playbook,
     epochs: args.epochs as never,
     eventLogDigest: actual.digest,
   });
+  const state: AarGraphStateType = {
+    matchId: args.matchId,
+    side: args.side,
+    result: args.result,
+    playbook,
+    events: [...args.events],
+    epochs: args.epochs as never,
+    eventLogDigest: actual.digest,
+    knownEventIds: actual.knownEventIds,
+    aggregates: actual.aggregates,
+    intentSummary,
+    actualSummary: actual.actualSummary,
+    mintEligible: actual.mintEligible,
+    playUsage: actual.usage,
+    sequences: actual.sequences,
+  };
+  const drafted = codeDraft(state);
+  const cited = filterCitedOps(drafted.ops, actual.knownEventIds);
   return {
     matchId: args.matchId,
     side: args.side,
@@ -76,8 +99,8 @@ export function codeOnlyAarReport(args: {
     intentSummary,
     actualSummary: actual.actualSummary,
     causes: [],
-    revision: { summary: actual.actualSummary.slice(0, 1200) || "code-only AAR digest", ops: [] },
-    rejectedOps: [],
+    revision: { summary: drafted.summary, ops: cited.kept },
+    rejectedOps: cited.rejectedOps,
     aggregates: actual.aggregates,
     eventLogDigest: actual.digest,
     noLlm: true,
@@ -117,6 +140,7 @@ export async function runAarForSide(
       result,
       events,
       epochs,
+      playbook: opts.playbook,
     });
   try {
     let timer: ReturnType<typeof setTimeout> | undefined;
@@ -195,6 +219,7 @@ export async function runPostMatchAar(opts: PostMatchAarOpts): Promise<{ home: A
       result: sideResult(opts.matchResult, "home"),
       events,
       epochs,
+      playbook: opts.homePlaybook,
     });
     const away = codeOnlyAarReport({
       matchId: opts.matchId,
@@ -202,6 +227,7 @@ export async function runPostMatchAar(opts: PostMatchAarOpts): Promise<{ home: A
       result: sideResult(opts.matchResult, "away"),
       events,
       epochs,
+      playbook: opts.awayPlaybook,
     });
     persistAarReport(opts.db, home, false);
     persistAarReport(opts.db, away, false);

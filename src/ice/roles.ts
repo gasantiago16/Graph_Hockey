@@ -1,7 +1,7 @@
 import type { Side } from "../types/hockey.ts";
 import type { IceIntent } from "./types.ts";
-export type { IceIntent, IceRole } from "./types.ts";
-export { ICE_ROLES } from "./types.ts";
+export type { IceF1Action, IceIntent, IceRole } from "./types.ts";
+export { ICE_F1_ACTIONS, ICE_ROLES } from "./types.ts";
 import { GOAL_LINE_X, BLUE_LINE_X, HASH_OFFSET_Y, projectInsideRink } from "../engine/rink.ts";
 import {
   creaseTarget,
@@ -36,6 +36,14 @@ function sortByPuck(world: WorldState, bodies: Body[]): Body[] {
   });
 }
 
+/** Observer-relative: +X along this side's attack. */
+export function zoneAlongAttack(puckX: number, dir: 1 | -1): "DZ" | "NZ" | "OZ" {
+  const along = puckX * dir;
+  if (along > BLUE_LINE_X) return "OZ";
+  if (along < -BLUE_LINE_X) return "DZ";
+  return "NZ";
+}
+
 /**
  * Five-man geometry. F1 hunts or carries; F2 support-below; F3 slot;
  * Ds gaps the puck; Dw weak-side high. Goalie crease.
@@ -65,9 +73,13 @@ export function computeIceIntent(world: WorldState, side: Side): IceIntent {
     intent.f1 = f1.id;
     intent.roles[f1.id] = "F1";
     if (world.puck.possessor !== f1.id) {
+      intent.f1Action = "hunt";
       if (!inOwnCrease(world, side, puck)) {
         intent.targets[f1.id] = { x: puck.x, y: puck.y };
       }
+    } else {
+      const z = zoneAlongAttack(puck.x, dir);
+      intent.f1Action = z === "OZ" ? "shoot" : z === "DZ" ? "clear" : "pass";
     }
   }
 
