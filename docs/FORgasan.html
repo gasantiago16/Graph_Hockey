@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>FORgasan — Graph_Hockey</title>
+  <style>
+    :root {
+      --bg: #0b1016;
+      --fg: #e8eef5;
+      --muted: #93a1b0;
+      --accent: #7dd3fc;
+      --accent2: #a78bfa;
+      --ok: #86efac;
+      --warn: #fbbf24;
+      --danger: #f87171;
+      --card: #151d28;
+      --card2: #1a2432;
+      --border: #2a3646;
+      --code: #0a0e14;
+      --glow: rgba(125, 211, 252, 0.12);
+      --radius: 12px;
+      --max: 52rem;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", system-ui, sans-serif;
+      background:
+        radial-gradient(1000px 500px at 10% -10%, rgba(125,211,252,.08), transparent 55%),
+        radial-gradient(800px 400px at 100% 0%, rgba(167,139,250,.06), transparent 50%),
+        var(--bg);
+      color: var(--fg);
+      line-height: 1.68;
+    }
+    .wrap { max-width: var(--max); margin: 0 auto; padding: 1.5rem 1.25rem 4rem; }
+    h1 { font-size: clamp(1.45rem, 4vw, 1.95rem); margin: 0 0 .4rem; }
+    h2 {
+      font-size: 1.35rem; margin: 2.4rem 0 1rem; padding-bottom: .4rem;
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; gap: .55rem;
+    }
+    h2 .n {
+      width: 1.75rem; height: 1.75rem; border-radius: 8px;
+      display: inline-flex; align-items: center; justify-content: center;
+      background: var(--glow); border: 1px solid rgba(125,211,252,.25);
+      color: var(--accent); font-size: .85rem; font-weight: 700;
+    }
+    a { color: var(--accent); }
+    .lede { color: var(--muted); font-size: 1.05rem; }
+    code, pre { font-family: ui-monospace, Consolas, monospace; font-size: .86em; }
+    code { background: var(--code); padding: .12em .35em; border-radius: 4px; }
+    pre {
+      background: var(--code); border: 1px solid var(--border);
+      border-radius: 10px; padding: 1rem; overflow-x: auto;
+    }
+    table { width: 100%; border-collapse: collapse; margin: 1rem 0; font-size: .93rem; }
+    th, td { border: 1px solid var(--border); padding: .5rem .65rem; text-align: left; vertical-align: top; }
+    th { background: var(--card2); color: var(--accent); }
+
+    .hero {
+      position: relative; border-radius: 16px; overflow: hidden;
+      border: 1px solid var(--border); margin-bottom: 1.25rem; background: var(--card);
+      min-height: 240px;
+    }
+    .hero-img { display: block; width: 100%; max-height: 280px; object-fit: cover; }
+    .hero-overlay {
+      position: absolute; inset: 0;
+      background: linear-gradient(to top, rgba(11,16,22,.95), rgba(11,16,22,.25));
+      display: flex; flex-direction: column; justify-content: flex-end;
+      padding: 1.35rem;
+    }
+    .badge {
+      display: inline-block; font-size: .72rem; font-weight: 600;
+      text-transform: uppercase; letter-spacing: .04em;
+      padding: .2rem .55rem; border-radius: 999px;
+      border: 1px solid var(--border); color: var(--accent);
+      background: rgba(15,20,28,.75); margin: 0 .3rem .4rem 0;
+    }
+    nav.toc {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 1rem 1.15rem; margin: 1.25rem 0;
+    }
+    nav.toc ol { margin: .5rem 0 0; padding-left: 1.2rem; }
+    @media (min-width: 640px) { nav.toc ol { columns: 2; } }
+    .figure {
+      margin: 1.1rem 0; border-radius: var(--radius); overflow: hidden;
+      border: 1px solid var(--border); background: var(--card);
+    }
+    .figure img { display: block; width: 100%; max-height: 320px; object-fit: cover; }
+    .figure figcaption {
+      padding: .65rem .9rem; font-size: .88rem; color: var(--muted);
+      border-top: 1px solid var(--border); background: var(--card2);
+    }
+    .stat-row {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(7.5rem, 1fr));
+      gap: .65rem; margin: 1rem 0;
+    }
+    .stat {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 10px; padding: .75rem; text-align: center;
+    }
+    .stat .v { display: block; font-size: 1.3rem; font-weight: 700; color: var(--ok); }
+    .stat .l { display: block; font-size: .72rem; color: var(--muted); text-transform: uppercase; margin-top: .2rem; }
+    .card-grid { display: grid; gap: .75rem; margin: 1rem 0; grid-template-columns: 1fr; }
+    @media (min-width: 560px) {
+      .card-grid.cols-2 { grid-template-columns: 1fr 1fr; }
+      .card-grid.cols-3 { grid-template-columns: 1fr 1fr 1fr; }
+    }
+    .vcard {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: .9rem 1rem; position: relative;
+    }
+    .vcard::before {
+      content: ""; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+    }
+    .vcard h4 { margin: .2rem 0 .35rem; }
+    .vcard .tag { font-size: .7rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+    .vcard p { margin: .25rem 0 0; font-size: .9rem; color: var(--muted); }
+    .callout {
+      border-left: 3px solid var(--accent);
+      background: linear-gradient(90deg, rgba(125,211,252,.08), var(--card));
+      padding: .85rem 1rem; margin: 1rem 0; border-radius: 0 10px 10px 0;
+    }
+    .callout.law { border-left-color: var(--ok); }
+    .callout.warn { border-left-color: var(--warn); }
+    .diagram {
+      margin: 1rem 0; background: var(--code); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: .75rem; overflow-x: auto;
+    }
+    .diagram svg { display: block; width: 100%; max-width: 640px; margin: 0 auto; height: auto; }
+    .diagram-caption { text-align: center; font-size: .82rem; color: var(--muted); margin-top: .4rem; }
+    .flow-step { display: grid; grid-template-columns: 2rem 1fr; gap: .65rem; margin-bottom: .55rem; }
+    .flow-dot {
+      width: 2rem; height: 2rem; border-radius: 50%;
+      border: 2px solid var(--accent); color: var(--accent);
+      display: flex; align-items: center; justify-content: center;
+      font-size: .78rem; font-weight: 700; background: var(--card2);
+    }
+    .flow-body {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 10px; padding: .7rem .9rem; font-size: .94rem;
+    }
+    .scar {
+      background: var(--card); border: 1px solid var(--border);
+      border-left: 4px solid var(--warn); border-radius: 0 12px 12px 0;
+      padding: .95rem 1.05rem; margin: 1rem 0;
+    }
+    .scar h3 { margin: 0 0 .55rem; color: var(--warn); font-size: 1.02rem; }
+    .meta { display: grid; grid-template-columns: 4.2rem 1fr; gap: .5rem; font-size: .9rem; margin: .35rem 0; }
+    .meta .k { font-size: .68rem; font-weight: 700; text-transform: uppercase; color: var(--muted); }
+    .meta .k.fix { color: var(--ok); }
+    .meta .k.lesson { color: var(--accent); }
+    .pitfall {
+      background: var(--card); border: 1px solid var(--border);
+      border-left: 4px solid var(--danger); border-radius: 0 10px 10px 0;
+      padding: .7rem .9rem; margin: .55rem 0; font-size: .94rem;
+    }
+    .pitfall strong { color: var(--danger); }
+    .habit-grid { display: grid; gap: .6rem; margin: 1rem 0; }
+    @media (min-width: 560px) { .habit-grid { grid-template-columns: 1fr 1fr; } }
+    .habit {
+      background: var(--card); border: 1px solid var(--border);
+      border-top: 3px solid var(--ok); border-radius: 10px; padding: .75rem .9rem;
+    }
+    .habit strong { display: block; margin-bottom: .2rem; }
+    .habit span { font-size: .88rem; color: var(--muted); }
+    .next {
+      counter-reset: nxt; list-style: none; padding: 0; margin: 1rem 0;
+    }
+    .next li {
+      counter-increment: nxt;
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 10px; padding: .75rem .9rem .75rem 3rem;
+      margin: .5rem 0; position: relative;
+    }
+    .next li::before {
+      content: counter(nxt);
+      position: absolute; left: .7rem; top: .7rem;
+      width: 1.5rem; height: 1.5rem; border-radius: 8px;
+      background: var(--glow); color: var(--accent); font-weight: 700;
+      display: flex; align-items: center; justify-content: center; font-size: .85rem;
+    }
+    footer {
+      margin-top: 3rem; color: var(--muted); font-size: .85rem;
+      border-top: 1px solid var(--border); padding-top: 1rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header class="hero">
+      <img class="hero-img" src="forme/hero-rink.jpg" alt="Night rink with two glowing benches and a referee at center ice" />
+      <div class="hero-overlay">
+        <div>
+          <span class="badge">FORME</span>
+          <span class="badge">Graph_Hockey</span>
+          <span class="badge">v1 M4</span>
+        </div>
+        <h1>FORgasan — Graph_Hockey</h1>
+        <p class="lede" style="color:#c5d0db;margin:0">Two LangGraphs, one referee that is not an LLM, and a film room that records whether they actually got better.</p>
+      </div>
+    </header>
+
+    <p class="lede">You wanted benches of agents to fight at hockey and refine plays after every result. This page is the handbook: how the repo thinks, where it bled, and what to steal for the next multi-agent system.</p>
+
+    <div class="stat-row">
+      <div class="stat"><span class="v">10 Hz</span><span class="l">engine tick</span></div>
+      <div class="stat"><span class="v">297</span><span class="l">tests, no live xAI</span></div>
+      <div class="stat"><span class="v">3</span><span class="l">compiled graphs</span></div>
+      <div class="stat"><span class="v">7</span><span class="l">game series default</span></div>
+      <div class="stat"><span class="v">8787</span><span class="l">localhost port</span></div>
+    </div>
+
+    <nav class="toc" aria-label="Contents">
+      <strong>Contents</strong>
+      <ol>
+        <li><a href="#what">What this project is</a></li>
+        <li><a href="#map">The map of the code</a></li>
+        <li><a href="#architecture">Architecture</a></li>
+        <li><a href="#tech">Technologies we chose</a></li>
+        <li><a href="#talk">How the parts talk</a></li>
+        <li><a href="#scars">Bugs, scars, and fixes</a></li>
+        <li><a href="#pitfalls">Pitfalls to avoid</a></li>
+        <li><a href="#good">What good engineers did</a></li>
+        <li><a href="#lessons">Lessons you can steal</a></li>
+        <li><a href="#next">Where to go next</a></li>
+      </ol>
+    </nav>
+
+    <main>
+      <section id="what">
+        <h2><span class="n">1</span> What this project is (in one breath)</h2>
+        <p>Graph_Hockey is a <strong>localhost Node.js hockey game</strong> where <strong>two independently compiled LangGraph.js teams</strong> compete on a <strong>deterministic 2D rink</strong>. The Match Orchestrator ticks physics at 10 Hz. Coaches only speak at decision epochs. After every win, loss, or tie, a <strong>third graph</strong> — After-Action Review — cites real <code>eventId</code>s and patches a structured playbook.</p>
+        <p>The browser is a spectator. It never scores, never calls xAI, never sees the opponent playbook. After <code>npm run web</code>, open <a href="http://127.0.0.1:8787/" target="_blank" rel="noopener">http://127.0.0.1:8787/</a>.</p>
+        <div class="card-grid cols-2">
+          <div class="vcard"><span class="tag">Law</span><h4>Engine is the referee</h4><p><code>advanceWorld</code> is the only mutator of puck and bodies.</p></div>
+          <div class="vcard"><span class="tag">Law</span><h4>Graphs are staff</h4><p>Head Coach + OC / DC / ST / goalie / scout / captain — not the six skaters.</p></div>
+          <div class="vcard"><span class="tag">Law</span><h4>Learning is data</h4><p>Plays are JSON. AAR emits capped patches, not a longer prompt.</p></div>
+          <div class="vcard"><span class="tag">Law</span><h4>Film is resimulation</h4><p>Same seed + stored directives. No MP4 pipeline.</p></div>
+        </div>
+      </section>
+
+      <section id="map">
+        <h2><span class="n">2</span> The map of the code</h2>
+        <p>Think basement → ice → benches → film room, not a dump of paths. LangGraph is the skill; the folders force the lesson: <strong>graphs propose, code disposes.</strong></p>
+        <div class="card-grid cols-3">
+          <div class="vcard"><span class="tag">Basement</span><h4><code>src/engine/</code></h4><p>200×85 ft, 10 Hz Euler, icing/offside/goals, fatigue. Not a StateGraph.</p></div>
+          <div class="vcard"><span class="tag">Benches</span><h4><code>src/agents/</code></h4><p>Two compiles. <code>Send</code> fan-out. Per-epoch <code>thread_id</code>.</p></div>
+          <div class="vcard"><span class="tag">Referee</span><h4><code>src/orchestrator/</code></h4><p>Tick, mirrored observe, invoke. Never an LLM.</p></div>
+          <div class="vcard"><span class="tag">Memory</span><h4><code>playbook/</code> + <code>persist/</code></h4><p>Seed books, sql.js events, replay resimulation.</p></div>
+          <div class="vcard"><span class="tag">After hours</span><h4><code>src/aar/</code></h4><p>Third graph. Actual is code. <code>cite_check</code> drops vibes.</p></div>
+          <div class="vcard"><span class="tag">Film</span><h4><code>film/</code> + <code>web/</code></h4><p>Clips, ledger, Canvas 2D. No keys on the wire.</p></div>
+        </div>
+        <p>Cheat sheet: <code>AGENTS.md</code>. Long spec: <code>docs/DESIGN.md</code>. CLI twin: <code>src/cli/</code> (<code>gh simulate --no-llm</code>).</p>
+      </section>
+
+      <section id="architecture">
+        <h2><span class="n">3</span> Architecture</h2>
+        <div class="callout law"><strong>Hard law:</strong> the browser draws frames. Scoring is geometry in <code>src/engine/rules.ts</code>. A hallucinated goal is JSON the validator ignores.</div>
+        <figure class="figure">
+          <img src="forme/layers-machine.jpg" alt="Ice as a machine with a mechanical referee and two coaching benches" />
+          <figcaption>The rink is a machine. The benches are policies. Mixing those two is how you get an LLM that teleports the puck.</figcaption>
+        </figure>
+        <div class="diagram">
+          <svg viewBox="0 0 640 280" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Architecture: browser, orchestrator, two team graphs, AAR">
+            <rect x="8" y="8" width="624" height="264" rx="12" fill="#0a0e14" stroke="#2a3646"/>
+            <rect x="24" y="24" width="140" height="52" rx="8" fill="#151d28" stroke="#7dd3fc"/>
+            <text x="94" y="48" fill="#e8eef5" text-anchor="middle" font-size="12" font-family="Segoe UI, sans-serif">Canvas 2D</text>
+            <text x="94" y="64" fill="#93a1b0" text-anchor="middle" font-size="10" font-family="Segoe UI, sans-serif">no LLM / no score</text>
+            <rect x="250" y="24" width="140" height="52" rx="8" fill="#151d28" stroke="#a78bfa"/>
+            <text x="320" y="55" fill="#e8eef5" text-anchor="middle" font-size="12" font-family="Segoe UI, sans-serif">Orchestrator</text>
+            <rect x="476" y="24" width="140" height="52" rx="8" fill="#151d28" stroke="#86efac"/>
+            <text x="546" y="55" fill="#e8eef5" text-anchor="middle" font-size="12" font-family="Segoe UI, sans-serif">advanceWorld</text>
+            <rect x="80" y="120" width="160" height="56" rx="8" fill="#151d28" stroke="#fbbf24"/>
+            <text x="160" y="144" fill="#e8eef5" text-anchor="middle" font-size="12" font-family="Segoe UI, sans-serif">homeTeamGraph</text>
+            <text x="160" y="160" fill="#93a1b0" text-anchor="middle" font-size="10" font-family="Segoe UI, sans-serif">HC + Send specialists</text>
+            <rect x="400" y="120" width="160" height="56" rx="8" fill="#151d28" stroke="#fbbf24"/>
+            <text x="480" y="144" fill="#e8eef5" text-anchor="middle" font-size="12" font-family="Segoe UI, sans-serif">awayTeamGraph</text>
+            <text x="480" y="160" fill="#93a1b0" text-anchor="middle" font-size="10" font-family="Segoe UI, sans-serif">private playbook</text>
+            <rect x="200" y="208" width="240" height="48" rx="8" fill="#151d28" stroke="#7dd3fc"/>
+            <text x="320" y="230" fill="#e8eef5" text-anchor="middle" font-size="12" font-family="Segoe UI, sans-serif">AAR graph → capped playbook patch</text>
+            <text x="320" y="246" fill="#93a1b0" text-anchor="middle" font-size="10" font-family="Segoe UI, sans-serif">cite_check requires eventIds</text>
+            <line x1="164" y1="76" x2="250" y2="50" stroke="#7dd3fc" stroke-width="1.5"/>
+            <line x1="390" y1="50" x2="476" y2="50" stroke="#86efac" stroke-width="1.5"/>
+            <line x1="300" y1="76" x2="160" y2="120" stroke="#fbbf24" stroke-width="1.5"/>
+            <line x1="340" y1="76" x2="480" y2="120" stroke="#fbbf24" stroke-width="1.5"/>
+            <line x1="160" y1="176" x2="280" y2="208" stroke="#7dd3fc" stroke-width="1.5"/>
+            <line x1="480" y1="176" x2="360" y2="208" stroke="#7dd3fc" stroke-width="1.5"/>
+          </svg>
+          <p class="diagram-caption">Two team graphs never share a thread. AAR is a third compile that may only patch what the log can cite.</p>
+        </div>
+        <p>Team compile path: <code>START → ingest → situation → retrieve_plays → (macro) head_coach ⇉ Send specialists → assemble → validate → END</code>. Micro skips <code>grok-4.5</code> and hits Captain only. Empty specialist list still assembles — there is no <code>route_specialists</code> node.</p>
+      </section>
+
+      <section id="tech">
+        <h2><span class="n">4</span> Technologies we chose (and why)</h2>
+        <table>
+          <thead><tr><th>Choice</th><th>Why</th><th>Tradeoff</th></tr></thead>
+          <tbody>
+            <tr><td>TypeScript strict, Node ≥ 20</td><td>Types from rink to WS</td><td><code>noEmit</code> + TS extensions for vitest</td></tr>
+            <tr><td>npm lockfile</td><td>pnpm/corepack EPERM on this Windows host</td><td>Design preferred pnpm; we documented it</td></tr>
+            <tr><td>LangGraph.js <code>StateSchema</code></td><td>Current Graph API</td><td>Pin versions; no <code>Annotation.Root</code></td></tr>
+            <tr><td>xAI <code>ChatXAI</code> Completions</td><td><code>XAI_API_KEY</code>, <code>api.x.ai</code></td><td><code>modelKwargs.reasoning_effort</code></td></tr>
+            <tr><td><code>grok-4.5</code> / <code>grok-4.3</code></td><td>Hybrid epochs, not per-tick LLM</td><td>4.5 reasoning cannot be off; in-game <code>low</code></td></tr>
+            <tr><td>sql.js WASM</td><td>No VS Build Tools / native CI addons</td><td>Adapter in <code>src/persist/db.ts</code></td></tr>
+            <tr><td>Node <code>http</code> + <code>ws</code></td><td>Localhost only</td><td>Origin-locked loopback</td></tr>
+            <tr><td>Canvas 2D</td><td>No second clock (Phaser)</td><td>Plot circles on ice</td></tr>
+          </tbody>
+        </table>
+        <p>We did not pick Unity, OpenAI-as-provider, or RL. Those hide LangGraph or bankrupt the token budget.</p>
+      </section>
+
+      <section id="talk">
+        <h2><span class="n">5</span> How the parts talk to each other</h2>
+        <div class="flow-step"><div class="flow-dot">1</div><div class="flow-body"><strong>advanceWorld</strong> — integrate, steer from the current play, maybe whistle. Sole mutator.</div></div>
+        <div class="flow-step"><div class="flow-dot">2</div><div class="flow-body"><strong>shouldDecide</strong> — per side: macro stoppage, micro (80 live ticks), or <code>playStillValid</code> skip. Valid play ⇒ that side pays zero tokens.</div></div>
+        <div class="flow-step"><div class="flow-dot">3</div><div class="flow-body"><strong>observe</strong> — mirror so you attack +X. Home + away <code>puck.x</code> ≈ 0. No opponent <code>playId</code>.</div></div>
+        <div class="flow-step"><div class="flow-dot">4</div><div class="flow-body"><strong>invokeTeam</strong> — never throws. Own 8s abort. Thread <code>match:{id}:team:{side}:epoch:{n}</code>.</div></div>
+        <div class="flow-step"><div class="flow-dot">5</div><div class="flow-body"><strong>validateDirective</strong> — playId from retrieved list only. Illegal extra attacker rejected.</div></div>
+        <div class="flow-step"><div class="flow-dot">6</div><div class="flow-body"><strong>AAR both sides</strong> — actual is code; <code>cite_check</code> drops uncited ops; auto-apply max 3. <code>--no-llm</code> does not mutate the book.</div></div>
+        <div class="flow-step"><div class="flow-dot">7</div><div class="flow-body"><strong>Film + series</strong> — auto clips; <code>gameSeed = seed + i</code>; ledger + paired G0 vs last on <code>/film?series=</code>.</div></div>
+      </section>
+
+      <section id="scars">
+        <h2><span class="n">6</span> Bugs, scars, and how we fixed them</h2>
+        <p>Not hypothetical. These would have shipped a wrong hockey game.</p>
+        <div class="scar">
+          <h3>Scar 1 — The graph that never called Head Coach</h3>
+          <div class="meta"><span class="k">What</span><span><code>epochKind</code> lived on the observation; the router read graph state. Every epoch was micro (or Zod failed). grok-4.5 never ran.</span></div>
+          <div class="meta"><span class="k">Root</span><span>Conditional edges see compiled state, not your mental model of “the observation is the input.”</span></div>
+          <div class="meta"><span class="k fix">Fix</span><span>Required top-level <code>epochKind</code> on invoke. Stream-visit tests for <code>head_coach</code>.</span></div>
+          <div class="meta"><span class="k lesson">Lesson</span><span>If a field decides a branch, put it where the framework looks.</span></div>
+        </div>
+        <div class="scar">
+          <h3>Scar 2 — Possession without a face</h3>
+          <div class="meta"><span class="k">What</span><span>Nearest body in stick reach got the puck while facing the wrong way. Fake <code>stick-puck</code> later legalized a kick-goal.</span></div>
+          <div class="meta"><span class="k">Root</span><span>Nearest-body tie-break ran before the 70° facing cone.</span></div>
+          <div class="meta"><span class="k fix">Fix</span><span>Only the facing-in-reach pool. Empty pool: puck stays loose. Tests: 70° award, 70.1° deny.</span></div>
+          <div class="meta"><span class="k lesson">Lesson</span><span>Last-contact kinds are load-bearing for the rulebook.</span></div>
+        </div>
+        <div class="scar">
+          <h3>Scar 3 — Occupancy scored a kick</h3>
+          <div class="meta"><span class="k">What</span><span>Skate-puck into the net, then a later stick touch while the puck sat there, counted as a goal.</span></div>
+          <div class="meta"><span class="k fix">Fix</span><span><code>crossedIntoNet(prev, now)</code> plus last contact stick-puck.</span></div>
+          <div class="meta"><span class="k lesson">Lesson</span><span>Score crossings, not occupancy.</span></div>
+        </div>
+        <div class="scar">
+          <h3>Scar 4 — Empty net confused power play</h3>
+          <div class="meta"><span class="k">What</span><span>On-ice counts included the extra attacker: PP goal vs PK empty net did not expire the minor; 6v5 dumps looked shorthanded for icing.</span></div>
+          <div class="meta"><span class="k fix">Fix</span><span><code>boxSkaterCounts</code> vs EN overlay; restore G/F4 when the delay window closes.</span></div>
+          <div class="meta"><span class="k lesson">Lesson</span><span>Name the question or you mix special teams with empty net forever.</span></div>
+        </div>
+        <div class="scar">
+          <h3>Scar 5 — Node named <code>situation</code></h3>
+          <div class="meta"><span class="k">What</span><span>LangGraph.js refused a node name that was also a state channel.</span></div>
+          <div class="meta"><span class="k fix">Fix</span><span>Write <code>classifiedSituation</code>. Also: never invent a <code>route_specialists</code> node — <code>Send</code> is not a state update.</span></div>
+        </div>
+        <div class="scar">
+          <h3>Scar 6 — Pairing too strict to show improvement</h3>
+          <div class="meta"><span class="k">What</span><span>Jaccard ≥ 0.7 refused Goal-against vs later Save on the same play — the film you wanted.</span></div>
+          <div class="meta"><span class="k fix">Fix</span><span>Same playId + zone first; Jaccard prefer 0.7, fallback 0.3.</span></div>
+        </div>
+      </section>
+
+      <section id="pitfalls">
+        <h2><span class="n">7</span> Pitfalls to avoid next time</h2>
+        <div class="pitfall"><strong>Don’t</strong> LLM every tick. 36,000 × 12 is not a small experiment.</div>
+        <div class="pitfall"><strong>Don’t</strong> return <code>Send[]</code> from a random node. Conditional edge or <code>Command.goto</code>, list <code>ends</code>, empty list still assembles.</div>
+        <div class="pitfall"><strong>Don’t</strong> keep <code>MessagesValue</code> on a match-long thread. Per-epoch <code>thread_id</code> or period 3 is the whole game.</div>
+        <div class="pitfall"><strong>Don’t</strong> store 36k JSON frames. Replay is the footage; clips are the catalog.</div>
+        <div class="pitfall"><strong>Don’t</strong> mix lockfiles. This clone uses npm because pnpm died on corepack.</div>
+        <div class="pitfall"><strong>Don’t</strong> bind <code>0.0.0.0</code> “for a demo.” Loopback is the product.</div>
+        <div class="pitfall"><strong>Don’t</strong> name a node the same as a state channel in LangGraph.js.</div>
+        <div class="pitfall"><strong>Don’t</strong> treat <code>--no-llm</code> as optional. It is how CI proves the engine without credits.</div>
+      </section>
+
+      <section id="good">
+        <h2><span class="n">8</span> What good engineers did here</h2>
+        <div class="habit-grid">
+          <div class="habit"><strong>Referee in code</strong><span>Fairness is testable without an API key.</span></div>
+          <div class="habit"><strong>Two compiles</strong><span>Not <code>side</code> on one graph. Hiding is structural.</span></div>
+          <div class="habit"><strong>297 tests, all faked LLM</strong><span><code>setCreateChatModel</code> / <code>FakeListChatModel</code>.</span></div>
+          <div class="habit"><strong>PR slices</strong><span>Engine → stubs → rink → coaches → AAR → series.</span></div>
+          <div class="habit"><strong>Caps on learning</strong><span>Max 3 AAR ops, cited events, winner cannot retire a working play from one bounce.</span></div>
+          <div class="habit"><strong>Golden hashes</strong><span><code>GRAPH_HOCKEY_PERIOD_SECONDS=5</code> keeps CI honest.</span></div>
+          <div class="habit"><strong>Keys stay in .env</strong><span>Health exposes <code>llmConfigured: boolean</code>, never the secret.</span></div>
+          <div class="habit"><strong>Visit tests for graphs</strong><span>Assert node names in a stream, not “the prompt looks right.”</span></div>
+        </div>
+      </section>
+
+      <section id="lessons">
+        <h2><span class="n">9</span> Lessons you can steal</h2>
+        <div class="habit-grid">
+          <div class="habit"><strong>Hybrid agentic systems</strong><span>Deterministic world + sparse LLM decisions. The world is the unit test.</span></div>
+          <div class="habit"><strong>Cite or discard</strong><span>Long-term memory changes need a pointer into a log you already trust.</span></div>
+          <div class="habit"><strong>Mirror observations</strong><span>Home + away <code>puck.x ≈ 0</code> is a one-liner that caught leaks.</span></div>
+          <div class="habit"><strong>Learning is a diff</strong><span>Playbook vN+1 beats a paragraph of “the team adapted.”</span></div>
+          <div class="habit"><strong>Native addons fail on Windows CI</strong><span>Plan a WASM adapter before you promise sqlite3.</span></div>
+          <div class="habit"><strong>Similarity must match the question</strong><span>Thresholds that hide improvement are the wrong product.</span></div>
+        </div>
+        <figure class="figure">
+          <img src="forme/dual-film.jpg" alt="Dark film room with two monitors overlooking ice" />
+          <figcaption>Film Room is not a video encoder. It is the event log, resimulated, so AAR can point at ice instead of vibes.</figcaption>
+        </figure>
+      </section>
+
+      <section id="next">
+        <h2><span class="n">10</span> Where to go next</h2>
+        <ol class="next">
+          <li>Merge the playable branch <code>execute-plan/ffa7c1ff-pr-15b-…</code> to <code>main</code> when you want the default clone to be the game.</li>
+          <li>Put <code>XAI_API_KEY</code> in <code>.env</code> and check <strong>Use LLM</strong> — watch the cost HUD and AAR mint counters.</li>
+          <li>Run <code>npm run gh -- series --games 7</code> with the key; open <code>/film?series=</code> and see if 1-2-2 still dies to crash-net.</li>
+          <li>PR 16 stretch: LangGraph <code>interrupt()</code> HITL, off the default compile path.</li>
+          <li>Optional native <code>better-sqlite3</code> behind <code>src/persist/db.ts</code> once Build Tools exist.</li>
+          <li>Optional canvas interpolation (engine stays 10 Hz).</li>
+          <li>Keep <code>AGENTS.md</code> honest when you add nodes — new files should map to a Graph API concept.</li>
+        </ol>
+        <div class="callout">
+          <strong>Glossary:</strong> Epoch = we bother the LLM. Directive = legal action sheet. Playbook = versioned JSON. <code>cite_check</code> = drop uncited ops. Resimulation = replay by running the engine again. Inspect = see one team’s play name.
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      Generated 2026-08-25 · Source: <a href="FORgasan.md">FORgasan.md</a> · Visuals: <code>docs/forme/</code> · 297 tests · HITL not in v1
+    </footer>
+  </div>
+</body>
+</html>
