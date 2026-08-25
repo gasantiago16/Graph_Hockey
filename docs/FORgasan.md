@@ -1,8 +1,10 @@
 # FORgasan — Graph_Hockey
 
-You wanted two LangGraphs to fight each other at hockey, then get smarter after every result. That is the whole product. The rest of this file is how we kept the LLMs from inventing goals, how the benches actually coordinate, and what we learned by shipping it in small PRs instead of one heroic dump.
+You wanted two LangGraphs to fight each other at hockey, then get smarter after every result. That is still the product. What we *shipped* is more specific, and this file is honest about it: **two independent benches**, **ice that is code**, **one Head Coach call per live epoch**, and **an After-Action Review that patches a playbook** so game 7 is not a rerun of game 1.
 
-This is a handbook for *you* — how the repo thinks, where the scars are, and what a good engineer would steal from it.
+The rest is how we kept the LLMs from inventing goals, how a call actually travels, how the team learns *together* (not ten solo opinions), and the scars we paid for.
+
+This is a handbook for *you* — how the repo thinks, what is a graph and what is not, and what a good engineer would steal from it.
 
 ---
 
@@ -15,9 +17,27 @@ The browser is a spectator. It never scores, never calls xAI, and never sees the
 | Law | Meaning |
 | --- | --- |
 | Engine is the referee | `advanceWorld` is the only mutator of puck and bodies |
-| Graphs are staff, not skaters | Head Coach + OC / DC / ST / goalie / scout / captain |
-| Learning is data | Plays are JSON objects; AAR emits capped patches, not a longer prompt |
+| Graphs are staff, not skaters | Live staff is **Head Coach**. OC / DC / ST / goalie / scout / captain are compiled, **opt-in**. F1–G are code. |
+| Learning is data | Plays are JSON; AAR emits capped, *cited* patches. Retrieve ranks those stats next game. |
 | Film is resimulation | Same seed + stored directives. MP4 export is a derivative, not the log |
+
+### What we actually have (read this twice)
+
+This is the part people get wrong. We did **not** build twelve LangGraph players who pass to each other.
+
+| Layer | Independent LangGraph? | What it does live |
+| --- | --- | --- |
+| `homeTeamGraph` / `awayTeamGraph` | **Yes — two compiles** | Separate checkpointers, separate playbooks. Never see the opponent `playId`. |
+| Head Coach (`grok-4.5`) | One node per team graph | **The live staff.** Macro epoch: ingest → situation → retrieve → **HC → assemble → validate**. |
+| OC, DC, ST, goalie, scout | Compiled subgraphs | **Off** unless `specialists: true`. Fan-out ate the 12s clock (Scar 9). |
+| Captain | Compiled subgraph | Micro only (offside / icing). Still times out. |
+| F1 / F2 / F3 / Ds / Dw / G | **No. `src/ice/`** | Every 10 Hz tick. Hunt / pass / shoot / clear. Overlay may override F1. |
+| AAR graph | **Yes — third compile** | After the horn. Intent / actual / why / cite. Patches the book. |
+| Browser | Never | Draws frames. No keys, no scoring, no opponent book. |
+
+They work as a **team** because they share a **play** (JSON formation + `shotPolicy`), not because five skaters vote. Independent agents without a shared sheet all hunt the puck. You already shipped that bug.
+
+If F1 cannot shoot, AAR has nothing to cite. If AAR cannot cite, the next retrieve is the same as game 1. That is the whole learning story.
 
 ---
 
@@ -72,11 +92,29 @@ flowchart TB
 
 F1 is on the ice every tick. The LangGraph is the bench. If F1 cannot shoot, AAR has nothing to cite.
 
-Each team graph compiles to:
+Each team graph **compiles** every specialist so DESIGN’s subgraphs stay in the tree. Live **runs** a thinner path:
 
-`START → ingest → situation → retrieve_plays → (macro) head_coach → assemble → validate → END`
+```mermaid
+flowchart LR
+  subgraph live ["Live macro (12s)"]
+    I[ingest] --> S[situation]
+    S --> R[retrieve_plays]
+    R --> HC[head_coach]
+    HC --> A[assemble]
+    A --> V[validate]
+  end
+  subgraph compiled ["Compiled, usually idle"]
+    OC[oc]
+    DC[dc]
+    ST[st]
+    G[goalie]
+    C[captain]
+    SC[scout]
+  end
+  HC -.->|"specialists: true only"| OC
+```
 
-Live macro **does not** `Send[]` OC/DC/captain/scout. Specialists stay compiled; opt in with `specialists: true`. That 12s epoch belongs to Head Coach. Micro still hits **Captain only** (`grok-4.3`) — and those still time out on offsides (see Scar 10). There is no `route_specialists` node.
+Live macro **does not** `Send[]` OC/DC/captain/scout. Opt in with `specialists: true`. That 12s epoch belongs to Head Coach. Micro still hits **Captain only** (`grok-4.3`) — and those still time out on offsides. There is no `route_specialists` node.
 
 AAR is a **separate compile**: load → intent (LLM) → **actual (code)** → why → winner/loser lens → draft → `cite_check`. The actual node is not allowed to “remember” a shot that is not in the log.
 
@@ -94,7 +132,7 @@ AAR is a **separate compile**: load → intent (LLM) → **actual (code)** → w
 | **sql.js** (WASM) | `better-sqlite3` needs VS Build Tools; CI has no native addons | Slower than native; adapter in `src/persist/db.ts` |
 | Node `http` + `ws` | Fastify was extra surface for a localhost game | Still origin-locked to loopback |
 | Canvas 2D, not Phaser | Phaser invites a second clock | ~one file to plot circles on ice |
-| Vitest + `FakeListChatModel` | 365 tests, **zero** live vendor calls in CI | You must inject the fake or skip the factory |
+| Vitest + `FakeListChatModel` | 382 tests, **zero** live vendor calls in CI | You must inject the fake or skip the factory |
 | `@napi-rs/canvas` + ffmpeg | Optional MP4 highlight for a human inbox | Film Room remains the source of truth |
 
 We did **not** pick Unity, OpenAI-as-provider, or RL. Those would hide LangGraph or bankrupt the token budget.
@@ -103,18 +141,72 @@ We did **not** pick Unity, OpenAI-as-provider, or RL. Those would hide LangGraph
 
 ## How the parts talk to each other
 
+There are **three clocks**, not one “the agents think.” Mixing them is how you get a $4 timeout and no hockey.
+
+| Clock | Rate | Who speaks | Typical call |
+| --- | --- | --- | --- |
+| Physics | **10 Hz**, every live tick | Engine + `src/ice/` | Zero LLM. F1 may shoot. `shotLock` = one shot per possession. |
+| Epoch | Faceoff, ST, 8s possession, last two minutes | **Head Coach** (macro) or **Captain** (micro) | One structured `CoachIntent`. 6s coach / 12s abort. |
+| After the horn | Once per side, per result | **AAR graph** | Intent + actual + why + cite. 45s. Timeout still `codeDraft`. |
+
+```mermaid
+sequenceDiagram
+  participant Ice as advanceWorld 10Hz
+  participant Orch as Orchestrator
+  participant Home as homeTeamGraph
+  participant Away as awayTeamGraph
+  participant Book as Playbooks
+  Ice->>Ice: iceIntents F1/F2/F3, maybeReleasePuck
+  Orch->>Ice: tick
+  alt epoch for that side
+    Orch->>Home: observe (mirrored, no their playId)
+    Home->>Home: retrieve_plays from OUR book
+    Home->>Home: head_coach (one grok-4.5 call)
+    Home-->>Orch: TeamDirective
+    Orch->>Ice: constraints, not teleport
+  end
+  Note over Ice,Book: Most ticks skip both graphs. Valid play = zero tokens.
+```
+
 One live tick, spoken slowly:
 
 1. **`advanceWorld`** (`src/engine/step.ts`) fills `iceIntents` (F1/F2/F3), steers, maybe **releases** a pass/shot/clear (`maybeReleasePuck`), and maybe blows a whistle.
 2. **`shouldDecide`** (`src/orchestrator/epochs.ts`) asks each side independently: macro stoppage, micro possession review (80 live ticks), or `playStillValid` skip. If valid, **that side skips the LLM**.
 3. **`observe`** mirrors geometry so *you* always attack +X. Away’s live `puck.x` and home’s sum to ~0. The opponent `playId` is not in the JSON.
 4. **`invokeTeam`** never throws. Live abort is **12s** (`--no-llm` stays 8s). Thread id is `match:{id}:team:{side}:epoch:{n}`. Timeout on opening `default-structure` seeds the book’s 5v5 play, not a silent freeze.
-5. **`validateDirective`** clamps `playId` to the retrieved list, rejects illegal extra attackers.
-6. Directives become constraints on the next physics steps — not teleportation. Ice F1 still shoots in OZ even if the coach is late.
-7. On `game_over`, **both** AAR graphs run. `--no-llm` writes a digest and **does not** mutate. Live timeout still runs `codeDraft` + `cite_check` and **auto-applies**. Caps: max 3 ops, cited `eventIds` only.
-8. **`recordMatchFilm`** builds clips. `gh footage --match ID --mp4` is a derivative H.264 file (`data/film-export/`, gitignored). Replay remains canonical. `liveTick` **resets each period** — clip windows must carry the period from the anchor event.
+5. **`retrieve_plays`** is **code**. It ranks OUR plays by net xG, plus a small bonus if `counters` include a public-geometry `themFamily`. That is how last game’s AAR shows up as this epoch’s menu.
+6. **`validateDirective`** clamps `playId` to the retrieved list, rejects illegal extra attackers.
+7. Directives become constraints on the next physics steps — not teleportation. Ice F1 still shoots in OZ even if the coach is late.
+8. On `game_over`, **both** AAR graphs run. `--no-llm` writes a digest and **does not** mutate. Live timeout still runs `codeDraft` + `cite_check` and **auto-applies**. Caps: max 3 ops, cited `eventIds` only.
+9. **`recordMatchFilm`** builds clips. `gh footage --match ID --mp4` is a derivative H.264 file (`data/film-export/`, gitignored). Replay remains canonical. `liveTick` **resets each period** — clip windows must carry the period from the anchor event.
 
 The WebSocket allowlist is snapshots, ticker, cost numbers, one-sided inspect. That is how a HUD can show “1-2-2 dump-and-chase” for Home and still hide Away’s playbook.
+
+### How the team learns together
+
+They do **not** learn by stuffing the whole game into a prompt. They learn because **memory is a versioned playbook** that both the next retrieve and the next skate can see.
+
+```mermaid
+flowchart TB
+  G["Game N: ice + HC directives"] --> L["Event log + xG"]
+  L --> AAR["AAR both sides"]
+  AAR -->|"winner: cited boost"| PB["Playbook vN+1"]
+  AAR -->|"loser: add_counter their family"| PB
+  AAR -->|"roll playUsage into stats.games / xG"| PB
+  PB --> R["retrieve_plays Game N+1"]
+  R --> HC["Head Coach picks from that menu"]
+  HC --> G2["Game N+1 skate"]
+```
+
+Together, specifically:
+
+1. **During the game** they share a play (formation slots, F1 action, `shotPolicy`). That is the team, not five LLMs arguing.
+2. **After the horn** each side’s AAR reads the **same public log** plus **their** book. Winners lock what produced xG (`boost` + real `playUsage` rolled into `stats`). Losers write `add_counter` for the **opponent family** that hurt them (`stretch-pass`, `crash-net`, …), not a random family from our own catalog.
+3. **`--no-llm` never mutates.** CI can still prove the rink. Learning is a live-AAR privilege.
+4. **Next faceoff**, `retrieve_plays` ranks by those stats and a `themFamily` bonus inferred from **public geometry** (never their `playId`). The coach can only pick from that list. Validator throws away invented ids.
+5. **Proof is a diff**, not a vibe. `gh series --json` prints distinct chances, offsides, opening play, and whether `retrieveTop` **moved**. A version bump with the same top-1 is not learning.
+
+The HTML page animates this loop. If you only remember one picture: **ice writes the log → AAR patches the book → retrieve changes the menu → the same five-man code skates a different play.**
 
 ---
 
@@ -244,7 +336,7 @@ These are not hypothetical. They showed up in design review or PR review and wou
 
 - **Referee in code.** Fairness is testable without an API key.
 - **Two compiles, not `side` on one graph.** Information hiding is structural.
-- **Tests, fakes for every LLM node.** `setCreateChatModel` / `FakeListChatModel`.
+- **382 tests, fakes for every LLM node.** `setCreateChatModel` / `FakeListChatModel`.
 - **PR slices.** Engine → stub graphs → rink → coaches → AAR → series. Each independently reviewable.
 - **Caps on learning.** Max 3 AAR ops, cited events only, winner cannot retire a play that just worked from one lucky bounce.
 - **Golden hashes.** Short periods (`GRAPH_HOCKEY_PERIOD_SECONDS=5`) keep CI honest without 36k ticks.
@@ -289,4 +381,4 @@ These are not hypothetical. They showed up in design review or PR review and wou
 
 ---
 
-*Generated 2026-08-25. `main` is playable. Shot lock + retrieve stats + series scorecard. live-52: Muse 3–1, 211/212 epochs ok. HITL not in v1.*
+*Generated 2026-08-25. `main` is playable. Two benches, ice in code, HC-only live staff, AAR playbook loop. 382 tests. live-52: Muse 3–1, 211/212 epochs ok. HITL not in v1.*
