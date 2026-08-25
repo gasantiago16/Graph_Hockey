@@ -4,7 +4,8 @@ import { PULL_GOALIE_SECONDS } from "../../engine/rules.ts";
 import { asPlayStrength, type ScoreState } from "../../playbook/retrieve.ts";
 import type { TeamGraphNode, TeamGraphStateType } from "../state.ts";
 
-export type SpecialistId = "oc" | "dc" | "st" | "goalie" | "captain" | "scout";
+export const SPECIALIST_IDS = ["oc", "dc", "st", "goalie", "captain", "scout"] as const;
+export type SpecialistId = (typeof SPECIALIST_IDS)[number];
 export type Urgency = "normal" | "protect" | "push" | "desperation";
 
 export type Situation = {
@@ -60,7 +61,7 @@ function withMacroExtras(base: SpecialistId[], obs: TeamObservation): Specialist
   return unique([...base, ...extra]);
 }
 
-/** §10.3 specialist list. Macro only; micro is routed to captain later (PR 11). */
+/** §10.3 specialist list. Macro only; micro ignores this list (epoch_router → captain). */
 export function specialistsForMacro(obs: TeamObservation): SpecialistId[] {
   const playStr = asPlayStrength(obs.strength);
   const specialTeams = playStr === "PP" || playStr === "PK";

@@ -16,14 +16,31 @@ import { HEAD_COACH_ENDS, makeHeadCoach } from "./nodes/headCoach.ts";
 import { makeAssembleDirective } from "./nodes/assembleDirective.ts";
 import { makeValidateDirective } from "./nodes/validateDirective.ts";
 import { TeamGraphInput, TeamGraphOutput, TeamGraphState } from "./state.ts";
+import { SpecialistInputSchema, wrapSpecialist } from "./wrapSpecialist.ts";
+import {
+  compileCaptainSubgraph,
+  compileDcSubgraph,
+  compileGoalieSubgraph,
+  compileOcSubgraph,
+  compileScoutSubgraph,
+  compileStSubgraph,
+} from "./specialists/index.ts";
 
 export const STUB_TEAM_NODES = ["ingest", "assemble_directive", "validate_directive"] as const;
+
+export const SPECIALIST_NODES = ["oc", "dc", "st", "goalie", "captain", "scout"] as const;
 
 export const TEAM_GRAPH_NODES = [
   "ingest",
   "situation",
   "retrieve_plays",
   "head_coach",
+  "oc",
+  "dc",
+  "st",
+  "goalie",
+  "captain",
+  "scout",
   "assemble_directive",
   "validate_directive",
 ] as const;
@@ -32,7 +49,7 @@ export type CompileTeamGraphOpts = {
   side: Side;
   playbook: Playbook;
   checkpointer?: BaseCheckpointSaver;
-  /** Skip grok-4.5 in head_coach. Stub assemble still uses the seed default play. */
+  /** Skip grok-4.5 and grok-4.3. Stub assemble still uses the seed default play. */
   noLlm?: boolean;
 };
 
@@ -53,10 +70,8 @@ export type TeamGraphInvokeConfig = {
 
 /**
  * Compile: START → ingest → situation → retrieve_plays → (macro) head_coach
- * → assemble_directive → validate_directive → END.
- * head_coach Command.goto = assemble_directive only (no specialist Send).
- * Micro skips head_coach (captain lands in PR 11). Same factory for home/away;
- * playbooks stay private via closure.
+ * Command.goto Send[] or assemble; (micro) captain → assemble_directive →
+ * validate_directive → END. No hitl_override on the default compile.
  */
 export type CompiledTeamGraph = {
   nodes: Record<string, unknown>;
@@ -68,14 +83,15 @@ export type CompiledTeamGraph = {
 };
 
 /** Conditional edge after retrieve_plays. Reads graph-state epochKind, not observation. */
-export function epochRouter(state: { epochKind?: unknown }): "head_coach" | "assemble_directive" {
-  return state.epochKind === "macro" ? "head_coach" : "assemble_directive";
+export function epochRouter(state: { epochKind?: unknown }): "head_coach" | "captain" {
+  return state.epochKind === "macro" ? "head_coach" : "captain";
 }
 
 export function compileTeamGraph(opts: CompileTeamGraphOpts): CompiledTeamGraph {
   void opts.side;
   const checkpointer = opts.checkpointer ?? new MemorySaver();
   const noLlm = opts.noLlm === true;
+  const specOpts = { noLlm };
   const compiled = new StateGraph({
     state: TeamGraphState,
     input: TeamGraphInput,
@@ -86,6 +102,24 @@ export function compileTeamGraph(opts: CompileTeamGraphOpts): CompiledTeamGraph 
     .addNode("situation", situation)
     .addNode("retrieve_plays", makeRetrievePlays(opts.playbook))
     .addNode("head_coach", makeHeadCoach({ noLlm }) as never, { ends: [...HEAD_COACH_ENDS] })
+    .addNode("oc", wrapSpecialist("oc", compileOcSubgraph(specOpts)) as never, {
+      input: SpecialistInputSchema,
+    })
+    .addNode("dc", wrapSpecialist("dc", compileDcSubgraph(specOpts)) as never, {
+      input: SpecialistInputSchema,
+    })
+    .addNode("st", wrapSpecialist("st", compileStSubgraph(specOpts)) as never, {
+      input: SpecialistInputSchema,
+    })
+    .addNode("goalie", wrapSpecialist("goalie", compileGoalieSubgraph(specOpts)) as never, {
+      input: SpecialistInputSchema,
+    })
+    .addNode("captain", wrapSpecialist("captain", compileCaptainSubgraph(specOpts)) as never, {
+      input: SpecialistInputSchema,
+    })
+    .addNode("scout", wrapSpecialist("scout", compileScoutSubgraph(specOpts)) as never, {
+      input: SpecialistInputSchema,
+    })
     .addNode("assemble_directive", makeAssembleDirective(opts.playbook))
     .addNode("validate_directive", makeValidateDirective(opts.playbook))
     .addEdge(START, "ingest")
@@ -93,8 +127,14 @@ export function compileTeamGraph(opts: CompileTeamGraphOpts): CompiledTeamGraph 
     .addEdge("situation", "retrieve_plays")
     .addConditionalEdges("retrieve_plays", epochRouter as never, {
       head_coach: "head_coach",
-      assemble_directive: "assemble_directive",
+      captain: "captain",
     })
+    .addEdge("oc", "assemble_directive")
+    .addEdge("dc", "assemble_directive")
+    .addEdge("st", "assemble_directive")
+    .addEdge("goalie", "assemble_directive")
+    .addEdge("captain", "assemble_directive")
+    .addEdge("scout", "assemble_directive")
     .addEdge("assemble_directive", "validate_directive")
     .addEdge("validate_directive", END)
     .compile({ checkpointer });

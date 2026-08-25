@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { Command } from "@langchain/langgraph";
+import { Command, Send } from "@langchain/langgraph";
 import { FakeListChatModel } from "@langchain/core/utils/testing";
 import { defaultDirective } from "../../engine/world.ts";
 import { resetLlmClientForTests, setCreateChatModel } from "../../llm/client.ts";
@@ -8,7 +8,7 @@ import { retrievePlays } from "../../playbook/retrieve.ts";
 import type { TeamObservation } from "../../types/observation.ts";
 import type { TeamGraphStateType } from "../state.ts";
 import { classifySituation } from "./situation.ts";
-import { clampCoachPlayId, makeHeadCoach } from "./headCoach.ts";
+import { HEAD_COACH_ENDS, clampCoachPlayId, makeHeadCoach } from "./headCoach.ts";
 
 const last = defaultDirective();
 
@@ -42,7 +42,7 @@ function obs(over: Partial<TeamObservation> = {}): TeamObservation {
   };
 }
 
-function state(): TeamGraphStateType {
+function state(over: Partial<TeamGraphStateType> = {}): TeamGraphStateType {
   const observation = obs();
   const book = loadPlaybook("original-six");
   const retrievedPlays = retrievePlays(book, { strength: "5v5", zone: "NZ", limit: 6 });
@@ -54,7 +54,18 @@ function state(): TeamGraphStateType {
     classifiedSituation: classifySituation(observation, "macro"),
     retrievedPlays,
     specialistMemos: [],
+    ...over,
   };
+}
+
+function gotoNodes(cmd: Command): string[] {
+  const g = cmd.goto as unknown;
+  const arr = Array.isArray(g) ? g : [g];
+  return arr.map((x) => {
+    if (typeof x === "string") return x;
+    if (x && typeof x === "object" && "node" in x) return String((x as { node: string }).node);
+    return String(x);
+  });
 }
 
 afterEach(() => {
@@ -62,6 +73,18 @@ afterEach(() => {
 });
 
 describe("head_coach Command", () => {
+  it("declares specialist ends plus assemble", () => {
+    expect([...HEAD_COACH_ENDS]).toEqual([
+      "oc",
+      "dc",
+      "st",
+      "goalie",
+      "captain",
+      "scout",
+      "assemble_directive",
+    ]);
+  });
+
   it("clamps playId to retrievedPlays", () => {
     const plays = [{ id: "nz-122-trap" }, { id: "5v5-122-forecheck" }];
     expect(clampCoachPlayId("5v5-122-forecheck", plays)).toBe("5v5-122-forecheck");
@@ -69,7 +92,7 @@ describe("head_coach Command", () => {
     expect(clampCoachPlayId("ghost", [])).toBe("ghost");
   });
 
-  it("returns Command.goto assemble_directive without Send", async () => {
+  it("returns Command.goto Send[] for 5v5 NZ (no ST)", async () => {
     const intent = {
       supposedToHappen: "win the draw",
       playId: "5v5-122-forecheck",
@@ -78,10 +101,32 @@ describe("head_coach Command", () => {
     setCreateChatModel(() => new FakeListChatModel({ responses: [JSON.stringify(intent)] }));
     const cmd = await makeHeadCoach()(state());
     expect(cmd).toBeInstanceOf(Command);
-    const goto = Array.isArray(cmd.goto) ? cmd.goto : [cmd.goto];
-    expect(goto).toEqual(["assemble_directive"]);
+    const gotos = Array.isArray(cmd.goto) ? cmd.goto : [cmd.goto];
+    expect(gotos.every((g) => g instanceof Send)).toBe(true);
+    expect(gotoNodes(cmd).sort()).toEqual(["captain", "dc", "oc"]);
+    const first = gotos[0] as Send;
+    expect(first.args).toMatchObject({
+      coachIntent: { playId: "5v5-122-forecheck" },
+    });
+    expect(first.args).toHaveProperty("observation");
+    expect(first.args).toHaveProperty("retrievedPlays");
+    expect(first.args).toHaveProperty("lastDirective");
     const update = cmd.update as { coachIntent?: { playId: string } } | undefined;
     expect(update?.coachIntent?.playId).toBe("5v5-122-forecheck");
+  });
+
+  it("empty specialists goto assemble_directive", async () => {
+    const intent = {
+      supposedToHappen: "timeout huddle",
+      playId: "5v5-122-forecheck",
+      pressure: "neutral",
+    };
+    setCreateChatModel(() => new FakeListChatModel({ responses: [JSON.stringify(intent)] }));
+    const sit = classifySituation(obs(), "macro");
+    const cmd = await makeHeadCoach()(
+      state({ classifiedSituation: { ...sit, specialists: [] } }),
+    );
+    expect(gotoNodes(cmd)).toEqual(["assemble_directive"]);
   });
 
   it("noLlm Command skips LLM and does not set coachIntent", async () => {
