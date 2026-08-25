@@ -15,6 +15,7 @@ This is a **localhost Node.js browser game**. The server owns physics, rules, bo
 | Match orchestrator | Ticks the world, hides private state, collects tactical directives |
 | AAR graph | Military-style review after **every** result; cited playbook mutations with caps |
 | Browser | Watch the rink, scoreboard, event ticker, AAR, playbook diffs, start a 7-game series |
+| Film Room | Auto-recorded game film, AAR jump-to-ice, series improvement ledger (before/after clips) |
 
 LLMs do **not** run every physics tick. Coaches act at decision epochs (faceoff, zone change, special teams, …). Between epochs, players skate the current play in code.
 
@@ -37,22 +38,42 @@ src/aar/            post-game AAR graph
 src/playbook/       structured plays + capped mutations
 src/orchestrator/   match loop
 src/server/         Fastify + WS
-src/web/            Canvas 2D rink + HUD
+src/web/            Canvas 2D rink + HUD + Film Room
+src/film/           auto-clips, pairing, improvement ledger
+```
+
+## Review footage (available now)
+
+Every finished match will be **auto-recorded** as deterministic game film (replay the engine — no MP4). The Film Room:
+
+- builds clips around goals, chances, turnovers, penalties, and AAR citations
+- plays them on the same Canvas rink (scrub, 0.25×–2×)
+- pairs **the same play** in game 1 vs game 7 so you can see whether AAR actually changed the ice
+- writes an **improvement ledger** (xG, CF%, goals, playbook version)
+
+A scripted 7-game demo series is in `fixtures/film/demo-series.json` so you can use the Film Room before the physics engine lands.
+
+```bash
+pnpm install
+pnpm test
+pnpm film
+# open http://127.0.0.1:8787/film
 ```
 
 ## Implementation order
 
-Engine → stub graphs (`--no-llm`) → **watchable browser rink** → LLM coaches → AAR → 7-game series.
+Engine → stub graphs (`--no-llm`) → **watchable browser rink** → Film Room on real matches → LLM coaches → AAR → 7-game series → paired film ledger.
 
 Full PR list: [`docs/DESIGN.md`](docs/DESIGN.md#pr-plan).
 
-## Setup (once code exists)
+## Setup (once the engine exists)
 
 ```bash
 pnpm install
 cp .env.example .env   # set XAI_API_KEY; LangSmith optional
 pnpm test              # no API key required
 pnpm web               # http://127.0.0.1:8787
+pnpm film              # Film Room (works today on the demo series)
 ```
 
 Headless CI path: `gh simulate --no-llm` (the `gh` here is this project's CLI, not GitHub's).

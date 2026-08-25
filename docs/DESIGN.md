@@ -69,9 +69,10 @@ Greenfield. There is no repository, no engine, no agents. After this design is a
 5. Persistent playbook (structured plays, not free text) that AAR can patch.
 6. AAR after **every** result (win, loss, or OT/regulation **tie**). Shootout is not v1.
 7. **Browser game (v1 gate):** localhost Fastify + WebSocket + Canvas 2D rink: live match, scoreboard, period/clock, players + puck, inspect-side play name, public event ticker, cost/token readout, AAR report viewer, playbook diff viewer, start/stop match and 7-game series.
-8. Headless CLI for CI/tests: simulate, replay, dump AAR, playbook diff, series (`gh simulate --no-llm` required in CI).
-9. Engine fully testable without `XAI_API_KEY` and without a browser. Seeded RNG for reproducible sims and golden fixtures.
-10. Cost/latency budget documented and enforced with a circuit breaker.
+8. **Review footage (v1 gate):** every match is auto-recorded as deterministic game film. Film Room plays clips, jumps from AAR `eventIds` to ice, and keeps a series **improvement ledger** (metrics + paired before/after clips) so playbook evolution is visible, not just logged.
+9. Headless CLI for CI/tests: simulate, replay, dump AAR, playbook diff, series, footage (`gh simulate --no-llm` required in CI).
+10. Engine fully testable without `XAI_API_KEY` and without a browser. Seeded RNG for reproducible sims and golden fixtures.
+11. Cost/latency budget documented and enforced with a circuit breaker.
 
 ### Non-goals (v1)
 
@@ -181,7 +182,8 @@ Graph_Hockey/
     │   ├── observation.ts
     │   ├── directive.ts
     │   ├── events.ts
-    │   └── aar.ts
+    │   ├── aar.ts
+    │   └── film.ts                    # Clip, Recording, SeriesImprovement
     ├── engine/
     │   ├── rink.ts                    # geometry
     │   ├── physics.ts                 # integrate, collide
@@ -246,7 +248,14 @@ Graph_Hockey/
     │   ├── matches.ts
     │   ├── events.ts
     │   ├── playbooks.ts
+    │   ├── clips.ts
+    │   ├── improvement.ts
     │   └── checkpointer.ts            # SqliteSaver wrapper
+    ├── film/                          # review footage (no LLM)
+    │   ├── clipper.ts                 # auto-clips from event log
+    │   ├── pairClips.ts               # series before/after pairing
+    │   ├── improvement.ts             # ledger + deltas
+    │   └── frames.ts                  # replay window → SpectatorFrame[]
     ├── sim/
     │   ├── series.ts
     │   └── replay.ts
@@ -263,7 +272,9 @@ Graph_Hockey/
         ├── hud.ts                     # scoreboard, clock, ticker, cost
         ├── inspect.ts                 # selected-side play name
         ├── aarView.ts
-        └── playbookView.ts
+        ├── playbookView.ts
+        ├── filmRoom.ts                # /film — timeline, clips, compare
+        └── improvementBoard.ts        # series metrics + paired clips
 ```
 
 `package.json` bin: `"gh": "dist/cli/main.js"` and `"graph-hockey": "dist/cli/main.js"`. Dev: `pnpm gh` via `tsx src/cli/main.ts`; `pnpm web` → `tsx src/server/http.ts` (serves `src/web` + `/ws`).
@@ -1708,6 +1719,50 @@ CREATE TABLE scout_notes (
   match_id TEXT,
   note_json TEXT NOT NULL
 );
+
+-- Review footage: every finished match is a recording. Frames are NOT stored;
+-- playback resimulates. Clips are indexes into that recording.
+CREATE TABLE recordings (
+  match_id TEXT PRIMARY KEY,
+  series_id TEXT,
+  game_index INTEGER,
+  recorded_at TEXT NOT NULL,
+  duration_live_ticks INTEGER NOT NULL,
+  FOREIGN KEY (match_id) REFERENCES matches(id)
+);
+
+CREATE TABLE clips (
+  id TEXT PRIMARY KEY,              -- `${matchId}:clip:${n}`
+  match_id TEXT NOT NULL,
+  series_id TEXT,
+  start_live_tick INTEGER NOT NULL,
+  end_live_tick INTEGER NOT NULL,
+  anchor_event_id TEXT NOT NULL,    -- `${matchId}:${seq}`
+  related_event_ids_json TEXT NOT NULL, -- JSON string[]
+  kind TEXT NOT NULL,               -- goal|shot|save|turnover|penalty|pp|pk|icing|zone_entry|aar_cite|user
+  title TEXT NOT NULL,
+  side TEXT,                        -- home|away|both
+  play_id TEXT,                     -- inspected-side play; never the opponent's private id on the wire
+  xg REAL,
+  source TEXT NOT NULL,             -- auto|aar|user
+  signature TEXT,                   -- playId|zone|typeBag for pairing
+  note TEXT,
+  created_at TEXT NOT NULL
+);
+
+CREATE TABLE improvement_ledger (
+  series_id TEXT NOT NULL,
+  team_id TEXT NOT NULL,
+  game_index INTEGER NOT NULL,
+  match_id TEXT NOT NULL,
+  playbook_version_before INTEGER NOT NULL,
+  playbook_version_after INTEGER NOT NULL,
+  result TEXT NOT NULL,             -- win|loss|tie
+  metrics_json TEXT NOT NULL,       -- MatchAggregates + clipCounts
+  aar_ops_json TEXT NOT NULL,       -- applied PlayMutation[] (ids + ops, not essays)
+  paired_clip_ids_json TEXT,        -- clips paired with an earlier game
+  PRIMARY KEY (series_id, team_id, game_index)
+);
 ```
 
 #### Replay
@@ -1752,6 +1807,9 @@ pnpm gh replay --match <id>
 pnpm gh aar --match <id> --side home         # re-run AAR
 pnpm gh playbook --team original-six --diff
 pnpm gh series --games 7 --home original-six --away expansion --seed 100
+pnpm gh footage --match <id>                 # list clips + open ticks
+pnpm gh footage --series <id>                # improvement ledger
+pnpm gh footage --series <id> --compare 0,6  # paired clips game 0 vs 6
 pnpm gh engine-selftest
 ```
 
@@ -1846,19 +1904,201 @@ Denylist on the wire: opponent playbook, `TeamDirective` of the non-inspected si
 | GET | `/api/aar/:matchId/:side` | stored AAR JSON (post-game) |
 | GET | `/api/playbook/:team?diff=1` | playbook or version diff |
 | GET | `/api/replay/:matchId` | upgrade to WS replay stream |
+| GET | `/film` | Film Room (clips + timeline) |
+| GET | `/film/series/:id` | series improvement board |
+| GET | `/api/footage/:matchId` | recording + clip index |
+| GET | `/api/series/:id/improvement` | ledger + deltas + paired clips |
 | WS | `/ws` | `snapshot` / `event` / `inspect` / `cost` / `aar` / `playbook_diff` / `match_over` |
 
 `noLlm: true` is the first browser path (PR 8b): stub graphs, watchable rink, zero xAI.
 
 #### Canvas rink (`src/web/rink.ts`)
 
-NHL 200×85 mapped to a canvas with margin for boards. Draw: ice, center line, blue lines, goal creases, faceoff dots, 12 skaters (jersey color by side + number), puck, scoreboard overlay (period, clock, score, strength). HUD: event ticker (public types only), cost/token readout, inspect-side play name, Start match / Start series (7) / Stop.
+NHL 200×85 mapped to a canvas with margin for boards. Draw: ice, center line, blue lines, goal creases, faceoff dots, 12 skaters (jersey color by side + number), puck, scoreboard overlay (period, clock, score, strength). HUD: event ticker (public types only), cost/token readout, inspect-side play name, Start match / Start series (7) / Stop / **Review footage**.
 
 Human skater input is **not** wired.
 
 #### Why not Phaser
 
 Phaser would own a scene graph and invite a second clock. Canvas 2D is ~200 lines to plot circles on ice. Server 10 Hz is the clock.
+
+### 16c. Review footage / Film Room
+
+Hockey coaches do not “read that we got better.” They **watch film**. Graph_Hockey records every match as deterministic game film and exposes a **Film Room** so AAR patches are attached to ice, not to a paragraph.
+
+This is a v1 gate (with the browser rink). It does **not** encode MP4s. Footage is the existing replay (`seed` + `directive_applied`) plus a **clip index**. That keeps storage small and keeps golden hashes as the source of truth.
+
+#### Recording policy
+
+| Policy | Behavior |
+| --- | --- |
+| Default | Every finished match (including `--no-llm` and incomplete-circuit) inserts `recordings` and runs `autoClips`. |
+| Series | `recordings.series_id` + `game_index` set. After AAR apply, append `improvement_ledger` for **both** sides. |
+| Throwaway | `gh simulate --no-record` skips clip index (events still stored). CI golden hashes use `--no-record`. |
+| Frames on disk | **Not** stored per tick. First Film Room play of a clip **lazily** writes `data/clip-cache/{clipId}.jsonl` (SpectatorFrames for that window only). Cache is disposable. |
+
+A 60:00 game at 10 Hz is 36,000 ticks. Storing all frames would be tens of MB of JSON per game. Resimulation is cheap and exact.
+
+#### Clip schema (`src/types/film.ts`)
+
+```ts
+export type ClipKind =
+  | "goal" | "shot" | "save" | "turnover" | "penalty"
+  | "pp" | "pk" | "icing" | "zone_entry" | "aar_cite" | "user";
+
+export interface Clip {
+  id: string;                     // `${matchId}:clip:${n}`
+  matchId: string;
+  seriesId?: string;
+  startLiveTick: number;
+  endLiveTick: number;            // inclusive
+  anchorEventId: string;          // `${matchId}:${seq}`
+  relatedEventIds: string[];
+  kind: ClipKind;
+  title: string;
+  side?: "home" | "away" | "both";
+  playId?: string;
+  xG?: number;
+  source: "auto" | "aar" | "user";
+  signature?: string;             // `${playId}|${zone}|${typeBag}`
+  note?: string;
+}
+
+export interface SeriesGameRow {
+  matchId: string;
+  gameIndex: number;
+  score: { home: number; away: number };
+  result: { home: "win" | "loss" | "tie"; away: "win" | "loss" | "tie" };
+  playbookVersion: { home: number; away: number };
+  aggregates: { home: MatchAggregates; away: MatchAggregates };
+  clipCounts: Record<ClipKind, number>;
+}
+
+export interface PairedClip {
+  signature: string;
+  playId: string;
+  zone: "DZ" | "NZ" | "OZ";
+  early: Clip;
+  late: Clip;
+  metricHint: string;             // e.g. "xG 0.31 miss → Goal"
+}
+
+export interface SeriesImprovement {
+  seriesId: string;
+  games: SeriesGameRow[];
+  deltas: {
+    home: Partial<MatchAggregates>;
+    away: Partial<MatchAggregates>;
+  };                              // last game − first game
+  pairs: PairedClip[];
+}
+```
+
+#### Auto-clipper (`src/film/clipper.ts`)
+
+Windows in **live ticks** (`DT = 0.1` → 10 ticks = 1.0 s):
+
+| Kind | Before | After | Fire when |
+| --- | --- | --- | --- |
+| `goal` | 40 | 15 | `Goal` |
+| `shot` | 30 | 10 | `Shot` with `xG >= 0.12` (non-goal) |
+| `save` | 25 | 10 | `Save` with `xG >= 0.15` |
+| `turnover` | 25 | 10 | `Turnover` in OZ |
+| `penalty` | 20 | 10 | `Penalty` |
+| `pp` / `pk` | 10 | 40 | special-teams start |
+| `icing` | 20 | 8 | `Icing` called |
+| `zone_entry` | 20 | 15 | `ZoneEntry` followed by whistle within 40 ticks (failed entry) |
+| `aar_cite` | 30 | 15 | every `eventId` on an **applied** `PlayMutation` |
+
+Rules:
+
+1. Clamp windows to `[0, durationLiveTicks]`.
+2. **Merge** clips whose windows overlap by ≥ 50% — keep the higher-priority kind (`goal > aar_cite > shot > save > penalty > turnover > zone_entry > icing > pp`). Union `relatedEventIds`.
+3. Cap **40 auto clips** per match. Drop lowest priority, then lowest xG.
+4. `signature = `${playId}|${zone}|${sorted unique types in window}``. `playId` is the **active play of the side that owns the event** (shooter/offender). Never write the opponent playId onto a clip that will be sent to the client unless the operator inspects that side.
+5. After AAR apply, add `aar_cite` clips for cited events (even if the cap already filled — AAR cites **replace** lowest-priority autos, not exceed 48 total).
+
+Unit tests: a 3-event fixture produces exactly the expected clip ids; overlapping goal+shot merge to one `goal` clip; cap drops a 0.12 shot before a goal.
+
+#### Playback
+
+```ts
+export function framesForClip(clip: Clip, db: Db): Generator<SpectatorFrame> {
+  for (const world of replayMatch(clip.matchId, db)) {
+    if (world.liveTick < clip.startLiveTick) continue;
+    if (world.liveTick > clip.endLiveTick) break;
+    yield spectatorFrame(world);
+  }
+}
+```
+
+Same `SpectatorFrame` as live WS. Film Room reuses `rink.ts`. Controls: play/pause, ±1 frame, ±1 s, 0.25× / 0.5× / 1× / 2×, scrub on the timeline. Keyboard: Space, J/K, arrows, `1`–`4` for speed.
+
+Replay in Film Room is **server-side** resimulation, same as `/api/replay/:matchId`. The browser does not run `advanceWorld`.
+
+#### Jump from AAR
+
+Every AAR op already has `eventIds: string[]` (min 1). Film Room URL:
+
+```
+/film?match={matchId}&t={liveTick}&clip={clipId}
+/film?match={matchId}&event={eventId}
+```
+
+`GET /api/footage/event/{eventId}` resolves `eventId → { matchId, liveTick, clipId? }`. If no clip exists, the server builds an ephemeral 30+15 window around that tick (not persisted unless the operator bookmarks).
+
+`aarView.ts` renders each `eventId` as a **Watch** link. That is the coaching loop: AAR sentence → ice.
+
+#### Series improvement ledger (record the improvement)
+
+After each series game’s AAR apply, `src/film/improvement.ts` writes one `improvement_ledger` row **per team**:
+
+- `playbook_version_before` / `after`
+- `MatchAggregates` (xG for/against, CF%, OZ/DZ time, turnovers, FO%, PP%, PK%)
+- `clipCounts` by kind
+- applied mutation ops
+- `paired_clip_ids` from `pairClips`
+
+**Pairing** (`src/film/pairClips.ts`) matches **same `playId` + zone**. Jaccard on the event-type bag picks the best late clip (prefer ≥ 0.7, fallback ≥ 0.3). Fallback exists so a **Goal against** vs a later **Save** still pairs — that is the footage of improvement. Early = game index ≤ 1; late = index ≥ N-2 in a 7-game series. Operator watches **Game 1 vs Game 7** of the same play.
+
+Deltas on the board: `games[last].aggregates − games[0].aggregates` per team. Charts: xG for, xG against, CF%, OZ time, goals, playbook version. This is the **record** of improvement — durable, queryable, not a chat memory.
+
+Compare UX: two rinks, same clip signature, independent or synced playheads. Inspect-side still one team at a time. Labels: `G{early} {playName}` vs `G{late} {playName}`.
+
+#### User bookmarks
+
+`POST /api/clips` `{ matchId, startLiveTick, endLiveTick, note, side? }` → `kind: "user"`. Bookmark is how a human coach pins a moment the auto-clipper missed. Note max 400 chars, stripped like `notesForCaptain`.
+
+#### Information hiding
+
+Film Room is an **operator** surface (localhost). Default inspect = `none` (public geometry + public event types). Choosing Home or Away shows **that** side’s `playId` on clips they own. Compare mode of the same team across games is allowed. The opponent playbook is never in clip JSON.
+
+#### REST / routes (additions)
+
+| Method | Path | Purpose |
+| --- | --- | --- |
+| GET | `/film` | Film Room SPA (rink + clip tray + ledger) |
+| GET | `/film/series/:id` | Improvement board + paired clips |
+| GET | `/api/footage/:matchId` | `{ recording, clips }` |
+| GET | `/api/footage/:matchId/clips/:clipId/frames` | WS or JSONL frames for the window (lazy cache) |
+| GET | `/api/footage/event/:eventId` | resolve to tick + clip |
+| POST | `/api/clips` | user bookmark |
+| PATCH | `/api/clips/:id` | `{ note }` |
+| GET | `/api/series/:id/improvement` | `SeriesImprovement` JSON |
+| GET | `/api/series/:id/pairs` | `PairedClip[]` |
+
+CLI: `gh footage --match` prints clip table; `gh footage --series` prints ledger + deltas; `--compare i,j` prints paired signatures. `--json` for scripts.
+
+#### Storage budget (v1)
+
+| Object | Size (order of mag) |
+| --- | --- |
+| Event log / game | ~0.5–2 MB |
+| Clip index / game | < 50 KB |
+| Ledger / series | < 20 KB |
+| Lazy clip-cache / clip | ~100–300 KB JSONL (optional) |
+
+No video encoder. No ffmpeg.
 
 ### 17. Config (`src/config.ts` + `.env.example`)
 
@@ -1951,6 +2191,8 @@ gh replay   --match ID [--to-tick N]
 gh aar      --match ID [--side home|away] [--aar-mode auto|propose|hitl]
 gh playbook --team ID [--diff] [--version N]
 gh series   --games N --home ID --away ID [--seed N]
+gh footage  --match ID
+gh footage  --series ID [--compare i,j] [--json]
 ```
 
 `--aar-mode hitl` is AAR-only in v1 (after the match). In-game HITL is PR 16 stretch.
@@ -1964,6 +2206,8 @@ POST /api/match/stop
 POST /api/series/start  { games: 7, home, away, seed, noLlm }
 POST /api/series/stop
 GET  /api/matches | /api/aar/:id/:side | /api/playbook/:team
+GET  /film  |  /film/series/:id
+GET  /api/footage/:matchId | /api/series/:id/improvement
 WS   /ws            snapshot@10Hz, event, inspect, cost, aar, playbook_diff, match_over
 ```
 
@@ -1975,6 +2219,9 @@ export function replayMatch(matchId: string, db: Db): Generator<WorldState>;
 export function compileTeamGraph(opts: CompileOpts): CompiledStateGraph;
 export function compileAarGraph(opts: CompileOpts): CompiledStateGraph;
 export function applyRevision(teamId: string, rev: PlaybookRevision, db: Db): Playbook;
+export function autoClips(events: ClipEvent[], opts: AutoClipOpts): Clip[];
+export function pairClips(clips: Clip[], gameCount: number): PairedClip[];
+export function seriesImprovement(seriesId: string, games: SeriesGameRow[], clips: Clip[]): SeriesImprovement;
 ```
 
 ### Structured LLM schemas (Zod) — critical contracts
@@ -2223,6 +2470,8 @@ Scout artifacts are **not opponent-facing**. If a future “scouting report file
 
 **Browser operator HUD:** public event ticker + live cost/token/`$` readout + inspect-side play name. Same numbers as `epoch_invocations`.
 
+**Film Room / improvement ledger:** clip index per match; `improvement_ledger` per series game per team (aggregates, playbook versions, paired clips). AAR `eventIds` deep-link to footage. This is how we **see** whether AAR changed on-ice results.
+
 **Logging:** `pino` JSON logs to stdout; `level` from `--log-level`. Never log API keys or full prompts in default info level (debug may log truncated observation).
 
 **Alerts:** if circuit opens, HUD banner + CLI error; `matches.result = "incomplete_circuit"`; AAR still runs on the partial log (loser_lens).
@@ -2239,7 +2488,7 @@ This is not SaaS. “Rollout” = milestones on `main`.
 | **M1** | Two stub graphs (`--no-llm`) play a full 5v5; replay hash stable; **browser rink watches a --no-llm match** | git revert |
 | **M2** | LLM coaches at epochs; circuit breaker; HUD `$` / tokens | `--no-llm` |
 | **M3** | AAR + capped playbook mutation; **browser AAR + playbook diff viewers** | restore `playbooks` version 1 |
-| **M4** | 7-game series from the browser (and `gh series --games 7`) with measurable playbook change | restore playbook snapshots |
+| **M4** | 7-game series from the browser (and `gh series --games 7`) with measurable playbook change **and** Film Room paired clips (game 1 vs 7) | restore playbook snapshots |
 
 **Feature flags:** `--no-llm` / `noLlm` POST body, `--aar-mode` (default auto-apply with caps), `--home-model`/`--away-model`, `GRAPH_HOCKEY_HITL` (stretch).
 
@@ -2340,6 +2589,8 @@ This is not SaaS. “Rollout” = milestones on `main`.
 17. **Cost circuit:** 150 calls/team (per-side object), 900k prompt, 250k output (incl. reasoning), $4.00/game. Point estimate ≈ **$1.65/game**. ChatXAI timeouts 5 s / 2.5 s / 60 s. Timed-out calls are `ok=0`, `billed=1`.
 
 18. **Icing race overrides the two racers’ targets to the dot** at max speed; 4.0 s timeout → icing called.
+
+21. **Review footage is resimulation + clip index, not video files.** Every match is auto-recorded. Auto-clips + AAR `eventId` deep-links + series improvement ledger (paired clips, metric deltas) are the way we watch and record improvement. No ffmpeg/MP4 in v1.
 
 ---
 
@@ -2459,12 +2710,19 @@ Incremental, independently reviewable PRs. Engine before agents. Agents before A
 - **Depends on:** PR 13
 - **Description:** Auto-apply default; `--aar-mode propose`. Winner/loser caps in code.
 
+### PR 8c — Match Film Room (single-game footage)
+
+- **Title:** `feat(film): auto-clips and browser film playback`
+- **Files:** `src/types/film.ts`, `src/film/clipper.ts`, `src/film/frames.ts`, `src/persist/clips.ts`, `src/web/filmRoom.ts`, REST `/film` `/api/footage/:matchId`
+- **Depends on:** PR 8b (rink + replay stream), PR 7 (events)
+- **Description:** Auto-clip event logs; timeline + play/pause/scrub on the existing canvas; `--no-llm` matches are reviewable. No series compare yet. CI tests clipper with fixtures, no xAI.
+
 ### PR 14b — Browser AAR report + playbook diff viewers
 
 - **Title:** `feat(web): AAR and playbook diff UI`
 - **Files:** `src/web/aarView.ts`, `playbookView.ts`, REST `/api/aar`, `/api/playbook`
 - **Depends on:** PR 14, PR 8b
-- **Description:** After a match, view each side’s AAR (event-id citations) and playbook version diff. Milestone **M3**.
+- **Description:** After a match, view each side’s AAR (event-id citations) and playbook version diff. **Watch** links on `eventIds` open Film Room (`/film?event=`). Milestone **M3**.
 
 ### PR 15 — Self-play series + snapshots
 
@@ -2472,6 +2730,13 @@ Incremental, independently reviewable PRs. Engine before agents. Agents before A
 - **Files:** `src/sim/series.ts`, snapshot dir, `src/server/matchControl.ts` series start/stop, README
 - **Depends on:** PR 14
 - **Description:** Default `games: 7`. `gameSeed = seed + gameIndex`. CLI `gh series --games 7` and POST `/api/series/start`. Restore-safe snapshots. Milestone **M4** when the browser Start series button works (needs PR 8b).
+
+### PR 15b — Series improvement ledger + paired film
+
+- **Title:** `feat(film): series improvement board and before/after clips`
+- **Files:** `src/film/improvement.ts`, `pairClips.ts`, `src/persist/improvement.ts`, `src/web/improvementBoard.ts`, `GET /film/series/:id`, `GET /api/series/:id/improvement`, `gh footage --series`
+- **Depends on:** PR 15, PR 8c, PR 14
+- **Description:** After each AAR, append ledger rows. Pair clips by play signature (Jaccard ≥ 0.7). Dual-rink compare game 0 vs game 6. This is the “see and record the improvement” surface. Completes **M4**.
 
 ### PR 16 (optional stretch) — HITL interrupt
 

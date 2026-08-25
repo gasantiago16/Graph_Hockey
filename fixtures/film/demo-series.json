@@ -1,0 +1,166 @@
+{
+  "seriesId": "demo-series",
+  "home": { "id": "original-six", "name": "Original Six" },
+  "away": { "id": "expansion", "name": "Expansion" },
+  "story": "Home AAR patches DZ coverage after game 1. By game 7 the same crash-net look is a save-and-outlet; the OZ cycle that turned over in game 1 becomes a goal.",
+  "games": [
+    {
+      "matchId": "demo-g0",
+      "gameIndex": 0,
+      "score": { "home": 2, "away": 5 },
+      "result": { "home": "loss", "away": "win" },
+      "playbookVersion": { "home": 1, "away": 1 },
+      "aarSummary": {
+        "home": "Loser AAR: collapse too late vs crash-net. Op: tweak_assignment dz-collapse → box-plus-one. Cite demo-g0:12.",
+        "away": "Winner AAR: lock 5v5-212-forecheck. Op: boost. Cite demo-g0:12."
+      },
+      "aggregates": {
+        "home": { "xgFor": 1.6, "xgAgainst": 4.4, "cfPct": 41, "zoneTimeOZ": 412, "zoneTimeDZ": 780, "turnovers": 18, "foPct": 44, "ppPct": 0, "pkPct": 0.5, "goalsFor": 2, "goalsAgainst": 5 },
+        "away": { "xgFor": 4.4, "xgAgainst": 1.6, "cfPct": 59, "zoneTimeOZ": 780, "zoneTimeDZ": 412, "turnovers": 11, "foPct": 56, "ppPct": 0.5, "pkPct": 1, "goalsFor": 5, "goalsAgainst": 2 }
+      }
+    },
+    {
+      "matchId": "demo-g1",
+      "gameIndex": 1,
+      "score": { "home": 2, "away": 3 },
+      "result": { "home": "loss", "away": "win" },
+      "playbookVersion": { "home": 2, "away": 2 },
+      "aggregates": {
+        "home": { "xgFor": 1.9, "xgAgainst": 3.8, "cfPct": 44, "zoneTimeOZ": 448, "zoneTimeDZ": 730, "turnovers": 16, "foPct": 46, "ppPct": 0, "pkPct": 0.67, "goalsFor": 2, "goalsAgainst": 3 },
+        "away": { "xgFor": 3.8, "xgAgainst": 1.9, "cfPct": 56, "zoneTimeOZ": 730, "zoneTimeDZ": 448, "turnovers": 12, "foPct": 54, "ppPct": 0.33, "pkPct": 1, "goalsFor": 3, "goalsAgainst": 2 }
+      }
+    },
+    {
+      "matchId": "demo-g2",
+      "gameIndex": 2,
+      "score": { "home": 3, "away": 3 },
+      "result": { "home": "tie", "away": "tie" },
+      "playbookVersion": { "home": 3, "away": 2 },
+      "aggregates": {
+        "home": { "xgFor": 2.2, "xgAgainst": 3.3, "cfPct": 47, "zoneTimeOZ": 490, "zoneTimeDZ": 680, "turnovers": 14, "foPct": 48, "ppPct": 0.5, "pkPct": 1, "goalsFor": 3, "goalsAgainst": 3 },
+        "away": { "xgFor": 3.3, "xgAgainst": 2.2, "cfPct": 53, "zoneTimeOZ": 680, "zoneTimeDZ": 490, "turnovers": 13, "foPct": 52, "ppPct": 0, "pkPct": 0.5, "goalsFor": 3, "goalsAgainst": 3 }
+      }
+    },
+    {
+      "matchId": "demo-g3",
+      "gameIndex": 3,
+      "score": { "home": 3, "away": 2 },
+      "result": { "home": "win", "away": "loss" },
+      "playbookVersion": { "home": 4, "away": 3 },
+      "aggregates": {
+        "home": { "xgFor": 2.5, "xgAgainst": 2.9, "cfPct": 49, "zoneTimeOZ": 520, "zoneTimeDZ": 640, "turnovers": 13, "foPct": 49, "ppPct": 0.5, "pkPct": 1, "goalsFor": 3, "goalsAgainst": 2 },
+        "away": { "xgFor": 2.9, "xgAgainst": 2.5, "cfPct": 51, "zoneTimeOZ": 640, "zoneTimeDZ": 520, "turnovers": 14, "foPct": 51, "ppPct": 0, "pkPct": 0.5, "goalsFor": 2, "goalsAgainst": 3 }
+      }
+    },
+    {
+      "matchId": "demo-g4",
+      "gameIndex": 4,
+      "score": { "home": 2, "away": 2 },
+      "result": { "home": "tie", "away": "tie" },
+      "playbookVersion": { "home": 4, "away": 3 },
+      "aggregates": {
+        "home": { "xgFor": 2.6, "xgAgainst": 2.7, "cfPct": 50, "zoneTimeOZ": 540, "zoneTimeDZ": 620, "turnovers": 12, "foPct": 50, "ppPct": 0, "pkPct": 1, "goalsFor": 2, "goalsAgainst": 2 },
+        "away": { "xgFor": 2.7, "xgAgainst": 2.6, "cfPct": 50, "zoneTimeOZ": 620, "zoneTimeDZ": 540, "turnovers": 13, "foPct": 50, "ppPct": 0, "pkPct": 1, "goalsFor": 2, "goalsAgainst": 2 }
+      }
+    },
+    {
+      "matchId": "demo-g5",
+      "gameIndex": 5,
+      "score": { "home": 4, "away": 2 },
+      "result": { "home": "win", "away": "loss" },
+      "playbookVersion": { "home": 5, "away": 4 },
+      "aggregates": {
+        "home": { "xgFor": 2.9, "xgAgainst": 2.5, "cfPct": 52, "zoneTimeOZ": 575, "zoneTimeDZ": 590, "turnovers": 11, "foPct": 51, "ppPct": 1, "pkPct": 1, "goalsFor": 4, "goalsAgainst": 2 },
+        "away": { "xgFor": 2.5, "xgAgainst": 2.9, "cfPct": 48, "zoneTimeOZ": 590, "zoneTimeDZ": 575, "turnovers": 15, "foPct": 49, "ppPct": 0, "pkPct": 0, "goalsFor": 2, "goalsAgainst": 4 }
+      }
+    },
+    {
+      "matchId": "demo-g6",
+      "gameIndex": 6,
+      "score": { "home": 4, "away": 1 },
+      "result": { "home": "win", "away": "loss" },
+      "playbookVersion": { "home": 5, "away": 4 },
+      "aarSummary": {
+        "home": "Winner AAR: box-plus-one held. Minted counter crash-net-deny. Cite demo-g6:9.",
+        "away": "Loser AAR: 212-forecheck no longer generating Grade-A. Nerf. Cite demo-g6:9."
+      },
+      "aggregates": {
+        "home": { "xgFor": 3.2, "xgAgainst": 2.1, "cfPct": 54, "zoneTimeOZ": 610, "zoneTimeDZ": 540, "turnovers": 10, "foPct": 53, "ppPct": 0.5, "pkPct": 1, "goalsFor": 4, "goalsAgainst": 1 },
+        "away": { "xgFor": 2.1, "xgAgainst": 3.2, "cfPct": 46, "zoneTimeOZ": 540, "zoneTimeDZ": 610, "turnovers": 16, "foPct": 47, "ppPct": 0, "pkPct": 0.5, "goalsFor": 1, "goalsAgainst": 4 }
+      }
+    }
+  ],
+  "clips": [
+    {
+      "id": "demo-g0:clip:0",
+      "matchId": "demo-g0",
+      "gameIndex": 0,
+      "kind": "goal",
+      "title": "G1 · Expansion crash-net GOAL",
+      "side": "away",
+      "playId": "dz-collapse",
+      "zone": "DZ",
+      "xG": 0.31,
+      "source": "auto",
+      "signature": "dz-collapse|DZ|Goal,Shot,ZoneEntry",
+      "anchorEventId": "demo-g0:12",
+      "startLiveTick": 1180,
+      "endLiveTick": 1235,
+      "scenario": "crashNetGoalAgainst",
+      "note": "Home D collapse late. AAR cite: tweak_assignment → box-plus-one."
+    },
+    {
+      "id": "demo-g0:clip:1",
+      "matchId": "demo-g0",
+      "gameIndex": 0,
+      "kind": "turnover",
+      "title": "G1 · Original Six OZ turnover",
+      "side": "home",
+      "playId": "oz-cycle-low",
+      "zone": "OZ",
+      "source": "auto",
+      "signature": "oz-cycle-low|OZ|Turnover,ZoneEntry",
+      "anchorEventId": "demo-g0:40",
+      "startLiveTick": 4020,
+      "endLiveTick": 4070,
+      "scenario": "cycleTurnover",
+      "note": "Weak-side pass picked. Cycle had no shot threat."
+    },
+    {
+      "id": "demo-g6:clip:0",
+      "matchId": "demo-g6",
+      "gameIndex": 6,
+      "kind": "save",
+      "title": "G7 · Original Six SAVE + outlet",
+      "side": "home",
+      "playId": "dz-collapse",
+      "zone": "DZ",
+      "xG": 0.27,
+      "source": "aar",
+      "signature": "dz-collapse|DZ|Save,Shot,ZoneEntry",
+      "anchorEventId": "demo-g6:9",
+      "startLiveTick": 1180,
+      "endLiveTick": 1235,
+      "scenario": "boxOutSave",
+      "note": "Same crash-net look. Box-plus-one takes the bumper. G31 saves."
+    },
+    {
+      "id": "demo-g6:clip:1",
+      "matchId": "demo-g6",
+      "gameIndex": 6,
+      "kind": "goal",
+      "title": "G7 · Original Six OZ cycle GOAL",
+      "side": "home",
+      "playId": "oz-cycle-low",
+      "zone": "OZ",
+      "xG": 0.24,
+      "source": "auto",
+      "signature": "oz-cycle-low|OZ|Goal,Shot,ZoneEntry",
+      "anchorEventId": "demo-g6:33",
+      "startLiveTick": 4020,
+      "endLiveTick": 4075,
+      "scenario": "cycleGoal",
+      "note": "Same cycle family. Net-front traffic, far-post finish."
+    }
+  ]
+}
