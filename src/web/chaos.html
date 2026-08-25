@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Graph_Hockey · NHL lab</title>
+  <title>Graph_Hockey · Chaos lab</title>
   <style>
     :root {
       --bg: #070b12;
@@ -35,10 +35,11 @@
     }
     .hud { border-bottom: none; border-top: 1px solid var(--line); background: #0c1320; }
     label { color: var(--muted); font-size: 12px; display: flex; align-items: center; gap: 6px; }
-    select, input[type=number] {
+    select, input[type=number], input[type=range] {
       background: var(--panel); color: var(--text); border: 1px solid var(--line);
       border-radius: 4px; padding: 6px 8px; font: inherit;
     }
+    input[type=range] { width: 8rem; padding: 0; }
     button, .chip {
       background: var(--panel); color: var(--text); border: 1px solid var(--line);
       border-radius: 4px; padding: 6px 10px; cursor: pointer; font: inherit;
@@ -73,13 +74,13 @@
     a.watch:hover { background: #17120a; }
   </style>
 </head>
-<body data-lab="nhl">
+<body data-lab="chaos">
   <header>
-    <h1>GRAPH_<span>HOCKEY</span> · NHL LAB</h1>
-    <div class="sub">one puck · 5v5 hockey · default Start is --no-llm · localhost only</div>
+    <h1>GRAPH_<span>HOCKEY</span> · CHAOS LAB</h1>
+    <div class="sub">up to 100 pucks · points and defense · separate book from NHL · localhost only</div>
     <nav class="nav" style="margin-left:auto">
-      <a class="on" href="/">NHL</a>
-      <a href="/chaos">Chaos</a>
+      <a href="/">NHL</a>
+      <a class="on" href="/chaos">Chaos</a>
       <a href="/film">Film Room</a>
       <a href="/aar">AAR</a>
     </nav>
@@ -116,6 +117,10 @@
         </select>
       </span>
       <span class="sub" id="lengthHelp">3×15s + OT 3.8s · demo</span>
+      <label>Pucks
+        <input id="chaosPucks" type="range" min="1" max="100" value="25" step="1" />
+        <span id="chaosPucksVal">25</span>
+      </label>
       <label>Home bench
         <select id="homeProvider">
           <option value="xai" selected>xAI</option>
@@ -132,23 +137,19 @@
           <option value="gemini">Gemini</option>
         </select>
       </label>
-      <label title="Enabled when both chosen benches have keys in /api/health.providers. Start stays --no-llm unless checked.">
+      <label title="Enabled when both chosen benches have keys in /api/health.providers.">
         <input id="useLlm" type="checkbox" disabled />
         Use LLM
       </label>
-      <button id="btnStart" class="primary" type="button">Start match</button>
+      <button id="btnStart" class="primary" type="button">Start chaos</button>
       <button id="btnSeries" class="primary" type="button">Start series (7)</button>
+      <button id="btnDump" type="button" disabled title="Chaos engine not wired yet">Dump 10</button>
       <button id="btnStop" class="danger" type="button" disabled>Stop</button>
-      <a class="chip" id="reviewFootage" href="/film">Review footage</a>
-      <a class="chip" id="openAar" href="/aar">AAR / playbook</a>
       <span class="sub" id="llmLengthNote" hidden>Live benches will call models for all 3 periods.</span>
     </div>
     <div class="toolbar">
-      <span class="sub">Inspect</span>
-      <button class="chip on" type="button" data-inspect="none">None</button>
-      <button class="chip" type="button" data-inspect="home">Home</button>
-      <button class="chip" type="button" data-inspect="away">Away</button>
-      <span class="play" id="playName">Play name hidden</span>
+      <span class="sub">Graphs maximize points and defense (goal differential). A puck in the net is +1 and leaves the ice.</span>
+      <span class="play" id="playName" hidden>Play name hidden</span>
       <span class="sub" id="conn">connecting…</span>
       <span class="err" id="err"></span>
     </div>
@@ -157,17 +158,14 @@
     </div>
     <div class="hud">
       <div class="score" id="scoreboard">P1  0:00.0    <span class="home">HOME 0</span> – <span class="away">0 AWAY</span></div>
-      <div class="ticker" id="ticker">Public event ticker. Start defaults to --no-llm.</div>
+      <div class="ticker" id="ticker">Chaos lab. Start hits /api/chaos/start (501 until the engine ships).</div>
       <div class="sub" id="benches">benches: no-llm</div>
       <div class="sub" id="cost">no-llm · $0.00 · 0/0 tok · home 0 · away 0 calls</div>
+      <div class="sub" id="puckCount">pucks 0/100</div>
     </div>
     <section id="postMatch" class="post-match" hidden>
       <div class="post-match-bar">
         <span class="sub" id="postMatchTitle">Match over</span>
-        <a class="chip" id="postFilm" href="/film">Review footage</a>
-        <a class="chip" id="postAar" href="/aar">AAR page</a>
-        <button class="chip on" type="button" data-aar-side="home">Home AAR</button>
-        <button class="chip" type="button" data-aar-side="away">Away AAR</button>
       </div>
       <div class="post-match-grid">
         <div id="aarPanel"></div>

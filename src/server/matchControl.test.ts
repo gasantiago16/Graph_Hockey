@@ -37,6 +37,30 @@ describe("matchControl LLM gate", () => {
     expect(llmMatchAllowed(loadConfig({}))).toBe(true);
   });
 
+  it("rejects chaos lab until the engine is wired", async () => {
+    const db = await openMemoryDb();
+    try {
+      const control = createMatchControl({
+        db,
+        config: loadConfig({ GRAPH_HOCKEY_PERIOD_SECONDS: "5" }),
+        paceMs: 0,
+      });
+      expect(() =>
+        control.start({
+          home: "original-six",
+          away: "expansion",
+          seed: 1,
+          noLlm: true,
+          periodSeconds: 15,
+          lab: "chaos",
+          chaosPucks: 25,
+        }),
+      ).toThrow(/Chaos lab engine is not wired/);
+    } finally {
+      db.close();
+    }
+  });
+
   it("rejects noLlm:false without a key or inject", async () => {
     const db = await openMemoryDb();
     try {

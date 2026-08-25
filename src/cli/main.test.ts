@@ -33,6 +33,7 @@ describe("gh CLI", () => {
       expect(printed).toContain("playbook-snapshots");
       expect(USAGE).toContain("Default LLM provider is xAI");
       expect(USAGE).toContain("--home-provider");
+      expect(USAGE).toContain("--period-seconds");
       expect(USAGE).toContain("muse");
       expect(USAGE).toContain("openai");
       expect(USAGE).toContain("gemini");
@@ -51,6 +52,53 @@ describe("gh CLI", () => {
       expect(String(err.mock.calls[0]?.[0])).toMatch(/muse,openai/);
     } finally {
       err.mockRestore();
+    }
+  });
+
+  it("simulate --period-seconds overrides env period", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "gh-len-"));
+    const dbPath = join(dir, "graph-hockey.sqlite");
+    const log = vi.spyOn(console, "log").mockImplementation(() => {});
+    try {
+      expect(
+        await main(
+          [
+            "simulate",
+            "--no-llm",
+            "--period-seconds",
+            "15",
+            "--seed",
+            "2",
+            "--db",
+            dbPath,
+            "--match",
+            "cli-len-15",
+            "--json",
+          ],
+          { GRAPH_HOCKEY_PERIOD_SECONDS: "5" },
+        ),
+      ).toBe(0);
+      const out = JSON.parse(String(log.mock.calls.at(-1)?.[0])) as { periodSeconds: number; otSeconds: number };
+      expect(out.periodSeconds).toBe(15);
+      expect(out.otSeconds).toBeCloseTo(3.75, 10);
+
+      log.mockClear();
+      const err = vi.spyOn(console, "error").mockImplementation(() => {});
+      expect(await main(["simulate", "--no-llm", "--period-seconds", "1201"], {})).toBe(1);
+      expect(String(err.mock.calls.at(-1)?.[0])).toMatch(/1200/);
+      err.mockRestore();
+
+      log.mockClear();
+      expect(
+        await main(
+          ["simulate", "--no-llm", "--seed", "2", "--db", dbPath, "--match", "cli-len-ot", "--json"],
+          { GRAPH_HOCKEY_PERIOD_SECONDS: "5", GRAPH_HOCKEY_OT_SECONDS: "7" },
+        ),
+      ).toBe(0);
+      const otOut = JSON.parse(String(log.mock.calls.at(-1)?.[0])) as { otSeconds: number };
+      expect(otOut.otSeconds).toBe(7);
+    } finally {
+      log.mockRestore();
     }
   });
 

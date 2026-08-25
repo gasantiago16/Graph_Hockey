@@ -79,6 +79,8 @@ describe("static AAR + Film Room routes", () => {
     expect(resolveStatic("/film/series/ser-1", ROOT)?.replace(/\\/g, "/")).toMatch(/src\/web\/film.html$/);
     expect(resolveStatic("/film/series/ser-1/", ROOT)?.replace(/\\/g, "/")).toMatch(/src\/web\/film.html$/);
     expect(resolveStatic("/", ROOT)?.replace(/\\/g, "/")).toMatch(/src\/web\/index.html$/);
+    expect(resolveStatic("/chaos", ROOT)?.replace(/\\/g, "/")).toMatch(/src\/web\/chaos.html$/);
+    expect(resolveStatic("/chaos/", ROOT)?.replace(/\\/g, "/")).toMatch(/src\/web\/chaos.html$/);
   });
 });
 
@@ -133,7 +135,27 @@ describe("REST /api/aar and /api/playbook", () => {
 
         const rink = await fetch(`${base}/`);
         expect(rink.status).toBe(200);
-        expect(await rink.text()).toContain("Start series (7)");
+        const rinkHtml = await rink.text();
+        expect(rinkHtml).toContain("Start series (7)");
+        expect(rinkHtml).toContain("NHL LAB");
+        expect(rinkHtml).toContain("Watchable (15s)");
+        expect(rinkHtml).not.toContain("Period s");
+
+        const chaos = await fetch(`${base}/chaos`);
+        expect(chaos.status).toBe(200);
+        const chaosHtml = await chaos.text();
+        expect(chaosHtml).toContain("CHAOS LAB");
+        expect(chaosHtml).toContain("Dump 10");
+        expect(chaosHtml).not.toContain("XAI_API_KEY");
+
+        const dump = await fetch(`${base}/api/match/chaos`, { method: "POST", body: "{}" });
+        expect(dump.status).toBe(501);
+        const chaosStart = await fetch(`${base}/api/chaos/start`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: "{}",
+        });
+        expect(chaosStart.status).toBe(501);
       } finally {
         await close();
       }

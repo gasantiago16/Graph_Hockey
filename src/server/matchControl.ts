@@ -166,6 +166,9 @@ export function createMatchControl(opts: CreateMatchControlOpts): MatchControl {
   function start(body: StartMatchBody) {
     if (live) throw new MatchBusyError(live.matchId);
     const noLlm = body.noLlm !== false;
+    if (body.lab === "chaos") {
+      throw new MatchStartError("Chaos lab engine is not wired yet. Use the NHL lab for 5v5 hockey.");
+    }
     const homeProfile = noLlm ? undefined : profileFromConfig(config, body.homeProvider, body.homeCoach);
     const awayProfile = noLlm ? undefined : profileFromConfig(config, body.awayProvider, body.awayCoach);
     if (!noLlm && !llmMatchAllowed(config, { home: homeProfile!.provider, away: awayProfile!.provider })) {
@@ -292,6 +295,9 @@ export function createMatchControl(opts: CreateMatchControlOpts): MatchControl {
   function startSeries(body: StartSeriesBody) {
     if (live) throw new MatchBusyError(live.matchId);
     const noLlm = body.noLlm !== false;
+    if (body.lab === "chaos") {
+      throw new MatchStartError("Chaos lab engine is not wired yet. Use the NHL lab for 5v5 hockey.");
+    }
     const homeProfile = noLlm ? undefined : profileFromConfig(config, body.homeProvider, body.homeCoach);
     const awayProfile = noLlm ? undefined : profileFromConfig(config, body.awayProvider, body.awayCoach);
     if (!noLlm && !llmMatchAllowed(config, { home: homeProfile!.provider, away: awayProfile!.provider })) {

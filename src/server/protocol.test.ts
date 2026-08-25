@@ -202,6 +202,10 @@ describe("WS protocol denylist", () => {
     expect(body.periodSeconds).toBeUndefined();
     expect(() => StartMatchBodySchema.parse({ noLlm: true, periodSeconds: 5 })).not.toThrow();
     expect(StartMatchBodySchema.parse({ noLlm: false }).noLlm).toBe(false);
+    expect(StartMatchBodySchema.parse({}).lab).toBeUndefined();
+    expect(StartMatchBodySchema.parse({ lab: "chaos", chaosPucks: 25 }).lab).toBe("chaos");
+    expect(() => StartMatchBodySchema.parse({ lab: "arcade" })).toThrow();
+    expect(() => StartMatchBodySchema.parse({ chaosPucks: 101 })).toThrow();
     const lab = StartMatchBodySchema.parse({
       noLlm: false,
       homeProvider: "xai",

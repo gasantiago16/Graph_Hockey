@@ -1,4 +1,9 @@
 import { aarHref, loadPostMatchPanels } from "./aar.js";
+import {
+  formatLengthHelp,
+  llmLengthWarning,
+  periodSecondsFromCustom,
+} from "./length.js";
 import { drawSpectatorFrame, formatClock, sizeRinkCanvas } from "./rink.js";
 
 const canvas = document.getElementById("rink");
@@ -16,6 +21,13 @@ const btnStop = document.getElementById("btnStop");
 const useLlmEl = document.getElementById("useLlm");
 const homeProviderEl = document.getElementById("homeProvider");
 const awayProviderEl = document.getElementById("awayProvider");
+const lengthPresetEl = document.getElementById("lengthPreset");
+const lengthCustomEl = document.getElementById("lengthCustom");
+const customPeriodEl = document.getElementById("customPeriod");
+const customUnitEl = document.getElementById("customUnit");
+const lengthHelpEl = document.getElementById("lengthHelp");
+const llmLengthNoteEl = document.getElementById("llmLengthNote");
+const LAB = document.body?.dataset?.lab === "chaos" ? "chaos" : "nhl";
 
 const PLAY_NAME_HIDDEN = "Play name hidden";
 const ZERO_COST = { usd: 0, promptTokens: 0, outputTokens: 0, homeCalls: 0, awayCalls: 0 };
@@ -25,6 +37,23 @@ function formatHudUsd(usd) {
   if (n === 0) return "$0.00";
   if (Math.abs(n) < 0.01) return `$${n.toFixed(4)}`;
   return `$${n.toFixed(2)}`;
+}
+
+function periodSecondsFromUi() {
+  if (!lengthPresetEl) return 15;
+  const preset = lengthPresetEl.value;
+  if (preset !== "custom") {
+    const n = Number(preset);
+    return Number.isFinite(n) ? Math.max(1, Math.min(1200, n)) : 15;
+  }
+  return periodSecondsFromCustom(Number(customPeriodEl?.value), customUnitEl?.value === "min" ? "min" : "sec");
+}
+
+function syncLengthUi() {
+  if (lengthCustomEl) lengthCustomEl.hidden = lengthPresetEl?.value !== "custom";
+  const p = periodSecondsFromUi();
+  if (lengthHelpEl) lengthHelpEl.textContent = formatLengthHelp(p);
+  if (llmLengthNoteEl) llmLengthNoteEl.hidden = !llmLengthWarning(p, wantLlm());
 }
 
 function formatCostHud(tick, noLlm) {
@@ -114,7 +143,7 @@ function onMessage(msg) {
       msg.seriesId && msg.games != null && msg.gameIndex != null
         ? `Series ${msg.seriesId} game ${msg.gameIndex + 1}/${msg.games} · `
         : "";
-    tickerEl.textContent = `${series}Match ${msg.matchId} · period ${msg.periodSeconds}s · seed ${msg.seed}`;
+    tickerEl.textContent = `${series}Match ${msg.matchId} · ${formatLengthHelp(msg.periodSeconds ?? 15)} · seed ${msg.seed}`;
     const post = document.getElementById("postMatch");
     if (post) post.hidden = true;
   } else if (msg.type === "match_over") {
@@ -183,9 +212,11 @@ async function refreshLlmGate() {
     const on = Boolean(providers[home]) && Boolean(providers[away]);
     useLlmEl.disabled = !on;
     if (!on) useLlmEl.checked = false;
+    syncLengthUi();
   } catch {
     useLlmEl.disabled = true;
     useLlmEl.checked = false;
+    syncLengthUi();
   }
 }
 
@@ -193,21 +224,30 @@ function wantLlm() {
   return Boolean(useLlmEl && useLlmEl.checked && !useLlmEl.disabled);
 }
 
-async function startMatch() {
-  setErr("");
+function startBody() {
   const body = {
     home: document.getElementById("home").value,
     away: document.getElementById("away").value,
     seed: Number(document.getElementById("seed").value),
     noLlm: !wantLlm(),
-    periodSeconds: Number(document.getElementById("periodSeconds").value),
+    periodSeconds: periodSecondsFromUi(),
     homeProvider: homeProviderEl?.value ?? "xai",
     awayProvider: awayProviderEl?.value ?? "xai",
   };
-  const res = await fetch("/api/match/start", {
+  if (LAB === "chaos") {
+    const n = Number(document.getElementById("chaosPucks")?.value);
+    body.chaosPucks = Number.isFinite(n) ? Math.max(1, Math.min(100, Math.round(n))) : 25;
+  }
+  return body;
+}
+
+async function startMatch() {
+  setErr("");
+  const path = LAB === "chaos" ? "/api/chaos/start" : "/api/match/start";
+  const res = await fetch(path, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
+    body: JSON.stringify(startBody()),
   });
   const json = await res.json().catch(() => ({}));
   if (!res.ok) {
@@ -219,20 +259,11 @@ async function startMatch() {
 
 async function startSeries() {
   setErr("");
-  const body = {
-    home: document.getElementById("home").value,
-    away: document.getElementById("away").value,
-    seed: Number(document.getElementById("seed").value),
-    noLlm: !wantLlm(),
-    periodSeconds: Number(document.getElementById("periodSeconds").value),
-    games: 7,
-    homeProvider: homeProviderEl?.value ?? "xai",
-    awayProvider: awayProviderEl?.value ?? "xai",
-  };
-  const res = await fetch("/api/series/start", {
+  const path = LAB === "chaos" ? "/api/chaos/series/start" : "/api/series/start";
+  const res = await fetch(path, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
+    body: JSON.stringify({ ...startBody(), games: 7 }),
   });
   const json = await res.json().catch(() => ({}));
   if (!res.ok) {
@@ -291,5 +322,17 @@ applyInspectUi();
 paint();
 if (homeProviderEl) homeProviderEl.addEventListener("change", () => void refreshLlmGate());
 if (awayProviderEl) awayProviderEl.addEventListener("change", () => void refreshLlmGate());
+if (lengthPresetEl) lengthPresetEl.addEventListener("change", syncLengthUi);
+if (customPeriodEl) customPeriodEl.addEventListener("input", syncLengthUi);
+if (customUnitEl) customUnitEl.addEventListener("change", syncLengthUi);
+if (useLlmEl) useLlmEl.addEventListener("change", syncLengthUi);
+const chaosPucksEl = document.getElementById("chaosPucks");
+const chaosPucksVal = document.getElementById("chaosPucksVal");
+if (chaosPucksEl && chaosPucksVal) {
+  chaosPucksEl.addEventListener("input", () => {
+    chaosPucksVal.textContent = chaosPucksEl.value;
+  });
+}
+syncLengthUi();
 void refreshLlmGate();
 connect();

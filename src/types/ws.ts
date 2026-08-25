@@ -121,12 +121,14 @@ export const StartMatchBodySchema = z.object({
   away: z.string().min(1).default("expansion"),
   seed: z.number().int().optional(),
   noLlm: z.boolean().default(true),
-  /** UI demo often sends 5. Omitted → `loadConfig().periodSeconds` (1200 unless env). */
+  /** UI Watchable sends 15. Omitted → `loadConfig().periodSeconds` (1200 unless env). */
   periodSeconds: z.number().positive().max(1200).optional(),
   homeProvider: ProviderIdSchema.optional(),
   awayProvider: ProviderIdSchema.optional(),
   homeCoach: z.string().min(1).optional(),
   awayCoach: z.string().min(1).optional(),
+  lab: z.enum(["nhl", "chaos"]).optional(),
+  chaosPucks: z.number().int().min(1).max(100).optional(),
 });
 export type StartMatchBody = z.infer<typeof StartMatchBodySchema>;
 

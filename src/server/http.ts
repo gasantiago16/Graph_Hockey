@@ -130,6 +130,7 @@ export function resolveStatic(urlPath: string, root: string): string | null {
   if (u === "/film" || u === "/film/") return path.join(root, "src/web/film.html");
   if (/^\/film\/series\/[^/]+\/?$/.test(u)) return path.join(root, "src/web/film.html");
   if (u === "/aar" || u === "/aar/") return path.join(root, "src/web/aar.html");
+  if (u === "/chaos" || u === "/chaos/") return path.join(root, "src/web/chaos.html");
   const rel = u.replace(/^\/+/, "");
   if (forbiddenRel(rel)) return null;
   const file = path.resolve(root, rel);
@@ -206,6 +207,16 @@ export async function handleHockeyRequest(
       }
       throw err;
     }
+    return;
+  }
+
+  if (
+    method === "POST" &&
+    (url.pathname === "/api/match/chaos" ||
+      url.pathname === "/api/chaos/start" ||
+      url.pathname === "/api/chaos/series/start")
+  ) {
+    sendJson(res, 501, { error: "Chaos lab engine is not wired yet. Use the NHL lab for 5v5 hockey." });
     return;
   }
 

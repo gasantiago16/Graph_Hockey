@@ -26,7 +26,7 @@ export const USAGE = `graph-hockey — competing LangGraph teams on a hockey rin
 Usage:
   gh --help
   gh simulate [--home ID] [--away ID] [--seed N] [--no-llm] [--no-record] [--aar-mode auto|propose] [--db PATH] [--match ID]
-              [--home-provider xai|muse|openai|gemini] [--away-provider ...] [--home-model SLUG] [--away-model SLUG]
+              [--period-seconds N] [--home-provider xai|muse|openai|gemini] [--away-provider ...] [--home-model SLUG] [--away-model SLUG]
   gh replay --match ID [--to-tick N] [--db PATH]
   gh aar --match ID [--side home|away] [--aar-mode auto|propose|hitl]
   gh playbook --team ID [--diff] [--version N] [--reset-playbook]
@@ -125,6 +125,15 @@ function requireLiveKeys(cmd: string, home: TeamLlmProfile, away: TeamLlmProfile
   return `gh ${cmd}: live LLM needs keys for ${missing.join(",")} (or pass --no-llm)`;
 }
 
+function parsePeriodSecondsFlag(argv: string[]): number | undefined {
+  const raw = opt(argv, "period-seconds");
+  if (raw === undefined) return undefined;
+  const n = Number.parseFloat(raw);
+  if (!Number.isFinite(n) || n <= 0) throw new Error(`invalid --period-seconds ${raw}`);
+  if (n > 1200) throw new Error(`--period-seconds ${raw} exceeds max 1200`);
+  return n;
+}
+
 function parseCompare(raw: string | undefined): { early: number; late: number } | undefined {
   if (raw === undefined) return undefined;
   const m = /^(\d+)\s*,\s*(\d+)$/.exec(raw.trim());
@@ -134,12 +143,8 @@ function parseCompare(raw: string | undefined): { early: number; late: number } 
 
 /** --no-llm series stays off 36,000 ticks unless the operator sets a period. */
 function seriesPeriodSeconds(argv: string[], env: EnvMap, cfgPeriod: number, noLlm: boolean): number {
-  const raw = opt(argv, "period-seconds");
-  if (raw !== undefined) {
-    const n = Number.parseFloat(raw);
-    if (!Number.isFinite(n) || n <= 0) throw new Error(`invalid --period-seconds ${raw}`);
-    return n;
-  }
+  const flagged = parsePeriodSecondsFlag(argv);
+  if (flagged !== undefined) return flagged;
   const envPeriod = env.GRAPH_HOCKEY_PERIOD_SECONDS;
   if (envPeriod !== undefined && envPeriod.trim() !== "") return cfgPeriod;
   return noLlm ? 5 : cfgPeriod;
@@ -173,6 +178,13 @@ async function cmdSimulate(argv: string[], env: EnvMap): Promise<number> {
   const dbPath = opt(argv, "db") ?? defaultDbPath();
   const matchId = opt(argv, "match") ?? `sim-${seed}-${Date.now().toString(36)}`;
   const record = !flag(argv, "no-record");
+  const periodSeconds = parsePeriodSecondsFlag(argv) ?? cfg.periodSeconds;
+  const otOverride = env.GRAPH_HOCKEY_OT_SECONDS;
+  const otParsed = otOverride !== undefined ? Number.parseFloat(otOverride) : undefined;
+  const otSeconds = scaledOtSeconds(
+    periodSeconds,
+    otParsed !== undefined && Number.isFinite(otParsed) ? otParsed : undefined,
+  );
 
   const result = await withDb(dbPath, async (db) => {
     ensureSeedPlaybooks(db);
@@ -205,8 +217,8 @@ async function cmdSimulate(argv: string[], env: EnvMap): Promise<number> {
       awayGraph,
       db,
       timeoutMs: cfg.epochTimeoutMs,
-      periodSeconds: cfg.periodSeconds,
-      otSeconds: cfg.otSeconds,
+      periodSeconds,
+      otSeconds,
       noLlm,
       aarMode,
       homePlaybookVersion: homeRow?.version ?? 1,
@@ -239,7 +251,8 @@ async function cmdSimulate(argv: string[], env: EnvMap): Promise<number> {
     db: dbPath,
     noLlm,
     recorded: record,
-    periodSeconds: cfg.periodSeconds,
+    periodSeconds,
+    otSeconds,
     cost,
   };
   if (flag(argv, "json")) {
