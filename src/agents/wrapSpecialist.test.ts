@@ -92,5 +92,6 @@ describe("wrapSpecialist", () => {
       "oz-cycle-low",
     );
     expect(fallbackAdvice("st").memo).toContain("st");
+    expect(fallbackAdvice("oc").params?.shotPolicy).toBe("pass");
   });
 });

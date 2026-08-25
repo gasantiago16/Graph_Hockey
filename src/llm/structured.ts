@@ -1,0 +1,131 @@
+import { SystemMessage, type BaseMessage } from "@langchain/core/messages";
+import type { BaseChatModel } from "@langchain/core/language_models/chat_models";
+import type { z } from "zod";
+import { markReasoningNoneUnsupported } from "./client.ts";
+
+export type InvokeStructuredOpts = {
+  label?: string;
+  signal?: AbortSignal;
+};
+
+/** Visible text only — skip reasoning/tool blocks so JSON parse can see the object. */
+export function extractText(content: unknown): string {
+  if (typeof content === "string") return content;
+  if (Array.isArray(content)) {
+    const parts: string[] = [];
+    for (const part of content) {
+      if (typeof part === "string") {
+        parts.push(part);
+        continue;
+      }
+      if (!part || typeof part !== "object") continue;
+      const rec = part as Record<string, unknown>;
+      const kind = typeof rec.type === "string" ? rec.type : "";
+      if (kind === "reasoning" || kind === "thinking" || kind === "tool_use") continue;
+      if (typeof rec.text === "string") parts.push(rec.text);
+      else if (typeof rec.content === "string") parts.push(rec.content);
+    }
+    return parts.join("");
+  }
+  if (content && typeof content === "object") {
+    const rec = content as Record<string, unknown>;
+    if (typeof rec.text === "string") return rec.text;
+  }
+  return "";
+}
+
+export function parseJsonValue(text: string): unknown {
+  const trimmed = text.trim();
+  if (!trimmed) return undefined;
+  const unfenced = trimmed.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "").trim();
+  try {
+    return JSON.parse(unfenced);
+  } catch {
+    const start = unfenced.indexOf("{");
+    const end = unfenced.lastIndexOf("}");
+    if (start >= 0 && end > start) {
+      try {
+        return JSON.parse(unfenced.slice(start, end + 1));
+      } catch {
+        return undefined;
+      }
+    }
+    return undefined;
+  }
+}
+
+export function isTimeoutErr(err: unknown): boolean {
+  if (!err || typeof err !== "object") return false;
+  const rec = err as { name?: string; message?: string };
+  if (rec.name === "TimeoutError" || rec.name === "AbortError") return true;
+  return typeof rec.message === "string" && /timed out|timeout|aborted/i.test(rec.message);
+}
+
+function modelName(llm: BaseChatModel): string {
+  const rec = llm as BaseChatModel & { model?: unknown };
+  return typeof rec.model === "string" ? rec.model : "";
+}
+
+/**
+ * Muse Completions: LangChain defaults jsonSchema + OpenAI-strict Zod, which 400s
+ * on optional fields. json_object is enough; we still Zod-parse the object.
+ */
+export function structuredMethodForModel(model: string): "jsonMode" | undefined {
+  return model.startsWith("muse-") ? "jsonMode" : undefined;
+}
+
+function logFail(label: string, phase: string, err: unknown): void {
+  const msg = err instanceof Error ? err.message : String(err);
+  console.warn(`structured:${label}:${phase} ${msg.slice(0, 220)}`);
+}
+
+function maybeMarkNone(err: unknown): void {
+  const msg = err instanceof Error ? err.message : String(err);
+  if (/reasoning_effort/i.test(msg)) markReasoningNoneUnsupported();
+}
+
+function outboundMessages(messages: BaseMessage[], jsonObject: boolean): BaseMessage[] {
+  if (!jsonObject) return messages;
+  return [new SystemMessage("Respond with a JSON object matching the requested schema."), ...messages];
+}
+
+/**
+ * Native `.withStructuredOutput` first (FakeListChatModel JSON and vendor json_schema).
+ * On a fast failure, parse `invoke` content. Skip the JSON pass after a timeout so
+ * one hung call cannot eat the 8s epoch twice.
+ */
+export async function invokeStructured<T>(
+  llm: BaseChatModel,
+  schema: z.ZodType<T>,
+  messages: BaseMessage[],
+  opts: InvokeStructuredOpts = {},
+): Promise<T | undefined> {
+  const label = opts.label ?? "llm";
+  const invokeOpts = opts.signal ? { signal: opts.signal } : undefined;
+  const method = structuredMethodForModel(modelName(llm));
+  const outbound = outboundMessages(messages, method === "jsonMode");
+
+  try {
+    const runnable = method
+      ? llm.withStructuredOutput(schema, { method })
+      : llm.withStructuredOutput(schema);
+    const raw: unknown = await runnable.invoke(outbound, invokeOpts);
+    const parsed = schema.safeParse(raw);
+    if (parsed.success) return parsed.data;
+    console.warn(`structured:${label}:structured parse failed`);
+  } catch (err) {
+    maybeMarkNone(err);
+    logFail(label, "structured", err);
+    if (isTimeoutErr(err)) return undefined;
+  }
+
+  try {
+    const msg = await llm.invoke(outbound, invokeOpts);
+    const parsed = schema.safeParse(parseJsonValue(extractText(msg.content)));
+    if (parsed.success) return parsed.data;
+  } catch (err) {
+    maybeMarkNone(err);
+    logFail(label, "json", err);
+  }
+  return undefined;
+}

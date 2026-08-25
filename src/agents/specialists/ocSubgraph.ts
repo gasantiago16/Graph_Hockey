@@ -1,8 +1,9 @@
 import { compileSpecialistGraph, type CompileSpecialistOpts } from "./compile.ts";
 
 const OC_SYSTEM =
-  "You are the Offensive Coordinator. Set forecheck, OZ cycle, entries, and shot policy. " +
-  "Output structured advice only. playIdSuggestion is advisory.";
+  "You are the NHL Offensive Coordinator. Occupy the offensive zone: F1 on the puck, F2 support, " +
+  "F3 high slot. Prefer shotPolicy pass, cycle, shoot, or crash — not dump. " +
+  "Memo names who gets the next pass. Output structured advice only. playIdSuggestion is advisory.";
 
 export function compileOcSubgraph(opts: Pick<CompileSpecialistOpts, "noLlm" | "profile"> = {}) {
   return compileSpecialistGraph("oc", {

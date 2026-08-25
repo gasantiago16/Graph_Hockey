@@ -3,6 +3,7 @@ import { HumanMessage, SystemMessage } from "@langchain/core/messages";
 import { coachLlm } from "../../llm/client.ts";
 import type { TeamLlmProfile } from "../../llm/profiles.ts";
 import { CoachIntentSchema, type CoachIntent } from "../../llm/schemas.ts";
+import { invokeStructured } from "../../llm/structured.ts";
 import type { PlayDigest } from "../../types/play.ts";
 import type { TeamGraphStateType } from "../state.ts";
 import { SPECIALIST_IDS, type SpecialistId } from "./situation.ts";
@@ -20,8 +21,11 @@ export const HEAD_COACH_ENDS = [
 const ALLOWED_SPECIALISTS = new Set<string>(SPECIALIST_IDS);
 
 const COACH_SYSTEM =
-  "You are the Head Coach. Pick exactly one playId from retrievedPlays. " +
-  "Output structured CoachIntent only. Do not invent play ids.";
+  "You are an NHL Head Coach. Win the period by occupying ice and creating a scoring chance. " +
+  "supposedToHappen must name the hockey action (support-below-the-puck, pass to the slot/backdoor, " +
+  "cycle low, crash the net) — never 'continue the current structure'. " +
+  "Prefer plays that enter the OZ with possession and pass to a shooter. Dump only if no pass exists. " +
+  "Pick exactly one playId from retrievedPlays. Output structured CoachIntent only. Do not invent play ids.";
 
 export type HeadCoachOpts = {
   /** Skip grok-4.5; assemble_directive still uses the seed default play. */
@@ -36,7 +40,7 @@ export function clampCoachPlayId(playId: string, retrievedPlays: readonly Pick<P
 
 function fallbackIntent(state: TeamGraphStateType): CoachIntent {
   return {
-    supposedToHappen: "continue the current structure",
+    supposedToHappen: "occupy ice, pass to a teammate in a scoring spot, attack the net",
     playId: clampCoachPlayId(state.lastDirective.playId, state.retrievedPlays),
     pressure: state.lastDirective.pressure,
   };
@@ -74,17 +78,14 @@ function coachUserPrompt(state: TeamGraphStateType): string {
 
 async function invokeCoachIntent(state: TeamGraphStateType, profile?: TeamLlmProfile): Promise<CoachIntent> {
   const fallback = fallbackIntent(state);
-  try {
-    const raw: unknown = await coachLlm(process.env, profile).withStructuredOutput(CoachIntentSchema).invoke([
-      new SystemMessage(COACH_SYSTEM),
-      new HumanMessage(coachUserPrompt(state)),
-    ]);
-    const parsed = CoachIntentSchema.safeParse(raw);
-    if (!parsed.success) return fallback;
-    return { ...parsed.data, playId: clampCoachPlayId(parsed.data.playId, state.retrievedPlays) };
-  } catch {
-    return fallback;
-  }
+  const parsed = await invokeStructured(
+    coachLlm(process.env, profile),
+    CoachIntentSchema,
+    [new SystemMessage(COACH_SYSTEM), new HumanMessage(coachUserPrompt(state))],
+    { label: "coach" },
+  );
+  if (!parsed) return fallback;
+  return { ...parsed, playId: clampCoachPlayId(parsed.playId, state.retrievedPlays) };
 }
 
 function routedSpecialists(state: TeamGraphStateType): SpecialistId[] {

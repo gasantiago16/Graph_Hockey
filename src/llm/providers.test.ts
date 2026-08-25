@@ -13,6 +13,7 @@ import {
   resetLlmClientForTests,
 } from "./client.ts";
 import { DEFAULT_PROFILES } from "./profiles.ts";
+import { museReasoningEffort } from "./providers/openaiCompat.ts";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "../..");
 
@@ -48,6 +49,22 @@ describe("provider adapters (constructor only, no network)", () => {
     expect(src).toMatch(/https:\/\/api\.meta\.ai\/v1/);
     expect(src).toMatch(/useResponsesApi:\s*false/);
     expect(src).not.toMatch(/contributor/);
+    expect(src).toMatch(/museReasoningEffort/);
+  });
+
+  it("muse never sends reasoning_effort none (Spark 400s)", () => {
+    expect(museReasoningEffort("none")).toBe("low");
+    expect(museReasoningEffort("low")).toBe("low");
+    expect(museReasoningEffort("high")).toBe("high");
+    const env = { MODEL_API_KEY: "test-not-live" };
+    const fast = createChatModel({ kind: "fast", profile: DEFAULT_PROFILES.muse, env }) as ChatOpenAI;
+    expect(fast.modelKwargs).toEqual({ reasoning_effort: "low" });
+    const coach = createChatModel({ kind: "coach", profile: DEFAULT_PROFILES.muse, env }) as ChatOpenAI;
+    expect(coach.modelKwargs).toEqual({ reasoning_effort: "low" });
+    const aar = createChatModel({ kind: "aar", profile: DEFAULT_PROFILES.muse, env }) as ChatOpenAI;
+    expect(aar.modelKwargs).toEqual({ reasoning_effort: "high" });
+    expect(fast.model).toBe("muse-spark-1.2");
+    expect(aar.model).toBe("muse-spark-1.2");
   });
 
   it("openai is ChatOpenAI at the official base with gpt-5.6-sol / luna", () => {

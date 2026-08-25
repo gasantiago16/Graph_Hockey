@@ -2,13 +2,9 @@ import { HumanMessage, SystemMessage } from "@langchain/core/messages";
 import type { z } from "zod";
 import { AAR_TIMEOUT_MS, aarLlm } from "../llm/client.ts";
 import type { TeamLlmProfile } from "../llm/profiles.ts";
+import { invokeStructured } from "../llm/structured.ts";
 
 export type AarLlmOpts = { noLlm?: boolean; profile?: TeamLlmProfile };
-
-function contentText(content: unknown): string {
-  if (typeof content === "string") return content;
-  return JSON.stringify(content);
-}
 
 function withDeadline<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
   let timer: ReturnType<typeof setTimeout> | undefined;
@@ -21,9 +17,8 @@ function withDeadline<T>(promise: Promise<T>, ms: number, label: string): Promis
 }
 
 /**
- * `.withStructuredOutput` first; FakeListChatModel may only return JSON text,
- * so fall back to parsing `invoke` content. One pass each — no 2×2 retry
- * (that could hang the rink for minutes on Muse/OpenAI).
+ * One structured + JSON-content pass via invokeStructured, raced against timeoutMs.
+ * No 2×2 retry (that hung the rink on Muse).
  */
 export async function invokeAarStructured<T>(
   schema: z.ZodType<T>,
@@ -36,22 +31,12 @@ export async function invokeAarStructured<T>(
   const llm = aarLlm(process.env, profile);
   const signal = AbortSignal.timeout(timeoutMs);
   try {
-    const raw: unknown = await withDeadline(
-      llm.withStructuredOutput(schema).invoke(messages, { signal }),
+    return await withDeadline(
+      invokeStructured(llm, schema, messages, { label: "aar", signal }),
       timeoutMs,
-      "aar-structured",
+      "aar",
     );
-    const parsed = schema.safeParse(raw);
-    if (parsed.success) return parsed.data;
-  } catch {
-    /* JSON content fallback */
-  }
-  try {
-    const msg = await withDeadline(llm.invoke(messages, { signal }), timeoutMs, "aar-json");
-    const parsed = schema.safeParse(JSON.parse(contentText(msg.content)));
-    if (parsed.success) return parsed.data;
   } catch {
     return undefined;
   }
-  return undefined;
 }

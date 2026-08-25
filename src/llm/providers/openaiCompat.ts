@@ -1,9 +1,14 @@
 import { ChatOpenAI } from "@langchain/openai";
 import { loadConfig, type EnvMap } from "../../config.ts";
-import type { AdapterSpec } from "./types.ts";
+import type { AdapterSpec, ReasoningEffort } from "./types.ts";
 
 export const DEFAULT_OPENAI_BASE_URL = "https://api.openai.com/v1";
 export const DEFAULT_MUSE_BASE_URL = "https://api.meta.ai/v1";
+
+/** Muse Spark 400s on reasoning_effort=none. Map to low so specialists still hit Completions. */
+export function museReasoningEffort(effort: ReasoningEffort): ReasoningEffort {
+  return effort === "none" ? "low" : effort;
+}
 
 function createCompatChatModel(
   spec: AdapterSpec,
@@ -28,12 +33,15 @@ export function createMuseChatModel(spec: AdapterSpec, env: EnvMap): ChatOpenAI 
   if (!cfg.museApiKey) {
     throw new Error("MODEL_API_KEY or MUSE_API_KEY is required for live Muse Spark (tests must setCreateChatModel)");
   }
-  return createCompatChatModel(spec, {
-    apiKey: cfg.museApiKey,
-    baseURL: cfg.museBaseUrl,
-    useResponsesApi: false,
-    mapCompletionsEffort: true,
-  });
+  return createCompatChatModel(
+    { ...spec, effort: museReasoningEffort(spec.effort) },
+    {
+      apiKey: cfg.museApiKey,
+      baseURL: cfg.museBaseUrl,
+      useResponsesApi: false,
+      mapCompletionsEffort: true,
+    },
+  );
 }
 
 export function createOpenAiChatModel(spec: AdapterSpec, env: EnvMap): ChatOpenAI {

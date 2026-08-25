@@ -5,6 +5,7 @@ import { z as z3 } from "zod";
 import { fastLlm } from "../../llm/client.ts";
 import type { TeamLlmProfile } from "../../llm/profiles.ts";
 import { SpecialistParamsSchema } from "../../llm/schemas.ts";
+import { invokeStructured } from "../../llm/structured.ts";
 import type { PlayDigest } from "../../types/play.ts";
 import type { SpecialistId } from "../nodes/situation.ts";
 import {
@@ -33,7 +34,16 @@ export type CompileSpecialistOpts = {
 export type SpecialistLlmOpts = Pick<CompileSpecialistOpts, "noLlm" | "profile">;
 
 export function fallbackAdvice(role: SpecialistId): SpecialistAdvice {
-  return { memo: `${role} holds last structure` };
+  if (role === "oc") {
+    return { memo: "occupy ice, pass to the slot, shoot", params: { shotPolicy: "pass" } };
+  }
+  if (role === "captain") {
+    return { memo: "captain: support the puck, fill the backdoor, attack the net" };
+  }
+  if (role === "dc") {
+    return { memo: "gap up, stick in the lane, break out with a pass" };
+  }
+  return { memo: `${role} supports the scoring play` };
 }
 
 export function clampPlayIdSuggestion(
@@ -83,21 +93,14 @@ async function invokeAdvice(
   state: SpecialistInput,
   profile?: TeamLlmProfile,
 ): Promise<SpecialistAdvice> {
-  const fallback = fallbackAdvice(role);
-  for (let attempt = 0; attempt < 2; attempt++) {
-    try {
-      const raw: unknown = await fastLlm(process.env, profile).withStructuredOutput(SpecialistAdviceSchema).invoke([
-        new SystemMessage(system),
-        new HumanMessage(userPrompt(role, state)),
-      ]);
-      const parsed = SpecialistAdviceSchema.safeParse(raw);
-      if (!parsed.success) continue;
-      return clampPlayIdSuggestion(parsed.data, state.retrievedPlays ?? []);
-    } catch {
-      continue;
-    }
-  }
-  return fallback;
+  const parsed = await invokeStructured(
+    fastLlm(process.env, profile),
+    SpecialistAdviceSchema,
+    [new SystemMessage(system), new HumanMessage(userPrompt(role, state))],
+    { label: `specialist:${role}` },
+  );
+  if (!parsed) return fallbackAdvice(role);
+  return clampPlayIdSuggestion(parsed, state.retrievedPlays ?? []);
 }
 
 /**
