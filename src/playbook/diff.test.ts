@@ -12,7 +12,11 @@ describe("diffPlaybooks", () => {
         summary: "boost",
         ops: [{ op: "boost", playId: "5v5-122-forecheck", reason: "lock", eventIds: ["m:0"] }],
       },
-      { result: "win", knownEventIds: ["m:0"] },
+      {
+        result: "win",
+        knownEventIds: ["m:0"],
+        playUsage: [{ playId: "5v5-122-forecheck", xgFor: 0.5, xgAgainst: 0, seconds: 60, xgShare: 1 }],
+      },
     ).book;
     const diff = diffPlaybooks(from, to);
     expect(diff.fromVersion).toBe(1);

@@ -188,6 +188,35 @@ describe("retrievePlays", () => {
     expect(ids).not.toContain("pp-only");
   });
 
+  it("ranks a play with real xG ahead of a 0-xG play even with more games", () => {
+    const ids = retrievePlays(
+      {
+        teamId: "t",
+        version: 1,
+        plays: [
+          play({
+            id: "zero",
+            status: "active",
+            strength: ["5v5"],
+            zoneBias: ["OZ"],
+            triggers: [],
+            stats: { games: 8, xgFor: 0, xgAgainst: 0 },
+          }),
+          play({
+            id: "real",
+            status: "active",
+            strength: ["5v5"],
+            zoneBias: ["OZ"],
+            triggers: [],
+            stats: { games: 1, xgFor: 0.4, xgAgainst: 0 },
+          }),
+        ],
+      },
+      { strength: "5v5", zone: "OZ" },
+    ).map((d) => d.id);
+    expect(ids[0]).toBe("real");
+  });
+
   it("returns original-six OZ 5v5 candidates including 1-2-2", () => {
     const book = loadPlaybook("original-six");
     const ids = retrievePlays(book, { strength: "5v5", zone: "OZ" }).map((d) => d.id);

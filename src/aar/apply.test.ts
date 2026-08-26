@@ -35,7 +35,28 @@ async function primed() {
     {
       id: makeEventId("m1", 0),
       seq: 0,
+      liveTick: 4,
+      stoppageSeq: 0,
+      period: 1,
+      type: "DirectiveApplied",
+      payload: { side: "home", directive: { playId: "5v5-122-forecheck", pressure: "neutral" } },
+    },
+    {
+      id: makeEventId("m1", 1),
+      seq: 1,
       liveTick: 10,
+      stoppageSeq: 0,
+      period: 1,
+      type: "Shot",
+      zone: "OZ",
+      xG: 0.2,
+      actor: "h-C",
+      payload: { side: "home" },
+    },
+    {
+      id: makeEventId("m1", 2),
+      seq: 2,
+      liveTick: 12,
       stoppageSeq: 0,
       period: 1,
       type: "Goal",
@@ -53,12 +74,16 @@ describe("aar-mode", () => {
     expect(parseAarMode(undefined)).toBe("auto");
     expect(parseAarMode("propose")).toBe("propose");
     expect(parseAarMode("hitl")).toBe("hitl");
+    expect(parseAarMode("code")).toBe("code");
+    expect(parseAarMode(undefined, "code")).toBe("code");
     expect(() => parseAarMode("nope")).toThrow(/aar-mode/);
     expect(shouldApplyRevision({})).toBe(true);
     expect(shouldApplyRevision({ aarMode: "auto" })).toBe(true);
+    expect(shouldApplyRevision({ aarMode: "code" })).toBe(true);
     expect(shouldApplyRevision({ aarMode: "propose" })).toBe(false);
     expect(shouldApplyRevision({ aarMode: "hitl" })).toBe(false);
     expect(shouldApplyRevision({ noLlm: true, aarMode: "auto" })).toBe(false);
+    expect(shouldApplyRevision({ noLlm: true, aarMode: "code" })).toBe(false);
   });
 });
 
@@ -130,7 +155,7 @@ describe("applyAarRevision", () => {
     }
   });
 
-  it("rejects uncited ops and does not bump version", async () => {
+  it("rejects uncited ops; usage stats may still bump the book", async () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     const db = await primed();
     try {
@@ -146,9 +171,10 @@ describe("applyAarRevision", () => {
         }),
         mode: "auto",
       });
-      expect(out.applied).toBe(false);
-      expect(latestPlaybook(db, "original-six")?.version).toBe(1);
       expect(out.rejectedOps.some((r) => r.includes("unknown") || r.includes("m1:99"))).toBe(true);
+      const boost = out.ops.find((o) => o.op === "boost");
+      expect(boost).toBeTruthy();
+      expect(boost?.eventIds?.includes("m1:99")).toBe(false);
     } finally {
       warn.mockRestore();
       db.close();
@@ -200,6 +226,24 @@ describe("applyAarRevision", () => {
       const play = latestPlaybook(db, "original-six")?.body.plays.find((p) => p.id === "5v5-122-forecheck");
       expect(play?.stats.games).toBe(1);
       expect(play?.stats.xgFor).toBeCloseTo(0.4);
+    } finally {
+      db.close();
+    }
+  });
+
+  it("code mode applies capped ops like auto", async () => {
+    const db = await primed();
+    try {
+      const out = applyAarRevision({
+        db,
+        teamId: "original-six",
+        playbook: loadPlaybook("original-six"),
+        report: report(),
+        mode: "code",
+      });
+      expect(out.applied).toBe(true);
+      expect(out.toVersion).toBe(2);
+      expect(latestPlaybook(db, "original-six")?.version).toBe(2);
     } finally {
       db.close();
     }

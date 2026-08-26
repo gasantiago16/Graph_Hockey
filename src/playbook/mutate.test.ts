@@ -70,7 +70,18 @@ describe("applyPlaybookRevision caps", () => {
         boost({ playId: "nz-122-trap", eventIds: ["m:2"] }),
         boost({ playId: "dz-collapse", eventIds: ["m:3"] }),
       ];
-      const out = applyPlaybookRevision(book, { summary: "too many", ops } as PlaybookRevision, ctx());
+      const out = applyPlaybookRevision(
+        book,
+        { summary: "too many", ops } as PlaybookRevision,
+        ctx({
+          playUsage: [
+            usage(),
+            usage({ playId: "oz-cycle-low", xgFor: 0.2, xgShare: 0.1 }),
+            usage({ playId: "nz-122-trap", xgFor: 0.2, xgShare: 0.1 }),
+            usage({ playId: "dz-collapse", xgFor: 0.2, xgShare: 0.1 }),
+          ],
+        }),
+      );
       expect(out.applied).toHaveLength(MAX_MUTATIONS_PER_AAR);
       expect(out.rejected.some((r) => r.includes("max-ops"))).toBe(true);
       expect(out.bumped).toBe(true);
@@ -90,6 +101,48 @@ describe("applyPlaybookRevision caps", () => {
     expect(out.applied).toHaveLength(1);
     expect(out.applied[0]).toMatchObject({ op: "boost", playId: PLAY });
     expect(out.book.plays.find((p) => p.id === PLAY)!.stats.xgFor).toBeGreaterThan(0);
+  });
+
+  it("replaces a 0-xG winner boost with a play that had xG", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    try {
+      const book = loadPlaybook("original-six");
+      const out = applyPlaybookRevision(
+        book,
+        rev([boost({ playId: PLAY })]),
+        ctx({
+          playUsage: [
+            usage({ playId: PLAY, xgFor: 0, seconds: 80, xgShare: 0 }),
+            usage({ playId: "oz-cycle-low", xgFor: 0.4, seconds: 40, xgShare: 1 }),
+          ],
+        }),
+      );
+      expect(out.applied.some((o) => o.op === "boost" && o.playId === "oz-cycle-low")).toBe(true);
+      expect(out.applied.some((o) => o.op === "boost" && o.playId === PLAY)).toBe(false);
+      expect(out.rejected.some((r) => r.includes("zero-xg-boost"))).toBe(true);
+      expect(out.bumped).toBe(true);
+    } finally {
+      warn.mockRestore();
+    }
+  });
+
+  it("rejects boost of a 0-xG play", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    try {
+      const book = loadPlaybook("original-six");
+      const out = applyPlaybookRevision(
+        book,
+        rev([boost()]),
+        ctx({ playUsage: [usage({ xgFor: 0, seconds: 90, xgShare: 0 })] }),
+      );
+      expect(out.applied.some((o) => o.op === "boost")).toBe(false);
+      expect(out.rejected.some((r) => r.includes("zero-xg-boost"))).toBe(true);
+      expect(out.bumped).toBe(true);
+      const after = out.book.plays.find((p) => p.id === PLAY)!;
+      expect(after.stats.xgFor).toBeCloseTo(book.plays.find((p) => p.id === PLAY)!.stats.xgFor);
+    } finally {
+      warn.mockRestore();
+    }
   });
 
   it("boosts lock in what worked and bump book version", () => {

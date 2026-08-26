@@ -275,17 +275,19 @@ function pickBoostPlay(
 ): Play | undefined {
   if (preferId) {
     const hit = findPlay(book, preferId);
-    if (hit && hit.status !== "retired") return hit;
+    const row = (usage ?? []).find((u) => u.playId === preferId);
+    if (hit && hit.status !== "retired" && row && row.xgFor > 0) return hit;
   }
   for (const u of usage ?? []) {
+    if (u.xgFor <= 0) continue;
     const p = findPlay(book, u.playId);
     if (p && p.status !== "retired") return p;
   }
-  return book.plays.find((p) => p.status === "active");
+  return undefined;
 }
 
 function ensureMandatoryBoost(ops: PlayMutation[], book: Playbook, ctx: MutateContext): PlayMutation[] {
-  const share = (ctx.playUsage ?? []).find((u) => u.xgShare > TIE_BOOST_XG_SHARE);
+  const share = (ctx.playUsage ?? []).find((u) => u.xgShare > TIE_BOOST_XG_SHARE && u.xgFor > 0);
   const needWin = ctx.result === "win";
   const needTie = ctx.result === "tie" && share !== undefined;
   if (!needWin && !needTie) return ops;
@@ -293,6 +295,8 @@ function ensureMandatoryBoost(ops: PlayMutation[], book: Playbook, ctx: MutateCo
   const play = pickBoostPlay(book, ctx.playUsage, share?.playId);
   const eventId = ctx.knownEventIds[0];
   if (!play || !eventId) return ops;
+  const row = (ctx.playUsage ?? []).find((u) => u.playId === play.id);
+  if (!row || row.xgFor <= 0) return ops;
   const boost: PlayMutation = {
     op: "boost",
     playId: play.id,
@@ -492,6 +496,17 @@ function gateOps(book: Playbook, ops: readonly PlayMutation[], ctx: MutateContex
     const opOnPlay =
       playId !== rawId && "playId" in op ? ({ ...op, playId } as PlayMutation) : op;
 
+    if (opOnPlay.op === "boost") {
+      const usage =
+        usageMap.get(playId) ??
+        (rawId ? usageMap.get(rawId) : undefined) ??
+        (playId === defaultPlayIdForBook(book) ? usageMap.get(DEFAULT_PLAY_ID) : undefined);
+      if (!usage || usage.xgFor <= 0) {
+        reject(opOnPlay, "zero-xg-boost", rejected);
+        continue;
+      }
+    }
+
     if (opOnPlay.op === "retire") {
       const usage = usageMap.get(playId) ?? (rawId ? usageMap.get(rawId) : undefined);
       if (!retireAllowed(play, usage, ctx.result)) {
@@ -533,7 +548,7 @@ export function applyPlaybookRevision(
   const cited = filterCited(revision.ops, ctx.knownEventIds);
   const rejected = [...cited.rejectedOps];
   let ops = gateOps(book, cited.kept, ctx, rejected);
-  if (ops.length > 0) ops = ensureMandatoryBoost(ops, book, ctx);
+  ops = ensureMandatoryBoost(ops, book, ctx);
   ops = trimToCap(ops, ctx.result, rejected);
 
   const next = cloneBook(book);

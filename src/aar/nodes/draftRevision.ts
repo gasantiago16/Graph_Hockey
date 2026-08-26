@@ -1,6 +1,7 @@
 import { PlaybookRevisionSchema } from "../../llm/schemas.ts";
 import { TIE_BOOST_XG_SHARE } from "../../types/aar.ts";
 import { DEFAULT_PLAY_ID, type Play, type PlayMutation, type PlaybookRevision } from "../../types/play.ts";
+import { defaultPlayIdForBook } from "../../playbook/store.ts";
 import type { AarGraphNode, AarGraphStateType } from "../state.ts";
 import { invokeAarStructured, type AarLlmOpts } from "../llm.ts";
 import { playWithXgShare, themFamilyFromEvents, topPlay, type PlayUsage } from "./actual.ts";
@@ -53,24 +54,42 @@ function emptyRevision(summary: string): PlaybookRevision {
   return { summary: summary.slice(0, 1200), ops: [] };
 }
 
+function boostHasMatchXg(state: AarGraphStateType, op: PlayMutation): boolean {
+  if (op.op !== "boost") return false;
+  const usage =
+    (state.playUsage ?? []).find((p) => p.playId === op.playId) ??
+    (state.playbook && op.playId === defaultPlayIdForBook(state.playbook)
+      ? (state.playUsage ?? []).find((p) => p.playId === DEFAULT_PLAY_ID)
+      : undefined);
+  return !!usage && usage.xgFor > 0;
+}
+
 export function ensureMandatoryBoost(state: AarGraphStateType, revision: PlaybookRevision): PlaybookRevision {
   const needWinBoost = state.result === "win";
   const sharePlay = playWithXgShare(state.playUsage ?? [], TIE_BOOST_XG_SHARE);
   const needTieBoost = state.result === "tie" && sharePlay !== undefined;
   if (!needWinBoost && !needTieBoost) return revision;
-  if (revision.ops.some((op) => op.op === "boost")) return revision;
+  if (revision.ops.some((op) => boostHasMatchXg(state, op))) return revision;
 
-  const usage: PlayUsage | undefined = sharePlay ?? topPlay(state.playUsage ?? []);
-  const play = targetPlay(state, usage?.playId);
+  const usage: PlayUsage | undefined =
+    sharePlay ?? (state.playUsage ?? []).find((p) => p.xgFor > 0) ?? topPlay(state.playUsage ?? []);
+  if (!usage || usage.xgFor <= 0) {
+    return { summary: revision.summary, ops: revision.ops.filter((op) => op.op !== "boost") };
+  }
+  const play = targetPlay(state, usage.playId);
   const eventId = firstCite(state, play?.id);
-  if (!play || !eventId) return revision;
+  if (!play || !eventId) {
+    return { summary: revision.summary, ops: revision.ops.filter((op) => op.op !== "boost") };
+  }
 
   const boost = makeBoost(
     play.id,
     eventId,
     needTieBoost ? "tie: play had xG share > 0.4" : "winner: lock what worked",
   );
-  const rest = revision.ops.filter((op) => !(state.result === "win" && op.op === "retire"));
+  const rest = revision.ops.filter(
+    (op) => op.op !== "boost" && !(state.result === "win" && op.op === "retire"),
+  );
   return { summary: revision.summary, ops: [boost, ...rest].slice(0, 3) };
 }
 

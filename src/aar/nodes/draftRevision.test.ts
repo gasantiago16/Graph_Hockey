@@ -31,6 +31,42 @@ function state(over: Partial<AarGraphStateType> = {}): AarGraphStateType {
 const empty: PlaybookRevision = { summary: "empty", ops: [] };
 
 describe("codeDraft", () => {
+  it("replaces a 0-xG winner boost with a play that had xG", () => {
+    const rev = ensureMandatoryBoost(
+      state({
+        result: "win",
+        playUsage: [
+          { playId: "5v5-122-forecheck", xgFor: 0, xgAgainst: 0, seconds: 80, xgShare: 0 },
+          { playId: "oz-cycle-low", xgFor: 0.4, xgAgainst: 0, seconds: 40, xgShare: 1 },
+        ],
+      }),
+      {
+        summary: "llm",
+        ops: [
+          {
+            op: "boost",
+            playId: "5v5-122-forecheck",
+            reason: "guess",
+            eventIds: [makeEventId("m", 0)],
+          },
+        ],
+      },
+    );
+    expect(rev.ops[0]).toMatchObject({ op: "boost", playId: "oz-cycle-low" });
+    expect(rev.ops.filter((o) => o.op === "boost")).toHaveLength(1);
+  });
+
+  it("skips winner boost when playUsage.xgFor is 0", () => {
+    const rev = ensureMandatoryBoost(
+      state({
+        result: "win",
+        playUsage: [{ playId: "5v5-122-forecheck", xgFor: 0, xgAgainst: 0, seconds: 200, xgShare: 0 }],
+      }),
+      empty,
+    );
+    expect(rev.ops.some((o) => o.op === "boost")).toBe(false);
+  });
+
   it("winner always gets a cited boost", () => {
     const rev = codeDraft(state({ result: "win" }));
     expect(rev.ops[0]).toMatchObject({
