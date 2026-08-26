@@ -121,4 +121,32 @@ describe("leadProtectWhileTrailing", () => {
     expect(card.shots).toBe(0);
     expect(card.distinctChances).toBe(0);
   });
+
+  it("resolves sit-on-a-lead via book family protect-113; trail-push stays false", () => {
+    const seed = loadPlaybook("original-six");
+    const base = seed.plays[0]!;
+    const book = {
+      ...seed,
+      plays: [
+        ...seed.plays,
+        { ...base, id: "sit-on-a-lead", name: "sit-on-a-lead", family: "protect-113" },
+        { ...base, id: "trail-push-1-1-3", name: "trail-push-1-1-3", family: "chase-113" },
+      ],
+    };
+    const sit = [
+      ev(0, "Goal", { payload: { side: "away" } }),
+      ev(1, "DirectiveApplied", {
+        payload: { side: "home", directive: { playId: "sit-on-a-lead" } },
+      }),
+    ];
+    const push = [
+      ev(0, "Goal", { payload: { side: "away" } }),
+      ev(1, "DirectiveApplied", {
+        payload: { side: "home", directive: { playId: "trail-push-1-1-3" } },
+      }),
+    ];
+    expect(leadProtectWhileTrailing(sit, "home", book)).toBe(true);
+    expect(sideScorecard(sit, "home", book, 1).leadProtectWhileTrailing).toBe(true);
+    expect(leadProtectWhileTrailing(push, "home", book)).toBe(false);
+  });
 });
