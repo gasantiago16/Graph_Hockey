@@ -381,7 +381,7 @@ describe("isLeadProtectPlay", () => {
 });
 
 describe("requiredScoreState", () => {
-  it("reads score.eq from all and any; disagrees and mixed groups are not uniform", () => {
+  it("locks when all or pure-any score.eq agree; mixed any / score-free / disagree are not locked", () => {
     expect(
       requiredScoreState(
         play({
@@ -396,6 +396,17 @@ describe("requiredScoreState", () => {
     expect(
       requiredScoreState(
         play({
+          id: "pure-any-lead",
+          status: "active",
+          strength: ["5v5"],
+          zoneBias: ["any"],
+          triggers: [{ any: [{ kind: "score", eq: "leading" }] }],
+        }),
+      ),
+    ).toBe("leading");
+    expect(
+      requiredScoreState(
+        play({
           id: "any-lead",
           status: "active",
           strength: ["5v5"],
@@ -403,7 +414,7 @@ describe("requiredScoreState", () => {
           triggers: [{ any: [{ kind: "score", eq: "leading" }, { kind: "zone", eq: "NZ" }] }],
         }),
       ),
-    ).toBe("leading");
+    ).toBeUndefined();
     expect(
       requiredScoreState(
         play({
@@ -471,7 +482,7 @@ describe("retrievePlays lead-protect gate", () => {
       stats: { games: 1, xgFor: 2, xgAgainst: 0 },
     });
     const book = { teamId: "t", version: 1, plays: [base] };
-    expect(requiredScoreState(base)).toBe("leading");
+    expect(requiredScoreState(base)).toBeUndefined();
     for (const scoreState of [undefined, "tied", "trailing"] as const) {
       expect(retrievePlays(book, { strength: "5v5", zone: "NZ", scoreState }).map((d) => d.id)).not.toContain(
         "protect-lead-any",
@@ -495,6 +506,26 @@ describe("retrievePlays lead-protect gate", () => {
         (d) => d.id,
       ),
     ).toContain("trail-push-1-1-3");
+  });
+
+  it("protect-113 with score.eq trailing retrieves for neither leading nor trailing", () => {
+    const row = play({
+      id: "protect-lead-trail-tweak",
+      family: "protect-113",
+      status: "active",
+      strength: ["5v5"],
+      zoneBias: ["any"],
+      triggers: [{ all: [{ kind: "score", eq: "trailing" }] }],
+    });
+    expect(isLeadProtectPlay(row)).toBe(true);
+    expect(requiredScoreState(row)).toBe("trailing");
+    const book = { teamId: "t", version: 1, plays: [row] };
+    expect(retrievePlays(book, { strength: "5v5", zone: "NZ", scoreState: "leading" }).map((d) => d.id)).not.toContain(
+      row.id,
+    );
+    expect(retrievePlays(book, { strength: "5v5", zone: "NZ", scoreState: "trailing" }).map((d) => d.id)).not.toContain(
+      row.id,
+    );
   });
 
   it("trailing retrieve drops protect-lead even with ser-emp-7 after-g4 net xG", () => {
