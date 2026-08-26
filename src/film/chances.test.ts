@@ -4,9 +4,11 @@ import { makeEventId } from "../types/ids.ts";
 import type { MatchEvent } from "../types/events.ts";
 import {
   chanceCounts,
+  executedPlayMix,
   openingPlayId,
   retrieveTopChanged,
   retrieveTopId,
+  sideScorecard,
 } from "./chances.ts";
 
 function ev(seq: number, type: string, over: Partial<MatchEvent> = {}): MatchEvent {
@@ -60,6 +62,24 @@ describe("opening + retrieve top", () => {
     ];
     expect(openingPlayId(events, "home")).toBe("5v5-122-forecheck");
     expect(openingPlayId(events, "away")).toBe("stretch-pass-nz");
+  });
+
+  it("executedPlayMix ranks DirectiveApplied counts per side", () => {
+    const events = [
+      ev(0, "DirectiveApplied", { payload: { side: "home", directive: { playId: "5v5-122-forecheck" } } }),
+      ev(1, "DirectiveApplied", { payload: { side: "home", directive: { playId: "5v5-breakout-d-to-winger" } } }),
+      ev(2, "DirectiveApplied", { payload: { side: "home", directive: { playId: "5v5-122-forecheck" } } }),
+      ev(3, "DirectiveApplied", { payload: { side: "away", directive: { playId: "5v5-212-forecheck" } } }),
+    ];
+    expect(executedPlayMix(events, "home")).toEqual([
+      { playId: "5v5-122-forecheck", directives: 2 },
+      { playId: "5v5-breakout-d-to-winger", directives: 1 },
+    ]);
+    const card = sideScorecard(events, "home", loadPlaybook("original-six"), 8);
+    expect(card.openingPlayId).toBe("5v5-122-forecheck");
+    expect(card.retrieveTopId).toBe("5v5-122-forecheck");
+    expect(card.openingMatchesRetrieve).toBe(true);
+    expect(card.playMix[0]?.playId).toBe("5v5-122-forecheck");
   });
 
   it("retrieveTopId is 5v5 OZ first digest", () => {

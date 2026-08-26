@@ -88,10 +88,32 @@ export function chanceCounts(events: readonly MatchEvent[], side: Side): ChanceC
   return { shots, distinctChances, offsides };
 }
 
+export type PlayMixRow = { playId: string; directives: number };
+
+/** DirectiveApplied counts for this side, highest first. Transfer evidence is a non-seed play here, not a version integer. */
+export function executedPlayMix(events: readonly MatchEvent[], side: Side): PlayMixRow[] {
+  const counts = new Map<string, number>();
+  for (const event of events) {
+    if (event.type !== "DirectiveApplied") continue;
+    const rec = payloadRecord(event.payload);
+    if (rec?.side !== side) continue;
+    const dir = rec.directive;
+    if (!dir || typeof dir !== "object" || !("playId" in dir)) continue;
+    const playId = (dir as { playId: unknown }).playId;
+    if (typeof playId !== "string" || playId.length === 0) continue;
+    counts.set(playId, (counts.get(playId) ?? 0) + 1);
+  }
+  return [...counts.entries()]
+    .map(([playId, directives]) => ({ playId, directives }))
+    .sort((a, b) => b.directives - a.directives || a.playId.localeCompare(b.playId));
+}
+
 export type SideScorecard = ChanceCounts & {
   openingPlayId?: string;
   retrieveTopId?: string;
   playbookVersion: number;
+  playMix: PlayMixRow[];
+  openingMatchesRetrieve: boolean;
 };
 
 export function sideScorecard(
@@ -100,11 +122,15 @@ export function sideScorecard(
   book: Playbook | undefined,
   playbookVersion: number,
 ): SideScorecard {
+  const opening = openingPlayId(events, side);
+  const top = retrieveTopId(book);
   return {
     ...chanceCounts(events, side),
-    openingPlayId: openingPlayId(events, side),
-    retrieveTopId: retrieveTopId(book),
+    openingPlayId: opening,
+    retrieveTopId: top,
     playbookVersion,
+    playMix: executedPlayMix(events, side),
+    openingMatchesRetrieve: opening !== undefined && top !== undefined && opening === top,
   };
 }
 
