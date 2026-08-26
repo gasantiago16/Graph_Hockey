@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | **Date** | 2026-08-26 |
-| **Status** | Cycle 3 aborted (bank **2/5**). Write path proven. Retention survive proven. Transfer failed (still 122). Evaluate 13 offs band passed; chance mean 2.71. Cycle 4: F3 just-in occupy. |
+| **Status** | Cycle 4 attempt 1. Bank **2/5**. Write path proven. Retention survive proven. Transfer failed (still 122). Evaluate 14 offs pass, chance mean 3.43, still 122. Next: retrieve/AAR. |
 | **Scoreboard** | [`better-hockey.md`](better-hockey.md) |
 | **Bibliography** | [`ANNOTATED_BIBLIOGRAPHY.md`](ANNOTATED_BIBLIOGRAPHY.md) |
 | **Handbook** | [`FORgasan.md`](FORgasan.md) |

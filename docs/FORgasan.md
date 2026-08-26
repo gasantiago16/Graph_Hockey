@@ -264,6 +264,8 @@ Seven games as a row of books. The loop is the row getting thicker. Quality is w
 | **`ser-emp-19` Evaluate 12** | Δ xG **−0.119**. Chance mean **5.14**. g5 home **4** offs. Pairs 1. g2 home offs **0**. Not credited. | F2 gate closed g2. Remaining leak is F3 racing to the slot as soon as `ozLive`. |
 | **F3 established (`6a3e6d1`)** | F3 onside until `BLUE+8`. pr8 Offside 1→0. | Closed the slot-race offs. |
 | **`ser-emp-20` Evaluate 13** | Offs **0–2**. Chance mean **2.71**. Δ xG **−0.304**. g3/g6 **0** chances. **Cycle 3 abort.** | F3 parked in the NZ. Dump-and-chase had no third man. |
+| **F3 just-in occupy (`f9aa178`)** | Just-in F3 at `alongPuck+4`. Slot after `BLUE+8`. | Third man in the OZ without racing the slot. |
+| **`ser-emp-21` Evaluate 14** | Offs **pass**. Chance mean **3.43**. Δ xG **−0.230**. Pairs 1. g6 4–1 at xG 0.26. Not credited. | No 0-chance games. Quiet 2-chance middle. Still 122. Next is retrieve/AAR, not more F3. |
 
 ### The 7-game card (`ser-emp-7`)
 
@@ -525,8 +527,8 @@ These are not hypothetical. They showed up in design review or PR review and wou
 
 Live counters: [`better-hockey.md`](better-hockey.md) (bank **2/5**). Learning plan: [`knowledge-and-learning.md`](knowledge-and-learning.md). Bibliography: [`ANNOTATED_BIBLIOGRAPHY.md`](ANNOTATED_BIBLIOGRAPHY.md).
 
-1. **F2 outlet only in established OZ (`BLUE+8`).** Evaluate 11 leaked 3 home offs at the attacking blue (tick 46 on 122). Ice is environment. Counting Evaluate 12.
-2. **Retrieve/AAR targeting.** Carry survived; retrieve still ranks leftover 122. Loser `add_counter` on 122 makes it stickier (`COUNTER_BONUS` 0.25 vs net 1.84). Learning Evaluate `ser-retain-2` does not steal a quality-bank slot.
+1. **Retrieve/AAR targeting.** Offs band has held two live series. Carry survived; retrieve still ranks leftover 122. Loser `add_counter` on 122 makes it stickier. Learning Evaluate `ser-retain-2` does not steal a quality-bank slot.
+2. **Chance mean** is still under 6 (Evaluate 14: 3.43, quiet 2-chance middle games). That may move if retrieve picks a non-dump sheet. Do not start another F3 PR first.
 3. **Captain micro** stays off. **HITL later.**
 4. Glimmer is **up** on `:8080` this session. Do not restart 8787. Do not raise timeouts.
 5. Keep `AGENTS.md` honest: `src/ice/` is environment. Playbooks are agent memory. `--aar-mode code` is not `--no-llm`. We do **not** compile LangGraph `store` today.
@@ -550,4 +552,4 @@ Live counters: [`better-hockey.md`](better-hockey.md) (bank **2/5**). Learning p
 
 ---
 
-*Generated 2026-08-26. `main` is playable. Write path proven. Retention survive proven; transfer failed (still 122). Quality bank 2/5. Glimmer up. HITL not in v1.*
+*Generated 2026-08-26. `main` is playable. Write path proven. Retention survive proven; transfer failed (still 122). Quality bank 2/5. Cycle 4 attempt 1. Glimmer up. HITL not in v1.*
