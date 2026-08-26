@@ -6,7 +6,7 @@ import { DEFAULT_PLAY_ID } from "../types/play.ts";
 import { computeIceIntent } from "./roles.ts";
 
 describe("computeIceIntent five-man", () => {
-  it("names F1 as the possessor and F2 behind the puck along attack", () => {
+  it("names F1 as the possessor and F2 as a wide outlet on a shallow OZ carry", () => {
     const world = createWorld({
       puck: { pos: { x: 30, y: 8 }, possessor: "h-C" },
       bodies: {
@@ -22,9 +22,23 @@ describe("computeIceIntent five-man", () => {
     expect(ice.roles["h-RW"]).toBe("F3");
     expect(ice.targets["h-C"]).toBeUndefined();
     const f2 = ice.targets["h-LW"]!;
-    expect(f2.x).toBeLessThan(30);
+    expect(f2.x).toBeGreaterThan(30);
     const f3 = ice.targets["h-RW"]!;
     expect(f3.x).toBeGreaterThan(50);
+  });
+
+  it("F2 stays support-below once the puck is in the high slot", () => {
+    const world = createWorld({
+      puck: { pos: { x: 55, y: 8 }, possessor: "h-C" },
+      bodies: {
+        "h-C": { pos: { x: 55, y: 8 } },
+        "h-LW": { pos: { x: 40, y: 12 } },
+        "h-RW": { pos: { x: 38, y: -10 } },
+      },
+    });
+    const ice = computeIceIntent(world, "home");
+    const f2id = ice.roles["h-LW"] === "F2" ? "h-LW" : "h-RW";
+    expect(ice.targets[f2id]!.x).toBeLessThan(55);
   });
 
   it("F1 with the puck shoots in OZ, passes in NZ, clears in DZ", () => {

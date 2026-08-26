@@ -7,6 +7,7 @@ import {
   creaseTarget,
   inOwnCrease,
   nearestSkaterToPuck,
+  OZ_ICE_SHOOT_ALONG,
   playForSide,
   routeClearOfOwnNet,
   shotPolicyOf,
@@ -55,8 +56,8 @@ function alongWorld(dir: 1 | -1, along: number, y: number, radius: number): { x:
 }
 
 /**
- * Five-man geometry. F1 hunts or carries; F2 contests a loose puck (dump-and-chase)
- * or support-below on a carry; F3 slot; Ds gaps the puck; Dw weak-side high. Goalie crease.
+ * Five-man geometry. F1 hunts or carries; F2 contests a loose puck (dump-and-chase),
+ * outlets ahead on a shallow OZ carry, else support-below; F3 slot; Ds gaps; Dw weak-side high.
  */
 export function computeIceIntent(world: WorldState, side: Side): IceIntent {
   const dir = world.attackingDir[side];
@@ -129,9 +130,11 @@ export function computeIceIntent(world: WorldState, side: Side): IceIntent {
       }
       intent.targets[f2.id] = alongWorld(dir, f2Along, (holder?.pos.y ?? puck.y) + offY, f2.radius);
     } else {
-      let f2Along = alongPuck - 12;
+      // Shallow live OZ: outlet ahead while F1 walks to the high slot. Else support-below.
+      const carryOut = ozLive && alongPuck < OZ_ICE_SHOOT_ALONG;
+      let f2Along = carryOut ? alongPuck + 10 : alongPuck - 12;
       if (!ozLive) f2Along = Math.min(f2Along, ONSIDE_ALONG);
-      intent.targets[f2.id] = alongWorld(dir, f2Along, puck.y, f2.radius);
+      intent.targets[f2.id] = alongWorld(dir, f2Along, puck.y + offY, f2.radius);
     }
   }
   if (f3) {
