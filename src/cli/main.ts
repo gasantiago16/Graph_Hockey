@@ -721,7 +721,8 @@ async function cmdSeries(argv: string[], env: EnvMap): Promise<number> {
           `  xG ${g.xg.home.toFixed(2)}-${g.xg.away.toFixed(2)}` +
           `  open ${g.home.openingPlayId ?? "?"} vs ${g.away.openingPlayId ?? "?"}` +
           `  books v${g.playbookVersions.home}/v${g.playbookVersions.away}` +
-          `  retrieve ${g.home.retrieveTopId ?? "?"} / ${g.away.retrieveTopId ?? "?"}`,
+          `  retrieve ${g.home.retrieveTopId ?? "?"} / ${g.away.retrieveTopId ?? "?"}` +
+          `  lpTrail ${g.home.leadProtectWhileTrailing}/${g.away.leadProtectWhileTrailing}`,
       );
     }
     const L = payload.learning;
