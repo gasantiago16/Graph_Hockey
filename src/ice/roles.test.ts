@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { BLUE_LINE_X, GOAL_LINE_X } from "../engine/rink.ts";
-import { createWorld } from "../engine/world.ts";
+import { createWorld, defaultDirective } from "../engine/world.ts";
+import { loadPlaybook } from "../playbook/store.ts";
+import { DEFAULT_PLAY_ID } from "../types/play.ts";
 import { computeIceIntent } from "./roles.ts";
 
 describe("computeIceIntent five-man", () => {
@@ -43,6 +45,28 @@ describe("computeIceIntent five-man", () => {
       bodies: { "h-C": { pos: { x: -40, y: 0 } } },
     });
     expect(computeIceIntent(dz, "home").f1Action).toBe("clear");
+
+    const book = loadPlaybook("original-six");
+    const nzDump = createWorld({
+      playId: { home: "5v5-122-forecheck", away: DEFAULT_PLAY_ID },
+      playbooks: { home: book, away: book },
+      puck: { pos: { x: 0, y: 0 }, possessor: "h-C" },
+      bodies: { "h-C": { pos: { x: 0, y: 0 } } },
+    });
+    expect(computeIceIntent(nzDump, "home").f1Action).toBe("clear");
+
+    const expansion = loadPlaybook("expansion");
+    const nzOverlayDump = createWorld({
+      playId: { home: "5v5-212-forecheck", away: DEFAULT_PLAY_ID },
+      playbooks: { home: expansion, away: expansion },
+      directives: {
+        home: { playId: "5v5-212-forecheck", pressure: "neutral", playParams: { shotPolicy: "dump" } },
+        away: defaultDirective(),
+      },
+      puck: { pos: { x: 0, y: 0 }, possessor: "h-C" },
+      bodies: { "h-C": { pos: { x: 0, y: 0 } } },
+    });
+    expect(computeIceIntent(nzOverlayDump, "home").f1Action).toBe("clear");
   });
 
   it("F1 in OZ passes instead of shooting while shotLock is set", () => {

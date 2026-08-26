@@ -165,7 +165,7 @@ function overlayYieldsToIceShoot(overlay: ShotPolicy): boolean {
   return overlay === "pass" || overlay === "dump";
 }
 
-/** Ice F1 shoot beats overlay pass/dump. Overlay shoot/crash/hold/cycle still wins. Locked shoot/crash demote to pass. */
+/** Ice F1 shoot beats overlay pass/dump. Ice F1 clear beats overlay dump. Overlay shoot/crash/hold/cycle still wins. Locked shoot/crash demote to pass. */
 function releasePolicy(
   world: WorldState,
   side: Side,
@@ -176,6 +176,9 @@ function releasePolicy(
   let policy: ShotPolicy;
   let source: "overlay" | "ice" | "assignment";
   if (ice === "shoot" && overlay && overlayYieldsToIceShoot(overlay)) {
+    policy = ice;
+    source = "ice";
+  } else if (ice === "dump" && overlay === "dump") {
     policy = ice;
     source = "ice";
   } else if (overlay) {
@@ -254,7 +257,7 @@ function facingRelease(body: Body, dest: Vec2): Vec2 | undefined {
 }
 
 /**
- * Overlay dump/cycle/hold never release. Ice dump (clear) does.
+ * Overlay cycle/hold never release. Overlay dump releases only when ice dump wins (source ice).
  * Missing iceIntents keeps seed dump on the stick.
  * Shot lock: one shot per possession; locked shoot demotes to pass (or hold).
  */

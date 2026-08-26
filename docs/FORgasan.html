@@ -256,10 +256,10 @@
         <div>
           <span class="badge">FORME</span>
           <span class="badge">Graph_Hockey</span>
-          <span class="badge">bank 1/5 · offsides 0–2</span>
+          <span class="badge">bank 1/5 · dump-in shipped</span>
         </div>
         <h1>FORgasan — Graph_Hockey</h1>
-        <p class="lede" style="color:#c5d0db;margin:0">Independent LangGraph <em>staffs</em>. Ice is code. Retrieve is gated. Evaluate 2 credited the first improvement. Plan: <code>docs/better-hockey.md</code>.</p>
+        <p class="lede" style="color:#c5d0db;margin:0">Independent LangGraph <em>staffs</em>. Ice is code. Retrieve is gated. Dump-in is live. Evaluate 2 credited the first improvement. Plan: <code>docs/better-hockey.md</code>.</p>
       </div>
     </header>
 
@@ -271,7 +271,7 @@
       <div class="stat"><span class="v">$0</span><span class="l">Glimmer away bench</span></div>
       <div class="stat"><span class="v">1/6</span><span class="l">retrieveTop vs 0/6 control</span></div>
       <div class="stat"><span class="v">1/5</span><span class="l">improve bank</span></div>
-      <div class="stat"><span class="v">404</span><span class="l">tests, no live vendor</span></div>
+      <div class="stat"><span class="v">425</span><span class="l">tests, no live vendor</span></div>
     </div>
 
     <nav class="toc" aria-label="Contents">
@@ -609,9 +609,13 @@
         </div>
         <div class="verdict">
           <div class="vcard ok"><span class="tag">Gate</span><h4>Held</h4><p>Trailing/tied 1-1-3 is gone from retrieve and from the event scan. The old home 1/6 retrieveTop <em>was</em> that bug.</p></div>
-          <div class="vcard no"><span class="tag">Quality</span><h4>Not credited</h4><p>Offsides left 0–2. Do not dump-in into g4/g6. Diagnose those games next. Full log: <a href="better-hockey.md">better-hockey.md</a>.</p></div>
+          <div class="vcard no"><span class="tag">Quality</span><h4>Not credited</h4><p>Offsides left 0–2. Faceoff left Ds in OZ; 1–2 tick delayed-offside loop. Diagnose before dump-in. Full log: <a href="better-hockey.md">better-hockey.md</a>.</p></div>
         </div>
-        <div class="callout warn"><strong>Do not credit Δ xG while offsides explode.</strong> +0.176 with 77/63 offsides is not better hockey. Do not raise timeouts. Restart Glimmer on :8080 before the next live series.</div>
+        <div class="callout warn"><strong>Do not credit Δ xG while offsides explode.</strong> +0.176 with 77/63 offsides is not better hockey. Do not raise timeouts.</div>
+        <h3>Evaluate 2 after the ice clamp (<code>ser-emp-9</code>)</h3>
+        <p><code>c1e7707</code>: NZ faceoff onside clamp, Ds tag-up, no delayed release. Same 7×20s protocol. Offsides all 0–2. Δ xG <strong>−0.376</strong> beats −0.552. Pairs 3. Bank <strong>1/5</strong>.</p>
+        <h3>Dump-in (PR-4)</h3>
+        <p>NZ ice <code>clear</code> beats overlay dump. The puck leaves the stick as <code>clear</code>, not a Shot. <code>--no-llm</code> goldens moved on purpose: pr8 count 522→301, Shot 1, Offside 0, epochs 11. pr4 unchanged. Next: Evaluate 3, need Δ xG &gt; −0.376.</p>
       </section>
 
       <section id="scars">
@@ -774,7 +778,7 @@
       <section id="next">
         <h2><span class="n">11</span> Where to go next</h2>
         <ol class="next">
-          <li><strong>Dump-in (PR-4).</strong> NZ ice <code>clear</code> beats overlay dump. Then Evaluate 3 — need home Δ xG <strong>&gt; −0.376</strong>. Log: <a href="better-hockey.md">better-hockey.md</a> (bank 1/5).</li>
+          <li><strong>Evaluate 3</strong> (<code>ser-emp-10</code>). Dump-in is on <code>main</code>. Bank credits only if home Δ xG <strong>&gt; −0.376</strong>. Log: <a href="better-hockey.md">better-hockey.md</a> (bank 1/5).</li>
           <li><strong>Captain stays off.</strong> Do not enable it to fix offsides.</li>
           <li><strong>HITL later</strong> — LangGraph <code>interrupt()</code>, off the 12s clock.</li>
           <li>Glimmer is on <code>:8080</code>. Do not restart 8787 unless asked. Do not raise timeouts. <code>--aar-mode code</code> is not <code>--no-llm</code>.</li>
@@ -786,7 +790,7 @@
     </main>
 
     <footer>
-      Generated 2026-08-26 · Source: <a href="FORgasan.md">FORgasan.md</a> · Plan: <a href="better-hockey.md">better-hockey.md</a> · Visuals: <code>docs/forme/</code> · Evaluate 2 bank 1/5 · HITL not in v1
+      Generated 2026-08-26 · Source: <a href="FORgasan.md">FORgasan.md</a> · Plan: <a href="better-hockey.md">better-hockey.md</a> · Visuals: <code>docs/forme/</code> · Dump-in shipped · Evaluate 3 next · bank 1/5 · HITL not in v1
     </footer>
   </div>
 </body>

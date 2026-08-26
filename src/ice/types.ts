@@ -11,6 +11,6 @@ export type IceIntent = {
   roles: Partial<Record<PlayerId, IceRole>>;
   targets: Partial<Record<PlayerId, Vec2>>;
   f1?: PlayerId;
-  /** F1 with the puck: OZ shoot, NZ pass, DZ clear. Loose puck: hunt. */
+  /** F1 with the puck: OZ shoot, NZ pass or dump-policy clear, DZ clear. Loose puck: hunt. */
   f1Action?: IceF1Action;
 };

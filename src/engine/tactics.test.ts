@@ -225,6 +225,98 @@ describe("pass / shoot release", () => {
     expect(world.puck.possessor).toBe("h-C");
   });
 
+  it("NZ assignment dump with computed iceIntents releases as clear", () => {
+    const book = loadPlaybook("original-six");
+    const world = createWorld({
+      playId: { home: "5v5-122-forecheck", away: DEFAULT_PLAY_ID },
+      playbooks: { home: book, away: book },
+      puck: { pos: { x: 10, y: 8 }, possessor: "h-C" },
+      bodies: {
+        "h-C": { pos: { x: 10, y: 8 }, heading: 0, vel: { x: 0, y: 0 } },
+      },
+    });
+    world.iceIntents = {
+      home: computeIceIntent(world, "home"),
+      away: computeIceIntent(world, "away"),
+    };
+    expect(world.iceIntents.home.f1Action).toBe("clear");
+    expect(maybeReleasePuck(world)).toBe(true);
+    expect(world.puck.possessor).toBeNull();
+    expect(world.stickRelease).toBe("clear");
+  });
+
+  it("overlay dump + NZ ice clear releases as clear, not Shot", () => {
+    const book = loadPlaybook("original-six");
+    const world = createWorld({
+      playId: { home: "5v5-122-forecheck", away: DEFAULT_PLAY_ID },
+      playbooks: { home: book, away: book },
+      iceIntents: {
+        home: { roles: {}, targets: {}, f1: "h-C", f1Action: "clear" },
+        away: { roles: {}, targets: {} },
+      },
+      directives: {
+        home: { playId: "5v5-122-forecheck", pressure: "neutral", playParams: { shotPolicy: "dump" } },
+        away: defaultDirective(),
+      },
+      puck: { pos: { x: 10, y: 8 }, possessor: "h-C" },
+      bodies: {
+        "h-C": { pos: { x: 10, y: 8 }, heading: 0, vel: { x: 0, y: 0 } },
+      },
+    });
+    expect(maybeReleasePuck(world)).toBe(true);
+    expect(world.puck.possessor).toBeNull();
+    expect(world.stickRelease).toBe("clear");
+  });
+
+  it("overlay dump + NZ ice clear does not emit a Shot", () => {
+    const book = loadPlaybook("original-six");
+    const world = createWorld({
+      playId: { home: "5v5-122-forecheck", away: DEFAULT_PLAY_ID },
+      playbooks: { home: book, away: book },
+      directives: {
+        home: { playId: "5v5-122-forecheck", pressure: "neutral", playParams: { shotPolicy: "dump" } },
+        away: defaultDirective(),
+      },
+      puck: { pos: { x: 10, y: 8 }, possessor: "h-C" },
+      bodies: {
+        "h-C": { pos: { x: 10, y: 8 }, heading: 0, vel: { x: 0, y: 0 } },
+      },
+    });
+    const rng = createRng(3);
+    let released = false;
+    for (let i = 0; i < 40; i++) {
+      const ev = advanceWorld(world, world.directives, rng);
+      expect(ev.some((e) => e.type === "Shot")).toBe(false);
+      if (world.puck.possessor === null) {
+        released = true;
+        break;
+      }
+    }
+    expect(released).toBe(true);
+  });
+
+  it("OZ ice shoot still beats overlay dump", () => {
+    const book = loadPlaybook("original-six");
+    const world = createWorld({
+      playId: { home: "5v5-122-forecheck", away: DEFAULT_PLAY_ID },
+      playbooks: { home: book, away: book },
+      iceIntents: {
+        home: { roles: {}, targets: {}, f1: "h-C", f1Action: "shoot" },
+        away: { roles: {}, targets: {} },
+      },
+      directives: {
+        home: { playId: "5v5-122-forecheck", pressure: "neutral", playParams: { shotPolicy: "dump" } },
+        away: defaultDirective(),
+      },
+      puck: { pos: { x: 50, y: 0 }, possessor: "h-C" },
+      bodies: {
+        "h-C": { pos: { x: 50, y: 0 }, heading: 0, vel: { x: 0, y: 0 } },
+      },
+    });
+    expect(maybeReleasePuck(world)).toBe(true);
+    expect(world.stickRelease).toBe("shot");
+  });
+
   it("shoot release in OZ emits a Shot with xG", () => {
     const book = loadPlaybook("expansion");
     const world = createWorld({

@@ -4,7 +4,7 @@
 | --- | --- |
 | **Author** | Graph_Hockey staff (design) |
 | **Date** | 2026-08-26 |
-| **Status** | **In experiment — cycle 1, Evaluate 2 improved (bank 1/5).** Plan rev 3 still governs the coded bar. |
+| **Status** | **In experiment — cycle 1, dump-in on `main`, Evaluate 3 next.** Bank **1/5**. Plan rev 3 still governs the coded bar. |
 | **Repo** | `C:\Users\gasan\Graph_Hockey` (private, `main` playable) |
 | **Success criterion** | **Five empirical improvements.** Not five attempts. Not five version bumps. Not “stop when the numbered PR stack is done.” Keep cycling (including a **post-stack Diagnose menu**) until `improvements == 5` or the user stops. |
 | **PLAN_ID** | `f1d4bdeb` (resume leftover PRs with `/execute-plan --resume f1d4bdeb` after Evaluate context) |
@@ -22,8 +22,9 @@ This is the live scoreboard. Update it after every counting Evaluate. Handbook: 
 | Cycle | **1** | Diagnose → implement → cranky → test → merge → Evaluate |
 | Attempts this cycle | **2 / 5** | Counting Evaluates only |
 | Flat streak | **0 / 3** | Reset on improved Evaluate |
-| On `main` | retrieve gate `#1` (`ff23dd5`) + timeout leftover (`0bb7a0b`) + seed NZ/DZ (`1d929ce`) + ice offside storm fix (`c1e7707`) | Faceoff onside clamp, Ds tag-up, no delayed release |
+| On `main` | retrieve gate `#1` (`ff23dd5`) + timeout leftover (`0bb7a0b`) + seed NZ/DZ (`1d929ce`) + ice offside storm (`c1e7707`) + **dump-in (PR-4)** | NZ ice `clear` beats overlay dump; puck leaves the stick as `clear`, not Shot |
 | Glimmer | **running** `:8080 --reasoning off` | Do not restart 8787 unless asked. |
+| Goldens | pr7 `1378ddf6…` count **57**; pr8 `15795068…` count **301**, epochs **11** | Intentional dump-in physics. pr4 unchanged. Shot **1**, Offside **0** on pr8 3×5s |
 
 ### Evaluate 1 — `ser-emp-8` (2026-08-26)
 
@@ -71,19 +72,7 @@ Live card:
 | 5 | 4–3 home | `5v5-122-forecheck` | `5v5-212-forecheck` | 7 / 0 | 4 / 0 |
 | 6 | 1–2 away | `5v5-122-forecheck` | `oz-crash-net` | 7 / 0 | 2 / 1 |
 
-Live card (home retrieve never `protect-lead`):
-
-| G | Score | Home retrieve | Away retrieve | Home ch/off | Away ch/off |
-| --- | --- | --- | --- | --- | --- |
-| 0 | 3–1 home | `5v5-122-forecheck` | `oz-crash-net` | 9 / 1 | 2 / 1 |
-| 1 | 1–2 away | `5v5-122-forecheck` | `5v5-212-forecheck` | 7 / 1 | 2 / 0 |
-| 2 | 1–2 away | `5v5-122-forecheck` | `oz-crash-net` | 8 / **5** | 4 / 2 |
-| 3 | 5–2 home | `5v5-122-forecheck` | `oz-crash-net` | 10 / 1 | 4 / 1 |
-| 4 | 2–3 away | `5v5-122-forecheck` | `5v5-212-forecheck` | 6 / 0 | **69 / 77** |
-| 5 | 3–4 away | `5v5-122-forecheck` (open `nz-122-trap`) | `5v5-212-forecheck` | 4 / 3 | 10 / 0 |
-| 6 | 2–2 tie | `5v5-122-forecheck` (open `nz-122-trap`) | `oz-crash-net` | **62 / 63** | 14 / 8 |
-
-Control twin matched the old ice-noise pattern (g6 away 15 offsides / 0 shots, books frozen).
+Control twin (`ser-emp-9-nollm`): books v1, retrieveTop 0/6, offsides 0–2 (g6 away **0**).
 
 ### Stack vs GitHub (PLAN_ID `f1d4bdeb`)
 
@@ -93,14 +82,23 @@ Control twin matched the old ice-noise pattern (g6 away 15 offsides / 0 shots, b
 | PR-2 timeout leftover | [#2](https://github.com/gasantiago16/Graph_Hockey/pull/2) | **merged** `0bb7a0b` (closed) | no Evaluate |
 | PR-3 seed NZ/DZ | [#3](https://github.com/gasantiago16/Graph_Hockey/pull/3) | **merged** `1d929ce` (closed) | never |
 | Ice offside storm | `c1e7707` on `main` | faceoff onside clamp + Ds tag-up + no delayed release | Evaluate 2 (**improved**) |
-| PR-4 dump-in | *not implemented* | next designed Δ xG mover | counting Evaluate 3 candidate |
+| PR-4 dump-in | on `main` | NZ ice `clear` beats overlay dump; goldens moved (explained) | counting Evaluate 3 |
 | PR-5 Ds tag-up | [#5](https://github.com/gasantiago16/Graph_Hockey/pull/5) | closed; absorbed into `c1e7707` | — |
 | PR-6 captain | skipped | env off | — |
 | PR-7 `lpTrail` flag | [#4](https://github.com/gasantiago16/Graph_Hockey/pull/4) | draft | never |
 
-### Next Diagnose (before Evaluate 3)
+### Next: Evaluate 3 (`ser-emp-10`)
 
-Offside storms are gone. Next designed quality mover is **dump-in** (PR-4): NZ ice `clear` beats overlay dump so dump-and-chase is a live puck. Then cranky → `npm test` → merge → counting 7+twin. Bank credits only if home Δ xG **> −0.376**.
+Dump-in is on `main`. Counting 7+twin, same protocol as Evaluate 2. Bank credits only if home Δ xG **> −0.376** and all gates hold (control honest, live writes books, no lead-protect skating, offsides 0–2, chance mean ≥ 6, pairs ≥ 3).
+
+### Dump-in golden move (intentional)
+
+`--no-llm` physics changed because 122 dump policy in NZ now actually leaves the stick (`source: "ice"`, `kind: "clear"`). Assignment-only dump without `iceIntents` still does not release. pr4 scripted goal hash **unchanged**.
+
+| Fixture | Was | Now | Honesty |
+| --- | --- | --- | --- |
+| pr7 replay seed 42 | `7153fca7…` count **88** | `1378ddf6…` count **57** | 0 Shot, 0 Offside. Script is default-structure (shoot) then DirectiveApplied `5v5-122-forecheck` (dump). That dump now dumps. Fewer events = less stick-carry Contact. |
+| pr8 simulate 3×5s | `271ce6b8…` count **522**, epochs 11 | `15795068…` count **301**, epochs **11** | Shot **1** (not exploding), Offside **0**, Icing **0**, ZoneEntry **1**. Event volume drop is Contact spam gone, not a Shot storm. |
 
 ---
 
@@ -242,7 +240,7 @@ Two facts:
 
 11. **Windows, npm, sql.js WASM, vitest fakes.** Zero live vendor in `npm test`. Away bench is local `muse-glimmer-30b` at `http://127.0.0.1:8080/v1`. Never `muse-spark-*-contributor` (`refuseContributorTier` in `src/llm/profiles.ts`).
 
-12. **Ice PRs that change `advanceWorld` must treat pr7/pr8 goldens as load-bearing.** pr7 `7153fca7…` count **88**; pr8 `271ce6b8…` count **522**, epochs **11**, offsides **0** on 3×5s `--no-llm`. Retrieve-only PRs must not touch them.
+12. **Ice PRs that change `advanceWorld` must treat pr7/pr8 goldens as load-bearing.** After dump-in: pr7 `1378ddf6…` count **57**; pr8 `15795068…` count **301**, epochs **11**, Shot **1**, offsides **0** on 3×5s `--no-llm`. pr4 `400c758b…` unchanged. Retrieve-only PRs must not touch them.
 
 ---
 
@@ -411,11 +409,11 @@ Macro assemble without `coachIntent` already uses `defaultPlayIdForBook`, not la
 
 ### Ice dump-in stays live (next designed quality Evaluate after the gate)
 
-Today (`src/engine/tactics.ts` `releasePolicy` / `maybeReleasePuck`; `src/ice/roles.ts` 97; `src/ice/types.ts`):
+**Shipped** (`src/engine/tactics.ts` `releasePolicy` / `maybeReleasePuck`; `src/ice/roles.ts` NZ dump→`clear`; `src/ice/types.ts`):
 
-- Overlay wins unless ice is **shoot** beating overlay pass/dump (`overlayYieldsToIceShoot`).
+- Overlay wins unless ice is **shoot** beating overlay pass/dump, **or** ice **clear** beating overlay dump.
 - `policy === "dump" && source !== "ice"` → no release.
-- Ice NZ F1 is hardcoded `pass`. `iceActionToPolicy("clear") === "dump"`. There is **no** `"dump"` in `ICE_F1_ACTIONS`.
+- Ice NZ F1 is `clear` when `shotPolicyOf === "dump"`, else `pass`. `iceActionToPolicy("clear") === "dump"`. There is **no** `"dump"` in `ICE_F1_ACTIONS`.
 
 **`releasePolicy` contract (one sentence):** NZ ice `clear` beats overlay dump (`source: "ice"`, `kind: "clear"`); OZ overlay dump still yields to ice shoot; assignment-only dump without ice still does not release.
 
@@ -429,7 +427,7 @@ Concrete:
 
 Unit test required: overlay `shotPolicy: "dump"` + NZ ice `clear` → possessor null, **no** Shot row. Keep existing `rules.test.ts` dump-into-net Freeze tests.
 
-This PR **will** move pr8 if dump releases change `--no-llm` 3×5s physics. Update `fixtures/golden/pr8-simulate-seed42.json` **only if** the new hash is explained (dump-ins exist; Shot count does not explode; offsides still 0 or explained). pr7 scripted sequence should stay if the script never dumps.
+This PR **did** move pr7 and pr8. See experiment-log golden table. pr7 scripted 122 dump now dumps in NZ (script never overlay-dumped; assignment dump + ice clear is the product). Shot did not explode; offsides stayed 0.
 
 ### Ice Ds tag-up (PR-5)
 
@@ -804,7 +802,7 @@ Remaining work after ice is **Diagnose**, not a user product question.
 - Epoch skip: `src/orchestrator/epochs.ts` (`MACRO_REASONS`, `shouldDecide`, `after_goal` preempts)
 - AAR apply: `src/aar/apply.ts` (`shouldApplyRevision`); `src/aar/runAar.ts` (`codeOnlyAarReport`)
 - Mutate caps: `src/playbook/mutate.ts` (`applyPlaybookRevision`, `applyUsageStats`, `zero-xg-boost`)
-- Ice: `src/ice/roles.ts` (`computeIceIntent`, `taggingUp`, `ONSIDE_ALONG`, NZ `pass`); `src/ice/types.ts` `ICE_F1_ACTIONS`
+- Ice: `src/ice/roles.ts` (`computeIceIntent`, `taggingUp`, `ONSIDE_ALONG`, NZ dump→`clear`); `src/ice/types.ts` `ICE_F1_ACTIONS`
 - Dump/release: `src/engine/tactics.ts` (`releasePolicy`, `maybeReleasePuck`, `iceActionToPolicy`)
 - Offside/wave-off: `src/engine/rules.ts` (`maybeOffside`, `waveOffNetEntry`, `maybeGoal`, Goal `payload.side`)
 - Specialists: `src/agents/specialists/compile.ts` (`invokeStructured` without `noJsonRetry`)
@@ -813,7 +811,7 @@ Remaining work after ice is **Diagnose**, not a user product question.
 - Series host: `src/sim/series.ts` (`runSeries`, playbook compiled **per game**, not per tick)
 - Seeds: `data/playbooks/seed-original-six.json`, `data/playbooks/seed-expansion.json`
 - Snapshots: `data/playbook-snapshots/ser-emp-7/after-game-3.json` (v5), `after-game-4.json` (v6)
-- Goldens: `fixtures/golden/pr7-replay-seed42.json` (`7153fca7…`, count 88), `fixtures/golden/pr8-simulate-seed42.json` (`271ce6b8…`, count 522, epochs 11)
+- Goldens: `fixtures/golden/pr7-replay-seed42.json` (`1378ddf6…`, count 57), `fixtures/golden/pr8-simulate-seed42.json` (`15795068…`, count 301, epochs 11, Shot 1, Offside 0)
 - Review skill: `C:\Users\gasan\.grok\bundled\skills\review\SKILL.md`
 
 ---

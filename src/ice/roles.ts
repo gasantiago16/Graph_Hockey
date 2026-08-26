@@ -7,7 +7,9 @@ import {
   creaseTarget,
   inOwnCrease,
   nearestSkaterToPuck,
+  playForSide,
   routeClearOfOwnNet,
+  shotPolicyOf,
 } from "../engine/tactics.ts";
 import { isGoalie, type Body, type WorldState } from "../engine/world.ts";
 
@@ -96,8 +98,13 @@ export function computeIceIntent(world: WorldState, side: Side): IceIntent {
       intent.targets[f1.id] = alongWorld(dir, ONSIDE_ALONG, f1.pos.y, f1.radius);
     } else if (z === "OZ" && world.shotLock[side]) {
       intent.f1Action = "pass";
+    } else if (z === "OZ") {
+      intent.f1Action = "shoot";
+    } else if (z === "DZ") {
+      intent.f1Action = "clear";
     } else {
-      intent.f1Action = z === "OZ" ? "shoot" : z === "DZ" ? "clear" : "pass";
+      const play = playForSide(world, side);
+      intent.f1Action = shotPolicyOf(world, side, play) === "dump" ? "clear" : "pass";
     }
   }
   const restF = fwds.filter((b) => b.id !== f1?.id);
