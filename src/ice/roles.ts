@@ -130,6 +130,7 @@ export function computeIceIntent(world: WorldState, side: Side): IceIntent {
       dsAlong = Math.max(alongPuck - 12, CREASE_KEEP_OUT);
     } else if (z === "OZ") {
       dsAlong = Math.min(Math.max(alongPuck - 18, BLUE_LINE_X - 4), BLUE_LINE_X + 8);
+      if (taggingUp) dsAlong = ONSIDE_ALONG;
     } else {
       dsAlong = -BLUE_LINE_X + 4;
     }

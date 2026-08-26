@@ -167,4 +167,20 @@ describe("computeIceIntent five-man", () => {
     const ads = awayIce.roles["a-LD"] === "Ds" ? "a-LD" : "a-RD";
     expect(awayIce.targets[ads]!.x).toBeGreaterThan(BLUE_LINE_X);
   });
+
+  it("Ds tags up on delayed offside instead of parking past the attacking blue", () => {
+    const world = createWorld({
+      puck: { pos: { x: 50, y: 4 }, possessor: "h-C" },
+      bodies: {
+        "h-C": { pos: { x: 50, y: 4 } },
+        "h-LD": { pos: { x: 32, y: 10 } },
+        "h-RD": { pos: { x: 30, y: -10 } },
+      },
+      delayedOffside: { attacking: "home" },
+    });
+    const ice = computeIceIntent(world, "home");
+    const ds = ice.roles["h-LD"] === "Ds" ? "h-LD" : "h-RD";
+    expect(ice.targets[ds]!.x).toBeCloseTo(BLUE_LINE_X - 4, 5);
+    expect(ice.targets[ds]!.x).toBeLessThan(BLUE_LINE_X);
+  });
 });
