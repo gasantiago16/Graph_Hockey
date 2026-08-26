@@ -25,6 +25,8 @@ export type RetrieveQuery = {
 };
 
 export const COUNTER_BONUS = 0.25;
+/** Unused legal play ranks above leftover rate so the menu gets one look. Larger than COUNTER_BONUS. */
+export const UNUSED_PLAY_BONUS = 1;
 
 export function zoneForSide(world: WorldState, side: Side): Zone {
   const x = world.puck.pos.x * world.attackingDir[side];
@@ -151,6 +153,13 @@ function netXg(play: Play): number {
   return play.stats.xgFor - play.stats.xgAgainst;
 }
 
+function retrieveScore(play: Play, query: RetrieveQuery): number {
+  const games = play.stats.games;
+  const rate = netXg(play) / Math.max(games, 1);
+  const unused = games === 0 ? UNUSED_PLAY_BONUS : 0;
+  return rate + unused + scoreTriggerBoost(play, query.scoreState) + counterBoost(play, query.themFamily);
+}
+
 function scoreTriggerBoost(play: Play, scoreState: ScoreState | undefined): number {
   if (!scoreState) return 0;
   for (const g of play.triggers) {
@@ -206,7 +215,7 @@ export function requiredScoreState(play: Pick<Play, "triggers">): ScoreState | u
   return first !== undefined && needs.every((s) => s === first) ? first : undefined;
 }
 
-/** Filter active plays by strength/zone, rank by net xG, return top 6 digests. */
+/** Filter active plays by strength/zone, rank by xG rate + unused look, return top 6 digests. */
 export function retrievePlays(book: Playbook, query: RetrieveQuery): PlayDigest[] {
   const strength = asPlayStrength(query.strength);
   const limit = query.limit ?? 6;
@@ -221,8 +230,8 @@ export function retrievePlays(book: Playbook, query: RetrieveQuery): PlayDigest[
     return play.zoneBias.includes("any") || play.zoneBias.includes(query.zone);
   });
   matched.sort((a, b) => {
-    const db = netXg(b) + scoreTriggerBoost(b, query.scoreState) + counterBoost(b, query.themFamily);
-    const da = netXg(a) + scoreTriggerBoost(a, query.scoreState) + counterBoost(a, query.themFamily);
+    const db = retrieveScore(b, query);
+    const da = retrieveScore(a, query);
     if (db !== da) return db - da;
     return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
   });

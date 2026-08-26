@@ -113,7 +113,9 @@ describe("codeDraft", () => {
       }),
     );
     const op = rev.ops.find((o) => o.op === "add_counter");
-    expect(op).toMatchObject({ playId: "5v5-122-forecheck" });
+    expect(op).toMatchObject({ playId: "oz-cycle-low" });
+    expect(op && "playId" in op ? op.playId : undefined).not.toBe("5v5-122-forecheck");
+    expect(op && "playId" in op ? op.playId : undefined).not.toBe("pp1-umbrella");
   });
 
   it("winner always gets a cited boost", () => {
@@ -129,7 +131,7 @@ describe("codeDraft", () => {
     const rev = codeDraft(state({ result: "loss" }));
     expect(rev.ops.some((o) => o.op === "add_counter")).toBe(true);
     const op = rev.ops.find((o) => o.op === "add_counter");
-    expect(op).toMatchObject({ playId: "5v5-122-forecheck", eventIds: [makeEventId("m", 0)] });
+    expect(op).toMatchObject({ playId: "oz-cycle-low", eventIds: [makeEventId("m", 0)] });
     if (op && op.op === "add_counter") {
       expect(book.plays[0]?.vulnerableTo).toContain(op.family);
     }
@@ -199,12 +201,29 @@ describe("codeDraft", () => {
       }),
     );
     const op = rev.ops.find((o) => o.op === "add_counter");
-    expect(op).toMatchObject({ op: "add_counter", playId: "5v5-122-forecheck", family: "crash-net" });
+    expect(op).toMatchObject({ op: "add_counter", playId: "oz-cycle-low", family: "crash-net" });
   });
 
-  it("skips loser counter when the revision already has one", () => {
+  it("skips loser counter when the revision already counters on a different play", () => {
     const existing: PlaybookRevision = {
       summary: "has",
+      ops: [
+        {
+          op: "add_counter",
+          playId: "oz-cycle-low",
+          family: "forecheck-212",
+          eventIds: [makeEventId("m", 1)],
+        },
+      ],
+    };
+    const rev = ensureLoserCounter(state({ result: "loss" }), existing);
+    expect(rev.ops).toHaveLength(1);
+    expect(rev.ops[0]).toMatchObject({ playId: "oz-cycle-low", family: "forecheck-212" });
+  });
+
+  it("retargets add_counter off the lost-with play", () => {
+    const existing: PlaybookRevision = {
+      summary: "sticky",
       ops: [
         {
           op: "add_counter",
@@ -215,7 +234,8 @@ describe("codeDraft", () => {
       ],
     };
     const rev = ensureLoserCounter(state({ result: "loss" }), existing);
-    expect(rev.ops).toHaveLength(1);
-    expect(rev.ops[0]).toMatchObject({ family: "forecheck-212" });
+    const op = rev.ops.find((o) => o.op === "add_counter");
+    expect(op).toMatchObject({ playId: "oz-cycle-low", family: "forecheck-212" });
+    expect(rev.ops.some((o) => o.op === "add_counter" && o.playId === "5v5-122-forecheck")).toBe(false);
   });
 });

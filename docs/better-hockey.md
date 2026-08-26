@@ -31,7 +31,7 @@ This is the live **quality** scoreboard. Update it after every counting Evaluate
 | Cycle | **4** | Cycles 1–3 aborted. Bank kept. Attempts reset |
 | Attempts this cycle | **1 / 5** | Evaluate 14 counted, not credited |
 | Flat streak | **1 / 3** | Evaluate 14 |
-| On `main` | F3 established `6a3e6d1` + **F3 just-in occupy** | pr7 `1d80eee2` count 107 Shot 0 Offside 0; pr8 `be48bb68` count 315 epochs 11 Shot 0 Offside 0 |
+| On `main` | F3 occupy `f9aa178` + **retrieve unused / loser retarget** | pr7/pr8 unchanged (not ice) |
 | Glimmer | **up** `:8080` (this session; do not restart 8787) | Timeouts not raised (`GRAPH_HOCKEY_EPOCH_TIMEOUT_MS=8000` from `.env`). |
 | Learning proofs | write **yes** · retain survive **yes** · transfer **no** · quality **2/5** | See [`knowledge-and-learning.md`](knowledge-and-learning.md) |
 | Goldens | pr7 `1d80eee2…` count **107**; pr8 `be48bb68…` count **315**, epochs **11** | F3 just-in occupy. Shot **0**, Offside **0**. pr7 106→107 is one extra event, not a Shot storm. |
@@ -107,6 +107,7 @@ Control twin (`ser-emp-9-nollm`): books v1, retrieveTop 0/6, offsides 0–2 (g6 
 | F2 established OZ | `9ddd4f4` on `main` | F2 outlet only when `alongPuck > BLUE+8`; just-in OZ support-below. pr8 Shot 1→0 Offside 1 | Evaluate 12 (**not credited**) |
 | F3 established OZ | `6a3e6d1` on `main` | F3 holds `ONSIDE_ALONG` until `alongPuck > BLUE+8`, then slot. pr8 Offside 1→0 | Evaluate 13 (**not credited**, cycle abort) |
 | F3 just-in occupy | `f9aa178` on `main` | Just-in OZ F3 at `alongPuck+4`. Slot after `BLUE+8`. pr7 106→107 Shot 0 Offside 0; pr8 count 315 Offside 0 | Evaluate 14 (**not credited**) |
+| Retrieve unused + loser retarget | this commit | Rank retrieve by xG rate + unused-play bonus. Loser `add_counter` on a different even-strength sheet, never the lost-with play, never protect-lead. Goldens unchanged. | Evaluate 15 |
 | PR-5 Ds tag-up | [#5](https://github.com/gasantiago16/Graph_Hockey/pull/5) | closed; absorbed into `c1e7707` | — |
 | PR-6 captain | skipped | env off | — |
 | PR-7 `lpTrail` flag | [#4](https://github.com/gasantiago16/Graph_Hockey/pull/4) | draft | never |

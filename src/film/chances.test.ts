@@ -98,6 +98,9 @@ describe("opening + retrieve top", () => {
         if (p.id === "protect-lead-1-1-3") {
           return { ...p, stats: { games: 3, xgFor: 0.24176167635919105, xgAgainst: 0.14546602452306692 } };
         }
+        if (p.id === "oz-cycle-low") {
+          return { ...p, stats: { games: 1, xgFor: 0, xgAgainst: 0 } };
+        }
         return p;
       }),
     };

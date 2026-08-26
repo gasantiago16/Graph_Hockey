@@ -1,6 +1,7 @@
 import { PlaybookRevisionSchema } from "../../llm/schemas.ts";
 import { TIE_BOOST_XG_SHARE } from "../../types/aar.ts";
 import { DEFAULT_PLAY_ID, type Play, type PlayMutation, type PlaybookRevision } from "../../types/play.ts";
+import { isEmptyNetPlay, isLeadProtectPlay } from "../../playbook/retrieve.ts";
 import { defaultPlayIdForBook } from "../../playbook/store.ts";
 import type { AarGraphNode, AarGraphStateType } from "../state.ts";
 import { invokeAarStructured, type AarLlmOpts } from "../llm.ts";
@@ -116,32 +117,65 @@ function opIsCited(state: AarGraphStateType, op: PlayMutation): boolean {
   return ids.every((id) => known.has(id));
 }
 
-/** Loser always leaves a cited add_counter when a play + event exist. */
+function zoneOverlap(a: Play, b: Play): boolean {
+  if (a.zoneBias.includes("any") || b.zoneBias.includes("any")) return true;
+  return a.zoneBias.some((z) => b.zoneBias.includes(z));
+}
+
+/** Counter the thing that beat us on a *different* even-strength sheet — not the lost-with play. */
+function pickLoserCounterPlay(state: AarGraphStateType, lostWith: Play): Play | undefined {
+  const even = (state.playbook.plays ?? []).filter(
+    (p) =>
+      p.status === "active" &&
+      isEvenStrengthPlay(p) &&
+      p.id !== lostWith.id &&
+      !isLeadProtectPlay(p) &&
+      !isEmptyNetPlay(p),
+  );
+  const themFamily = themFamilyFromEvents(state.events ?? [], state.side, state.themPlaybook);
+  if (themFamily) {
+    const already = even.find((p) => p.counters.includes(themFamily));
+    if (already) return already;
+  }
+  return even.find((p) => zoneOverlap(p, lostWith)) ?? even[0];
+}
+
+/** Loser always leaves a cited add_counter when a play + event exist. Not on the lost-with play. */
 export function ensureLoserCounter(state: AarGraphStateType, revision: PlaybookRevision): PlaybookRevision {
   if (state.result !== "loss") return revision;
-  if (revision.ops.some((op) => (op.op === "add_counter" || op.op === "nerf") && opIsCited(state, op))) {
+
+  const usage = topPlay(lessonUsage(state));
+  const lostWith = targetPlay(state, usage?.playId);
+  if (!lostWith) return revision;
+
+  const citedCounter = revision.ops.find((op) => op.op === "add_counter" && opIsCited(state, op));
+  if (citedCounter && citedCounter.op === "add_counter" && citedCounter.playId !== lostWith.id) {
+    return revision;
+  }
+  if (revision.ops.some((op) => op.op === "nerf" && opIsCited(state, op))) {
     return revision;
   }
 
-  const usage = topPlay(lessonUsage(state));
-  const play = targetPlay(state, usage?.playId);
-  const eventId = firstCite(state, play?.id);
-  if (!play || !eventId) return revision;
+  const alt = pickLoserCounterPlay(state, lostWith);
+  const eventId = firstCite(state, alt?.id) ?? firstCite(state, lostWith.id);
+  if (!alt || !eventId) return revision;
 
   const themFamily = themFamilyFromEvents(state.events ?? [], state.side, state.themPlaybook);
   const family =
-    (themFamily && !play.counters.includes(themFamily) ? themFamily : undefined) ??
-    play.vulnerableTo.find((f) => !play.counters.includes(f)) ??
-    state.playbook.plays.map((p) => p.family).find((f) => f !== play.family && !play.counters.includes(f));
+    (themFamily && !alt.counters.includes(themFamily) ? themFamily : undefined) ??
+    lostWith.vulnerableTo.find((f) => !alt.counters.includes(f)) ??
+    alt.vulnerableTo.find((f) => !alt.counters.includes(f)) ??
+    state.playbook.plays.map((p) => p.family).find((f) => f !== alt.family && !alt.counters.includes(f));
   if (!family) return revision;
 
   const op: PlayMutation = {
     op: "add_counter",
-    playId: play.id,
+    playId: alt.id,
     family,
     eventIds: [eventId],
   };
-  return { summary: revision.summary, ops: [op, ...revision.ops].slice(0, 3) };
+  const rest = revision.ops.filter((o) => !(o.op === "add_counter" && o.playId === lostWith.id));
+  return { summary: revision.summary, ops: [op, ...rest].slice(0, 3) };
 }
 
 export function stripWinnerRetires(state: AarGraphStateType, revision: PlaybookRevision): PlaybookRevision {

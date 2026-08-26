@@ -11,6 +11,7 @@ import {
   requiredScoreState,
   retrievePlays,
   toDigest,
+  UNUSED_PLAY_BONUS,
 } from "./retrieve.ts";
 
 function play(partial: Partial<Play> & Pick<Play, "id" | "triggers" | "strength" | "zoneBias" | "status">): Play {
@@ -190,7 +191,7 @@ describe("retrievePlays", () => {
       ],
     };
     const ids = retrievePlays(book, { strength: "5v5", zone: "OZ" }).map((d) => d.id);
-    expect(ids).toEqual(["z-high", "any-ok", "z-low"]);
+    expect(ids).toEqual(["z-high", "any-ok", "z-low"]); // equal games: rate order matches net order
     expect(ids).not.toContain("retired");
     expect(ids).not.toContain("wrong-zone");
     expect(ids).not.toContain("pp-only");
@@ -245,6 +246,22 @@ describe("retrievePlays", () => {
     expect(
       retrievePlays(poisoned, { strength: "5v5", zone: "OZ", scoreState: "trailing" }).map((d) => d.id),
     ).not.toContain("pull-early-template");
+  });
+
+  it("unused legal play ranks above leftover 122 so the menu can move", () => {
+    const seed = loadPlaybook("original-six");
+    const book = {
+      ...seed,
+      plays: seed.plays.map((p) =>
+        p.id === "5v5-122-forecheck"
+          ? { ...p, stats: { games: 7, xgFor: 1.84, xgAgainst: 0.13 } }
+          : p,
+      ),
+    };
+    expect(UNUSED_PLAY_BONUS).toBeGreaterThan(0.25);
+    const ids = retrievePlays(book, { strength: "5v5", zone: "OZ" }).map((d) => d.id);
+    expect(ids[0]).toBe("oz-cycle-low");
+    expect(ids).toContain("5v5-122-forecheck");
   });
 
   it("returns original-six OZ 5v5 candidates including 1-2-2", () => {
@@ -543,6 +560,14 @@ describe("retrievePlays lead-protect gate", () => {
         }
         if (p.id === "protect-lead-1-1-3") {
           return { ...p, stats: { games: 3, xgFor: 0.24176167635919105, xgAgainst: 0.14546602452306692 } };
+        }
+        if (
+          p.id === "oz-cycle-low" ||
+          p.id === "5v5-breakout-d-to-winger" ||
+          p.id === "dz-collapse" ||
+          p.id === "nz-122-trap"
+        ) {
+          return { ...p, stats: { games: 1, xgFor: 0, xgAgainst: 0 } };
         }
         return p;
       }),

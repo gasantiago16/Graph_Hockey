@@ -21,6 +21,8 @@ export {
 } from "./store.ts";
 export {
   asPlayStrength,
+  COUNTER_BONUS,
+  UNUSED_PLAY_BONUS,
   isEmptyNetPlay,
   isLeadProtectPlay,
   observerStrength,
