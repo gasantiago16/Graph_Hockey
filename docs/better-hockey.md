@@ -84,6 +84,7 @@ Control twin (`ser-emp-9-nollm`): books v1, retrieveTop 0/6, offsides 0–2 (g6 
 | PR-3 seed NZ/DZ | [#3](https://github.com/gasantiago16/Graph_Hockey/pull/3) | **merged** `1d929ce` (closed) | never |
 | Ice offside storm | `c1e7707` on `main` | faceoff onside clamp + Ds tag-up + no delayed release | Evaluate 2 (**improved**) |
 | PR-4 dump-in | `f689802` on `main` | NZ ice `clear` beats overlay dump; goldens moved (explained) | Evaluate 3 (**not credited**) |
+| AAR 5v5 lesson | this commit | `codeDraft` prefers 5v5/3v3 xG over PP/PK/EN | counting Evaluate 4 |
 | PR-5 Ds tag-up | [#5](https://github.com/gasantiago16/Graph_Hockey/pull/5) | closed; absorbed into `c1e7707` | — |
 | PR-6 captain | skipped | env off | — |
 | PR-7 `lpTrail` flag | [#4](https://github.com/gasantiago16/Graph_Hockey/pull/4) | draft | never |
@@ -120,7 +121,7 @@ Dump-in itself is live (`dumpRec 100%` on several AAR summaries). Control shots 
 
 **Diagnose:** g0 home xG **1.17** was mostly **PP** (`pp1-umbrella` share 63%; g3 share **98%** / xG 1.30). `codeDraft` boosts/counters `topPlay` by xG share, so a 20s penalty is the series lesson. g6 5v5 xG **0.46**. Away Δ xG **+0.412**. Pairs dropped 3→1 because dump-and-chase film does not match the old carry signatures. Do **not** raise the 8s timeout. Do **not** change the Δ xG bar.
 
-**Next PR:** AAR `ensureMandatoryBoost` / `ensureLoserCounter` prefer a **5v5** chance-creating play when one has xG; PP/PK/EN only if even-strength usage is empty. Post-stack menu row “AAR boost / usage targeting.” Then counting Evaluate 4.
+**Next PR (shipping):** AAR `ensureMandatoryBoost` / `ensureLoserCounter` prefer a **5v5** chance-creating play when one has xG; PP/PK/EN only if even-strength usage is empty. Then counting Evaluate 4 (`ser-emp-11`). Need Δ xG **> −0.376** and pairs ≥ **3**.
 
 ### Dump-in golden move (intentional)
 

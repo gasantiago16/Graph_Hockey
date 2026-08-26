@@ -46,6 +46,21 @@ function targetPlay(state: AarGraphStateType, playId?: string): Play | undefined
   return plays.find((p) => p.status === "active") ?? plays[0];
 }
 
+function isEvenStrengthPlay(play: Play): boolean {
+  return play.strength.includes("5v5") || play.strength.includes("3v3");
+}
+
+/** Prefer 5v5/3v3 xG plays so a 20s PP is not the series lesson. Fall back if none have xG. */
+function lessonUsage(state: AarGraphStateType): PlayUsage[] {
+  const usage = state.playUsage ?? [];
+  const even = usage.filter((row) => {
+    const play = targetPlay(state, row.playId);
+    return play ? isEvenStrengthPlay(play) : false;
+  });
+  if (even.some((row) => row.xgFor > 0)) return even;
+  return [...usage];
+}
+
 function makeBoost(playId: string, eventId: string, reason: string): PlayMutation {
   return { op: "boost", playId, reason, eventIds: [eventId] };
 }
@@ -66,13 +81,14 @@ function boostHasMatchXg(state: AarGraphStateType, op: PlayMutation): boolean {
 
 export function ensureMandatoryBoost(state: AarGraphStateType, revision: PlaybookRevision): PlaybookRevision {
   const needWinBoost = state.result === "win";
-  const sharePlay = playWithXgShare(state.playUsage ?? [], TIE_BOOST_XG_SHARE);
+  const pool = lessonUsage(state);
+  const sharePlay = playWithXgShare(pool, TIE_BOOST_XG_SHARE);
   const needTieBoost = state.result === "tie" && sharePlay !== undefined;
   if (!needWinBoost && !needTieBoost) return revision;
   if (revision.ops.some((op) => boostHasMatchXg(state, op))) return revision;
 
   const usage: PlayUsage | undefined =
-    sharePlay ?? (state.playUsage ?? []).find((p) => p.xgFor > 0) ?? topPlay(state.playUsage ?? []);
+    sharePlay ?? pool.find((p) => p.xgFor > 0) ?? topPlay(pool);
   if (!usage || usage.xgFor <= 0) {
     return { summary: revision.summary, ops: revision.ops.filter((op) => op.op !== "boost") };
   }
@@ -107,7 +123,7 @@ export function ensureLoserCounter(state: AarGraphStateType, revision: PlaybookR
     return revision;
   }
 
-  const usage = topPlay(state.playUsage ?? []);
+  const usage = topPlay(lessonUsage(state));
   const play = targetPlay(state, usage?.playId);
   const eventId = firstCite(state, play?.id);
   if (!play || !eventId) return revision;

@@ -67,6 +67,55 @@ describe("codeDraft", () => {
     expect(rev.ops.some((o) => o.op === "boost")).toBe(false);
   });
 
+  it("winner boosts 5v5 xG over a higher-xG PP play", () => {
+    const rev = codeDraft(
+      state({
+        result: "win",
+        playUsage: [
+          { playId: "pp1-umbrella", xgFor: 0.74, xgAgainst: 0, seconds: 12, xgShare: 0.63 },
+          { playId: "5v5-122-forecheck", xgFor: 0.43, xgAgainst: 0.1, seconds: 40, xgShare: 0.37 },
+        ],
+        eventLogDigest: {
+          matchId: "m",
+          events: [
+            { id: makeEventId("m", 0), type: "Shot", liveTick: 10, playId: "5v5-122-forecheck", xG: 0.2 },
+            { id: makeEventId("m", 1), type: "Shot", liveTick: 40, playId: "pp1-umbrella", xG: 0.5 },
+          ],
+        },
+      }),
+    );
+    expect(rev.ops[0]).toMatchObject({ op: "boost", playId: "5v5-122-forecheck" });
+  });
+
+  it("winner still boosts PP when no even-strength play had xG", () => {
+    const rev = codeDraft(
+      state({
+        result: "win",
+        playUsage: [{ playId: "pp1-umbrella", xgFor: 0.74, xgAgainst: 0, seconds: 12, xgShare: 1 }],
+        eventLogDigest: {
+          matchId: "m",
+          events: [{ id: makeEventId("m", 1), type: "Shot", liveTick: 40, playId: "pp1-umbrella", xG: 0.74 }],
+        },
+        knownEventIds: [makeEventId("m", 1)],
+      }),
+    );
+    expect(rev.ops[0]).toMatchObject({ op: "boost", playId: "pp1-umbrella" });
+  });
+
+  it("loser add_counter targets 5v5 instead of PP umbrella", () => {
+    const rev = codeDraft(
+      state({
+        result: "loss",
+        playUsage: [
+          { playId: "pp1-umbrella", xgFor: 1.3, xgAgainst: 0, seconds: 12, xgShare: 0.98 },
+          { playId: "5v5-122-forecheck", xgFor: 0.03, xgAgainst: 0.1, seconds: 40, xgShare: 0.02 },
+        ],
+      }),
+    );
+    const op = rev.ops.find((o) => o.op === "add_counter");
+    expect(op).toMatchObject({ playId: "5v5-122-forecheck" });
+  });
+
   it("winner always gets a cited boost", () => {
     const rev = codeDraft(state({ result: "win" }));
     expect(rev.ops[0]).toMatchObject({
