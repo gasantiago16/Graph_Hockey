@@ -4,6 +4,8 @@ import type { AdapterSpec, ReasoningEffort } from "./types.ts";
 
 export { DEFAULT_MUSE_BASE_URL };
 export const DEFAULT_OPENAI_BASE_URL = "https://api.openai.com/v1";
+/** Local Glimmer ~36 tok/s. 120 tokens + prompt stays inside the 6s coach HTTP timeout. */
+export const GLIMMER_MAX_TOKENS = 120;
 
 /** Muse Spark 400s on reasoning_effort=none. Map to low so specialists still hit Completions. */
 export function museReasoningEffort(effort: ReasoningEffort): ReasoningEffort {
@@ -28,10 +30,26 @@ export function isLoopbackMuseUrl(baseURL: string): boolean {
   }
 }
 
+function glimmerStructuredKwargs(): Record<string, unknown> {
+  return {
+    reasoning: "off",
+    chat_template_kwargs: { reasoning_strength: "none" },
+  };
+}
+
 function createCompatChatModel(
   spec: AdapterSpec,
-  opts: { apiKey: string; baseURL: string; useResponsesApi: boolean; mapCompletionsEffort: boolean },
+  opts: {
+    apiKey: string;
+    baseURL: string;
+    useResponsesApi: boolean;
+    mapCompletionsEffort: boolean;
+    extraKwargs?: Record<string, unknown>;
+  },
 ): ChatOpenAI {
+  const modelKwargs = opts.mapCompletionsEffort
+    ? { reasoning_effort: spec.effort, ...opts.extraKwargs }
+    : opts.extraKwargs;
   return new ChatOpenAI({
     model: spec.model,
     apiKey: opts.apiKey,
@@ -41,7 +59,7 @@ function createCompatChatModel(
     maxRetries: spec.maxRetries,
     configuration: { baseURL: opts.baseURL },
     useResponsesApi: opts.useResponsesApi,
-    modelKwargs: opts.mapCompletionsEffort ? { reasoning_effort: spec.effort } : undefined,
+    modelKwargs,
   });
 }
 
@@ -56,13 +74,15 @@ export function createMuseChatModel(spec: AdapterSpec, env: EnvMap): ChatOpenAI 
     throw new Error("MODEL_API_KEY or MUSE_API_KEY is required for hosted Muse Spark (tests must setCreateChatModel)");
   }
   const effort = spark ? museReasoningEffort(spec.effort) : spec.effort;
+  const maxTokens = spark ? spec.maxTokens : Math.min(spec.maxTokens, GLIMMER_MAX_TOKENS);
   return createCompatChatModel(
-    { ...spec, effort },
+    { ...spec, effort, maxTokens },
     {
       apiKey: cfg.museApiKey ?? "local",
       baseURL: cfg.museBaseUrl,
       useResponsesApi: false,
       mapCompletionsEffort: spark,
+      extraKwargs: spark ? undefined : glimmerStructuredKwargs(),
     },
   );
 }

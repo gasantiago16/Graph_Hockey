@@ -21,6 +21,7 @@ export {
 } from "./store.ts";
 export {
   asPlayStrength,
+  isEmptyNetPlay,
   observerStrength,
   playStillValid,
   playStrengthFor,

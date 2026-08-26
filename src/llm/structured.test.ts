@@ -6,10 +6,12 @@ import type { BaseChatModel } from "@langchain/core/language_models/chat_models"
 import { CoachIntentSchema } from "./schemas.ts";
 import { chatModelSpec, resetLlmClientForTests } from "./client.ts";
 import {
+  extractMessageText,
   extractText,
   invokeStructured,
   isTimeoutErr,
   parseJsonValue,
+  skipNativeStructured,
   structuredMethodForModel,
 } from "./structured.ts";
 
@@ -54,6 +56,18 @@ describe("structured helpers", () => {
     ).toBe('{"ok":true}');
     expect(extractText({ text: "nested" })).toBe("nested");
     expect(extractText(null)).toBe("");
+    expect(
+      extractMessageText({
+        content: "",
+        additional_kwargs: { reasoning_content: '{"ok":true}' },
+      }),
+    ).toBe('{"ok":true}');
+    expect(
+      extractMessageText({
+        content: '{"ok":false}',
+        additional_kwargs: { reasoning_content: '{"ok":true}' },
+      }),
+    ).toBe('{"ok":false}');
   });
 
   it("parses raw, fenced, and embedded JSON objects", () => {
@@ -78,6 +92,23 @@ describe("structured helpers", () => {
     expect(structuredMethodForModel("gpt-5.6-sol")).toBe("jsonMode");
     expect(structuredMethodForModel("gemini-3.1-pro-preview")).toBeUndefined();
     expect(structuredMethodForModel("")).toBeUndefined();
+    expect(skipNativeStructured("muse-glimmer-30b")).toBe(true);
+    expect(skipNativeStructured("muse-spark-1.2")).toBe(false);
+  });
+
+  it("Glimmer reads JSON from reasoning_content when content is empty", async () => {
+    const llm = fakeLlm({
+      model: "muse-glimmer-30b",
+      structured: async () => {
+        throw new Error("native structured should be skipped");
+      },
+      invoke: async () => ({
+        content: "",
+        additional_kwargs: { reasoning_content: JSON.stringify(intent) },
+      }),
+    });
+    const out = await invokeStructured(llm, CoachIntentSchema, messages, { label: "glimmer", noJsonRetry: true });
+    expect(out?.playId).toBe("5v5-122-forecheck");
   });
 });
 
@@ -240,16 +271,13 @@ describe("invokeStructured", () => {
     let seen: unknown;
     const capturing = {
       model: "muse-glimmer-30b",
-      withStructuredOutput: (_schema: unknown, config?: { method?: string }) => {
-        expect(config?.method).toBe("jsonMode");
-        return {
-          invoke: async (input: unknown) => {
-            seen = input;
-            return intent;
-          },
-        };
+      withStructuredOutput: () => {
+        throw new Error("glimmer skips native structured");
       },
-      invoke: async () => ({ content: "" }),
+      invoke: async (input: unknown) => {
+        seen = input;
+        return { content: JSON.stringify(intent) };
+      },
     };
     const out = await invokeStructured(
       capturing as unknown as BaseChatModel,

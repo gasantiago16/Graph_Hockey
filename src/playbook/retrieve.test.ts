@@ -3,7 +3,7 @@ import { DEFAULT_PLAY_ID, type Play } from "../types/play.ts";
 import { createWorld } from "../engine/world.ts";
 import { defaultStructurePlay } from "./schema.ts";
 import { loadPlaybook } from "./store.ts";
-import { inferThemFamily, playStillValid, retrievePlays, toDigest } from "./retrieve.ts";
+import { inferThemFamily, isEmptyNetPlay, playStillValid, retrievePlays, toDigest } from "./retrieve.ts";
 
 function play(partial: Partial<Play> & Pick<Play, "id" | "triggers" | "strength" | "zoneBias" | "status">): Play {
   return {
@@ -215,6 +215,28 @@ describe("retrievePlays", () => {
       { strength: "5v5", zone: "OZ" },
     ).map((d) => d.id);
     expect(ids[0]).toBe("real");
+  });
+
+  it("does not retrieve pull-early at 5v5 even when the seed still lists 5v5", () => {
+    const expansion = loadPlaybook("expansion");
+    const pull = expansion.plays.find((p) => p.id === "pull-early-template");
+    expect(pull?.strength).toEqual(["EN"]);
+    expect(isEmptyNetPlay(pull!)).toBe(true);
+    const even = retrievePlays(expansion, { strength: "5v5", zone: "OZ", scoreState: "trailing" }).map((d) => d.id);
+    expect(even).not.toContain("pull-early-template");
+    expect(even).toContain("5v5-212-forecheck");
+    const en = retrievePlays(expansion, { strength: "EN", zone: "OZ", scoreState: "trailing" }).map((d) => d.id);
+    expect(en).toContain("pull-early-template");
+
+    const poisoned = {
+      ...expansion,
+      plays: expansion.plays.map((p) =>
+        p.id === "pull-early-template" ? { ...p, strength: ["EN", "5v5"] as typeof p.strength } : p,
+      ),
+    };
+    expect(
+      retrievePlays(poisoned, { strength: "5v5", zone: "OZ", scoreState: "trailing" }).map((d) => d.id),
+    ).not.toContain("pull-early-template");
   });
 
   it("returns original-six OZ 5v5 candidates including 1-2-2", () => {

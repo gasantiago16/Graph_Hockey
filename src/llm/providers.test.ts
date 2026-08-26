@@ -43,9 +43,11 @@ describe("provider adapters (constructor only, no network)", () => {
     }) as ChatOpenAI;
     expect(llm).toBeInstanceOf(ChatOpenAI);
     expect(llm.model).toBe("muse-glimmer-30b");
-    expect(llm.maxTokens).toBe(COACH_MAX_TOKENS);
+    expect(llm.maxTokens).toBeLessThanOrEqual(120);
     expect(llm.clientConfig.baseURL).toBe("http://127.0.0.1:8080/v1");
     expect(llm.modelKwargs?.reasoning_effort).toBeUndefined();
+    expect(llm.modelKwargs?.reasoning).toBe("off");
+    expect(llm.modelKwargs?.chat_template_kwargs).toEqual({ reasoning_strength: "none" });
     const src = readFileSync(join(root, "src/llm/providers/openaiCompat.ts"), "utf8");
     expect(src).toMatch(/useResponsesApi:\s*false/);
     expect(src).not.toMatch(/contributor/);

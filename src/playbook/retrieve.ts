@@ -165,12 +165,18 @@ function counterBoost(play: Play, themFamily: string | undefined): number {
   return play.counters.includes(themFamily) ? COUNTER_BONUS : 0;
 }
 
+/** Empty-net / pull-goalie templates. Short periods make timeRemainingLt always true, so these stay off 5v5 retrieve. */
+export function isEmptyNetPlay(play: Pick<Play, "family">): boolean {
+  return play.family === "pull-early" || play.family === "en-scramble";
+}
+
 /** Filter active plays by strength/zone, rank by net xG, return top 6 digests. */
 export function retrievePlays(book: Playbook, query: RetrieveQuery): PlayDigest[] {
   const strength = asPlayStrength(query.strength);
   const limit = query.limit ?? 6;
   const matched = book.plays.filter((play) => {
     if (play.status === "retired") return false;
+    if (isEmptyNetPlay(play) && strength !== "EN") return false;
     if (!play.strength.includes(strength)) return false;
     if (play.zoneBias.length === 0) return true;
     return play.zoneBias.includes("any") || play.zoneBias.includes(query.zone);

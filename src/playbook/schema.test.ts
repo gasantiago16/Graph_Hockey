@@ -25,6 +25,9 @@ describe("seed playbooks", () => {
     expect(book.teamId).toBe("expansion");
     expect(book.plays.map((p) => p.id)).toEqual([...EXPANSION_PLAY_IDS]);
     expect(book.plays.some((p) => p.id === "ot-3v3-aggressive-forecheck" && p.strength.includes("3v3"))).toBe(true);
+    const pull = book.plays.find((p) => p.id === "pull-early-template");
+    expect(pull?.strength).toEqual(["EN"]);
+    expect(pull?.strength).not.toContain("5v5");
   });
 
   it("keeps default-structure as a code fallback, not a seed row", () => {

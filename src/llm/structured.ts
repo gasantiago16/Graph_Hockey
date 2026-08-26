@@ -37,6 +37,14 @@ export function extractText(content: unknown): string {
   return "";
 }
 
+/** Visible content first; Glimmer may park JSON in reasoning_content when thinking is on. */
+export function extractMessageText(msg: { content?: unknown; additional_kwargs?: Record<string, unknown> }): string {
+  const visible = extractText(msg.content);
+  if (visible.trim()) return visible;
+  const reasoning = msg.additional_kwargs?.reasoning_content;
+  return typeof reasoning === "string" ? reasoning : "";
+}
+
 export function parseJsonValue(text: string): unknown {
   const trimmed = text.trim();
   if (!trimmed) return undefined;
@@ -80,6 +88,11 @@ export function structuredMethodForModel(model: string): "jsonMode" | undefined 
   return undefined;
 }
 
+/** Local Glimmer often leaves message.content empty and puts JSON in reasoning_content. */
+export function skipNativeStructured(model: string): boolean {
+  return model.toLowerCase().includes("glimmer");
+}
+
 function logFail(label: string, phase: string, err: unknown): void {
   const msg = err instanceof Error ? err.message : String(err);
   console.warn(`structured:${label}:${phase} ${msg.slice(0, 220)}`);
@@ -118,27 +131,33 @@ export async function invokeStructured<T>(
 ): Promise<T | undefined> {
   const label = opts.label ?? "llm";
   const invokeOpts = opts.signal ? { signal: opts.signal } : undefined;
-  const method = structuredMethodForModel(modelName(llm));
+  const model = modelName(llm);
+  const method = structuredMethodForModel(model);
   const outbound = outboundMessages(messages, method === "jsonMode");
+  const skipNative = skipNativeStructured(model);
 
-  try {
-    const runnable = method
-      ? llm.withStructuredOutput(LooseJsonObject, { method })
-      : llm.withStructuredOutput(schema);
-    const raw: unknown = await runnable.invoke(outbound, invokeOpts);
-    const parsed = schema.safeParse(normalizeLlmObject(raw));
-    if (parsed.success) return parsed.data;
-    console.warn(`structured:${label}:structured parse failed`);
-    if (opts.noJsonRetry) return undefined;
-  } catch (err) {
-    maybeMarkNone(err);
-    logFail(label, "structured", err);
-    if (isTimeoutErr(err) || opts.noJsonRetry) return undefined;
+  if (!skipNative) {
+    try {
+      const runnable = method
+        ? llm.withStructuredOutput(LooseJsonObject, { method })
+        : llm.withStructuredOutput(schema);
+      const raw: unknown = await runnable.invoke(outbound, invokeOpts);
+      const parsed = schema.safeParse(normalizeLlmObject(raw));
+      if (parsed.success) return parsed.data;
+      console.warn(`structured:${label}:structured parse failed`);
+      if (opts.noJsonRetry) return undefined;
+    } catch (err) {
+      maybeMarkNone(err);
+      logFail(label, "structured", err);
+      if (isTimeoutErr(err) || opts.noJsonRetry) return undefined;
+    }
   }
 
   try {
     const msg = await llm.invoke(outbound, invokeOpts);
-    const parsed = schema.safeParse(normalizeLlmObject(parseJsonValue(extractText(msg.content))));
+    const parsed = schema.safeParse(
+      normalizeLlmObject(parseJsonValue(extractMessageText(msg as { content?: unknown; additional_kwargs?: Record<string, unknown> }))),
+    );
     if (parsed.success) return parsed.data;
   } catch (err) {
     maybeMarkNone(err);

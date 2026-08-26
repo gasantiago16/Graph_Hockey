@@ -211,7 +211,7 @@
       "version": 1,
       "status": "active",
       "family": "pull-early",
-      "strength": ["EN", "5v5"],
+      "strength": ["EN"],
       "zoneBias": ["OZ", "NZ", "any"],
       "formation": {
         "slots": {
