@@ -4,7 +4,7 @@
 | --- | --- |
 | **Author** | Graph_Hockey staff (design) |
 | **Date** | 2026-08-26 |
-| **Status** | **In experiment — cycle 1, Evaluate 3 not credited (bank 1/5).** Dump-in on `main` (`f689802`). Next: AAR 5v5 boost targeting. |
+| **Status** | **In experiment — cycle 1, Evaluate 4 not credited (bank 1/5).** AAR 5v5 targeting on `main` (`6f01c3e`). Flat streak **2/3**. |
 | **Repo** | `C:\Users\gasan\Graph_Hockey` (private, `main` playable) |
 | **Success criterion** | **Five empirical improvements.** Not five attempts. Not five version bumps. Not “stop when the numbered PR stack is done.” Keep cycling (including a **post-stack Diagnose menu**) until `improvements == 5` or the user stops. |
 | **PLAN_ID** | `f1d4bdeb` (resume leftover PRs with `/execute-plan --resume f1d4bdeb` after Evaluate context) |
@@ -17,13 +17,13 @@ This is the live scoreboard. Update it after every counting Evaluate. Handbook: 
 
 | Counter | Value | Notes |
 | --- | --- | --- |
-| **Bank** (goal) | **1 / 5** | Evaluate 3 not credited. Next credit needs `homeΔxG > −0.376` **and** pairs ≥ **3** |
-| Previous-best home Δ xG | **−0.376** | `ser-emp-9` g0→g6. Unchanged |
-| Previous-best pairs | **3** | Evaluate 2. Evaluate 3 pairs **1** fails the floor |
+| **Bank** (goal) | **1 / 5** | Evaluate 4 not credited. Next credit needs `homeΔxG > −0.376` **and** pairs ≥ **3** |
+| Previous-best home Δ xG | **−0.376** | `ser-emp-9` g0→g6. Unchanged. Evaluate 4 rounded to **−0.376** (raw −0.3762) |
+| Previous-best pairs | **3** | Evaluate 2. Evaluate 3 and 4 both pairs **1** |
 | Cycle | **1** | Diagnose → implement → cranky → test → merge → Evaluate |
-| Attempts this cycle | **3 / 5** | Counting Evaluates only |
-| Flat streak | **1 / 3** | Evaluate 3 worse Δ xG |
-| On `main` | retrieve gate `#1` (`ff23dd5`) + timeout leftover (`0bb7a0b`) + seed NZ/DZ (`1d929ce`) + ice offside storm (`c1e7707`) + **dump-in (PR-4)** | NZ ice `clear` beats overlay dump; puck leaves the stick as `clear`, not Shot |
+| Attempts this cycle | **4 / 5** | Counting Evaluates only |
+| Flat streak | **2 / 3** | One more flat → cycle abort, re-Diagnose, bank kept |
+| On `main` | retrieve gate + timeout leftover + seed NZ/DZ + ice clamp + dump-in `f689802` + **AAR 5v5** `6f01c3e` | `codeDraft` prefers 5v5/3v3 xG over PP/PK/EN |
 | Glimmer | **running** `:8080 --reasoning off` | Do not restart 8787 unless asked. |
 | Goldens | pr7 `1378ddf6…` count **57**; pr8 `15795068…` count **301**, epochs **11** | Intentional dump-in physics. pr4 unchanged. Shot **1**, Offside **0** on pr8 3×5s |
 
@@ -84,7 +84,7 @@ Control twin (`ser-emp-9-nollm`): books v1, retrieveTop 0/6, offsides 0–2 (g6 
 | PR-3 seed NZ/DZ | [#3](https://github.com/gasantiago16/Graph_Hockey/pull/3) | **merged** `1d929ce` (closed) | never |
 | Ice offside storm | `c1e7707` on `main` | faceoff onside clamp + Ds tag-up + no delayed release | Evaluate 2 (**improved**) |
 | PR-4 dump-in | `f689802` on `main` | NZ ice `clear` beats overlay dump; goldens moved (explained) | Evaluate 3 (**not credited**) |
-| AAR 5v5 lesson | this commit | `codeDraft` prefers 5v5/3v3 xG over PP/PK/EN | counting Evaluate 4 |
+| AAR 5v5 lesson | `6f01c3e` on `main` | `codeDraft` prefers 5v5/3v3 xG over PP/PK/EN | Evaluate 4 (**not credited**) |
 | PR-5 Ds tag-up | [#5](https://github.com/gasantiago16/Graph_Hockey/pull/5) | closed; absorbed into `c1e7707` | — |
 | PR-6 captain | skipped | env off | — |
 | PR-7 `lpTrail` flag | [#4](https://github.com/gasantiago16/Graph_Hockey/pull/4) | draft | never |
@@ -121,7 +121,41 @@ Dump-in itself is live (`dumpRec 100%` on several AAR summaries). Control shots 
 
 **Diagnose:** g0 home xG **1.17** was mostly **PP** (`pp1-umbrella` share 63%; g3 share **98%** / xG 1.30). `codeDraft` boosts/counters `topPlay` by xG share, so a 20s penalty is the series lesson. g6 5v5 xG **0.46**. Away Δ xG **+0.412**. Pairs dropped 3→1 because dump-and-chase film does not match the old carry signatures. Do **not** raise the 8s timeout. Do **not** change the Δ xG bar.
 
-**Next PR (shipping):** AAR `ensureMandatoryBoost` / `ensureLoserCounter` prefer a **5v5** chance-creating play when one has xG; PP/PK/EN only if even-strength usage is empty. Then counting Evaluate 4 (`ser-emp-11`). Need Δ xG **> −0.376** and pairs ≥ **3**.
+**Next PR (shipped `6f01c3e`):** AAR prefers 5v5. Evaluate 4 ran.
+
+### Evaluate 4 — `ser-emp-11` (2026-08-26)
+
+AAR 5v5 targeting `6f01c3e`. Same protocol. Twin `ser-emp-11-nollm` event hashes **match** `ser-emp-10-nollm` (AAR PR did not move `--no-llm` ice). Timeout stayed **8000**. xAI returned **429 capacity** mid-series; leftovers used, timeouts not raised.
+
+| Gate | Result |
+| --- | --- |
+| Control honest | **pass** — v1, retrieveTop 0/6, `booksMoved` false, offsides 0–2 |
+| Live writes books | **pass** — v1→v8 both. Home retrieveTop 0/6. Away 4/6 (diagnostic). Wins/losses wrote **122 / breakout / 212**, not umbrella (except g1 tie) |
+| Lead-protect skating | **pass** — 0 hits; snapshot games **0** |
+| Offsides 0–2 | **pass** — max 2 (g2/g3 home 2) |
+| Chance mean | **8.0** (10,8,6,9,9,7,7) ≥ 6 |
+| Pairs `--compare 0,6` | **1** < 3 (**floor fail**) |
+| Home Δ xG g0→g6 | **−0.376** (raw −0.3762) not **>** −0.376 |
+
+**Improved: no.** Bank **1 / 5**. Flat streak **2**. Attempts **4 / 5**.
+
+Live card:
+
+| G | Score | Home retrieve | Away retrieve | Home ch/off | Away ch/off |
+| --- | --- | --- | --- | --- | --- |
+| 0 | 2–3 away | `5v5-122-forecheck` | `oz-crash-net` | 10 / 0 | 3 / 2 |
+| 1 | 3–3 tie | `5v5-122-forecheck` | `oz-crash-net` | 8 / 1 | 4 / 1 |
+| 2 | 2–0 home | `5v5-122-forecheck` | `oz-crash-net` | 6 / 2 | 1 / 0 |
+| 3 | 3–1 home | `5v5-122-forecheck` | `5v5-212-forecheck` | 9 / 2 | 2 / 1 |
+| 4 | 2–3 away | `5v5-122-forecheck` | `oz-crash-net` | 9 / 1 | 7 / 1 |
+| 5 | 4–3 home | `5v5-122-forecheck` | `5v5-212-forecheck` | 7 / 0 | 4 / 0 |
+| 6 | 1–2 away | `5v5-122-forecheck` | `oz-crash-net` | 7 / 0 | 2 / 1 |
+
+Home AAR ops: g0/g4/g6 `add_counter` on **122**; g2/g3 boost **122**; g5 boost **`5v5-breakout-d-to-winger`** (digest topPlay was `pk1-box` 51% — targeting worked); g1 tie still boosted `pp1-umbrella` (share 93%, even-strength share < 0.4).
+
+**Diagnose:** g0 xG is the same dump-in seed-7 PP spray (**1.168**) as Evaluate 3. g6 rose **0.457 → 0.792** — AAR 5v5 moved later games. Need g6 **> 0.792** to strictly beat −0.376 with this g0. Pairs still 1 (one away-PP DZ signature). Do not change the bar. Do not raise timeouts.
+
+**Next PR:** F2 contest of dump-ins / loose puck (`src/ice/roles.ts` F2 hunt) so 5v5 OZ recoveries create paired clips (pairs ≥ 3) and extra g6 xG. Then counting Evaluate 5. One more flat aborts the cycle.
 
 ### Dump-in golden move (intentional)
 

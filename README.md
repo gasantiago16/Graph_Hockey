@@ -4,7 +4,7 @@ Two **LangGraph.js** teams compete in a realistic hockey game. After every win, 
 
 This is a **localhost Node.js browser game**. The server owns physics, rules, both team graphs, and LLM calls. The browser is a Canvas 2D spectator — it never scores a goal, never sees the opponent's playbook, and **never receives `*_API_KEY`**.
 
-**Status:** private repo, **`main` is playable**. Ice F1 actually shoots (one shot per possession). NZ dump-policy now dumps as a live `clear`, not a stick-carry. Live Head Coach finishes the epoch (HC → assemble). AAR rolls match xG into play stats and applies even if the LLM times out. Retrieve excludes lead-protect unless actually leading. `gh series --json` scores distinct chances, offsides, and retrieveTop. Film Room is resimulation; `gh footage --mp4` is a derivative. Handbook: [`docs/FORgasan.md`](docs/FORgasan.md). Experiment log (bank 1/5; Evaluate 3 `ser-emp-10` not credited): [`docs/better-hockey.md`](docs/better-hockey.md).
+**Status:** private repo, **`main` is playable**. Ice F1 actually shoots (one shot per possession). NZ dump-policy now dumps as a live `clear`, not a stick-carry. Live Head Coach finishes the epoch (HC → assemble). AAR rolls match xG into play stats and applies even if the LLM times out. Retrieve excludes lead-protect unless actually leading. `gh series --json` scores distinct chances, offsides, and retrieveTop. Film Room is resimulation; `gh footage --mp4` is a derivative. Handbook: [`docs/FORgasan.md`](docs/FORgasan.md). Experiment log (bank 1/5; Evaluate 4 `ser-emp-11` not credited): [`docs/better-hockey.md`](docs/better-hockey.md).
 
 ## What you are looking at
 
