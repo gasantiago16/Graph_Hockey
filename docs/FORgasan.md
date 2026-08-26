@@ -2,7 +2,7 @@
 
 You wanted two LangGraphs to fight each other at hockey, then get smarter after every result. That is still the product. What we *shipped* is more specific, and this file is honest about it: **two independent benches**, **ice that is code**, **one Head Coach call per live epoch**, and **an After-Action Review that patches a playbook** so game 7 is not a rerun of game 1.
 
-We measured that loop (`ser-emp-7`), gated retrieve, killed offside storms, shipped dump-in, taught AAR to boost 5v5, then F2 dump-chase. Cycle 1 aborted after Evaluate 5. Bank **1/5**. Plan: [`docs/better-hockey.md`](better-hockey.md).
+We measured that loop (`ser-emp-7`), gated retrieve, killed offside storms, shipped dump-in, taught AAR to boost 5v5, F2 dump-chase, then DZ leftover assemble. Evaluate 7 Δ xG **−0.131** would beat previous-best; pairs **1** failed. Bank **1/5**. Plan: [`docs/better-hockey.md`](better-hockey.md).
 
 This is a handbook for *you* — how the repo thinks, what is a graph and what is not, how a call travels, how the team learns *together*, and the scars we paid for on the road to LangGraph learning.
 
@@ -507,7 +507,7 @@ These are not hypothetical. They showed up in design review or PR review and wou
 
 Live counters live in [`docs/better-hockey.md`](better-hockey.md) (bank **1/5**, cycle 1 aborted).
 
-1. **Evaluate 7** after micro assemble drops invalid last (122 dump in DZ → breakout). Need Δ xG **> −0.376**, pairs ≥ **3**, chance mean ≥ 6.
+1. **Film pairing**, then Evaluate 8. Evaluate 7 Δ xG **−0.131** and chance mean 6.43 would credit; pairs **1** failed. Need pairs ≥ **3**. One more flat aborts cycle 2.
 2. **Captain micro** stays off.
 3. **HITL later.** LangGraph `interrupt()`, off the 12s clock.
 4. Glimmer is up on `:8080`. Do not restart 8787 unless asked. Do not raise timeouts.
@@ -532,4 +532,4 @@ Live counters live in [`docs/better-hockey.md`](better-hockey.md) (bank **1/5**,
 
 ---
 
-*Generated 2026-08-26. `main` is playable. Cycle 2 Evaluate 6 not credited (Δ xG −0.365 but chance mean 4.57). Bank 1/5. Next: DZ leftover assemble. Plan: `docs/better-hockey.md`. HITL not in v1.*
+*Generated 2026-08-26. `main` is playable. Evaluate 7 not credited (Δ xG −0.131, pairs 1). Bank 1/5. Cycle 2 flat 2/3. Plan: `docs/better-hockey.md`. HITL not in v1.*

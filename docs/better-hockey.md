@@ -4,7 +4,7 @@
 | --- | --- |
 | **Author** | Graph_Hockey staff (design) |
 | **Date** | 2026-08-26 |
-| **Status** | **Cycle 2, Evaluate 6 not credited (bank 1/5).** F2 tighten fixed g0 offsides. Chance mean failed. |
+| **Status** | **Cycle 2, Evaluate 7 not credited (bank 1/5).** Δ xG **−0.131** would beat previous-best; pairs **1** failed the floor. |
 | **Repo** | `C:\Users\gasan\Graph_Hockey` (private, `main` playable) |
 | **Success criterion** | **Five empirical improvements.** Not five attempts. Not five version bumps. Not “stop when the numbered PR stack is done.” Keep cycling (including a **post-stack Diagnose menu**) until `improvements == 5` or the user stops. |
 | **PLAN_ID** | `f1d4bdeb` (resume leftover PRs with `/execute-plan --resume f1d4bdeb` after Evaluate context) |
@@ -21,8 +21,8 @@ This is the live scoreboard. Update it after every counting Evaluate. Handbook: 
 | Previous-best home Δ xG | **−0.376** | `ser-emp-9` g0→g6. Unchanged |
 | Previous-best pairs | **3** | Evaluate 2. Evaluates 3–5 all pairs 0–1 |
 | Cycle | **2** | Cycle 1 aborted. Attempts reset. Bank kept |
-| Attempts this cycle | **1 / 5** | Evaluate 6 counted |
-| Flat streak | **1 / 3** | Chance mean 4.57 and pairs 0 |
+| Attempts this cycle | **2 / 5** | Evaluate 7 counted |
+| Flat streak | **2 / 3** | Evaluate 7 pairs 1 < 3. One more flat aborts cycle 2 |
 | On `main` | dump-in + AAR 5v5 + F2 chase `78b17cb` + **F2 tighten** | Deep OZ second man; shallow OZ onside |
 | Glimmer | **running** `:8080 --reasoning off` | Do not restart 8787 unless asked. |
 | Goldens | pr7 `1378ddf6…` count **57**; pr8 `9dae311e…` count **280**, epochs **11** | DZ leftover assemble. pr7 unchanged. pr8 Shot **0**, Offside **2** |
@@ -87,7 +87,7 @@ Control twin (`ser-emp-9-nollm`): books v1, retrieveTop 0/6, offsides 0–2 (g6 
 | AAR 5v5 lesson | `6f01c3e` on `main` | `codeDraft` prefers 5v5/3v3 xG over PP/PK/EN | Evaluate 4 (**not credited**) |
 | F2 dump-chase | `78b17cb` on `main` | OZ loose puck: F2 contests. NZ stays onside | Evaluate 5 (**not credited**, cycle abort) |
 | F2 tighten | `66d96d0` on `main` | Deep OZ only (`BLUE+8`), second man `alongPuck-6` | Evaluate 6 (**not credited**) |
-| DZ leftover assemble | on `main` | Micro drops last play that fails zone/strength (122 in DZ → breakout) | counting Evaluate 7 |
+| DZ leftover assemble | `b414450` on `main` | Micro drops last play that fails zone/strength (122 in DZ → breakout) | Evaluate 7 (**not credited**) |
 | PR-5 Ds tag-up | [#5](https://github.com/gasantiago16/Graph_Hockey/pull/5) | closed; absorbed into `c1e7707` | — |
 | PR-6 captain | skipped | env off | — |
 | PR-7 `lpTrail` flag | [#4](https://github.com/gasantiago16/Graph_Hockey/pull/4) | draft | never |
@@ -226,7 +226,39 @@ Live card:
 
 g1/g2 home OZ **6s / 2s**, DZ **21s / 33s**. They sat in their own end. `5v5-122-forecheck` `zoneBias` is NZ/OZ only — micro assemble copied last 122 into the DZ.
 
-**Cycle 2 PR-2:** micro assemble: if last play fails zone/strength (not only lead-protect), use first retrieved non-protect (DZ → `5v5-breakout-d-to-winger`). Then Evaluate 7.
+**Cycle 2 PR-2 (shipped `b414450`):** DZ leftover assemble. Evaluate 7 ran.
+
+### Evaluate 7 — `ser-emp-14` (2026-08-26)
+
+DZ leftover `b414450`. Same protocol. Twin `ser-emp-14-nollm`. Timeout 8000.
+
+| Gate | Result |
+| --- | --- |
+| Control honest | **pass** — v1, retrieveTop 0/6, offsides 0–2 |
+| Live writes books | **pass** — v1→v8. Home retrieveTop 0/6. Away 0/6 (212). AAR boosted 122 |
+| Lead-protect skating | **pass** — 0 hits; snapshot games **0** |
+| Offsides 0–2 | **pass** — max 2 (g0 away 2) |
+| Chance mean | **6.43** (8,2,4,9,8,5,9) ≥ 6 |
+| Pairs `--compare 0,6` | **1** < 3 (**floor fail**) |
+| Home Δ xG g0→g6 | **−0.131** > −0.376 (would credit) |
+
+**Improved: no.** Bank **1 / 5**. Cycle 2 attempt 2, flat 2. g6 was a **4–1** home win, 9 chances, 122 share 89%. The only failed gate is pairs.
+
+Live card:
+
+| G | Score | Home retrieve | Away retrieve | Home ch/off | Away ch/off |
+| --- | --- | --- | --- | --- | --- |
+| 0 | 1–1 tie | `5v5-122-forecheck` | `5v5-212-forecheck` | 8 / 0 | 1 / 2 |
+| 1 | 2–1 home | `5v5-122-forecheck` | `5v5-212-forecheck` | 2 / 0 | 2 / 0 |
+| 2 | 2–2 tie | `5v5-122-forecheck` | `5v5-212-forecheck` | 4 / 1 | 6 / 0 |
+| 3 | 2–1 home | `5v5-122-forecheck` | `5v5-212-forecheck` | 9 / 1 | 3 / 0 |
+| 4 | 3–2 home | `5v5-122-forecheck` | `5v5-212-forecheck` | 8 / 1 | 5 / 0 |
+| 5 | 2–4 away | `5v5-122-forecheck` | `5v5-212-forecheck` | 5 / 0 | 8 / 1 |
+| 6 | 4–1 home | `5v5-122-forecheck` | `5v5-212-forecheck` | 9 / 0 | 3 / 0 |
+
+g1/g2 no longer 0-chance DZ traps. Dump-and-chase film g0 vs g6 still does not pair (one away-212 DZ signature).
+
+**Cycle 2 PR-3:** film pairing (`src/film/pairClips.ts`) so dump-chase / breakout g0–g6 clips can match (Jaccard fallback or play+zone). Then Evaluate 8. Need pairs ≥ **3** with Δ xG still **> −0.376**. One more flat aborts cycle 2.
 
 ### Dump-in golden move (intentional)
 
