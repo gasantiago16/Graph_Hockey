@@ -22,6 +22,8 @@ export const PASS_MIN_SEP = 8;
 export const PASS_MAX_SEP = 48;
 /** cos(heading vs release dir). ~0.75 ≈ 41°. */
 export const RELEASE_FACING = 0.75;
+/** Ice-source OZ shot: high slot. Dump recoveries carry instead of one-timing from the blue. */
+export const OZ_ICE_SHOOT_ALONG = BLUE_LINE_X + 20;
 
 const RECEIVE_ROLES = new Set<SlotRole>(["support", "weak-side", "net-front", "puck", "point"]);
 
@@ -260,6 +262,7 @@ function facingRelease(body: Body, dest: Vec2): Vec2 | undefined {
  * Overlay cycle/hold never release. Overlay dump releases only when ice dump wins (source ice).
  * Missing iceIntents keeps seed dump on the stick.
  * Shot lock: one shot per possession; locked shoot demotes to pass (or hold).
+ * Ice-source shots wait until OZ_ICE_SHOOT_ALONG so dump recoveries carry instead of one-timing from the blue.
  */
 export function maybeReleasePuck(world: WorldState): boolean {
   const id = world.puck.possessor;
@@ -284,7 +287,8 @@ export function maybeReleasePuck(world: WorldState): boolean {
     speed = PASS_RELEASE_SPEED;
   } else {
     const dir = world.attackingDir[body.side];
-    if (body.pos.x * dir < BLUE_LINE_X - 8) return false;
+    const minAlong = source === "ice" ? OZ_ICE_SHOOT_ALONG : BLUE_LINE_X - 8;
+    if (body.pos.x * dir < minAlong) return false;
     dest = { x: dir * GOAL_LINE_X, y: 0 };
     speed = SHOT_RELEASE_SPEED;
   }

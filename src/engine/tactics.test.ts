@@ -9,6 +9,7 @@ import { advanceWorld } from "./step.ts";
 import {
   maybeReleasePuck,
   nearestSkaterToPuck,
+  OZ_ICE_SHOOT_ALONG,
   passReceiver,
   playForSide,
   routeClearOfOwnNet,
@@ -311,6 +312,58 @@ describe("pass / shoot release", () => {
       puck: { pos: { x: 50, y: 0 }, possessor: "h-C" },
       bodies: {
         "h-C": { pos: { x: 50, y: 0 }, heading: 0, vel: { x: 0, y: 0 } },
+      },
+    });
+    expect(maybeReleasePuck(world)).toBe(true);
+    expect(world.stickRelease).toBe("shot");
+  });
+
+  it("ice shoot just inside the blue carries instead of one-timing", () => {
+    const book = loadPlaybook("original-six");
+    const x = BLUE_LINE_X + 4;
+    const world = createWorld({
+      playId: { home: "5v5-122-forecheck", away: DEFAULT_PLAY_ID },
+      playbooks: { home: book, away: book },
+      iceIntents: {
+        home: { roles: {}, targets: {}, f1: "h-C", f1Action: "shoot" },
+        away: { roles: {}, targets: {} },
+      },
+      directives: {
+        home: { playId: "5v5-122-forecheck", pressure: "neutral", playParams: { shotPolicy: "dump" } },
+        away: defaultDirective(),
+      },
+      puck: { pos: { x, y: 0 }, possessor: "h-C" },
+      bodies: {
+        "h-C": { pos: { x, y: 0 }, heading: 0, vel: { x: 0, y: 0 } },
+      },
+    });
+    expect(x).toBeLessThan(OZ_ICE_SHOOT_ALONG);
+    expect(maybeReleasePuck(world)).toBe(false);
+    expect(world.puck.possessor).toBe("h-C");
+    const c = findBySlot(world, "home", "C")!;
+    const t = steeringTarget(world, c);
+    expect(t.x).toBeGreaterThan(x);
+    expect(t.x).toBeCloseTo(GOAL_LINE_X, 0);
+    expect(Math.abs(t.y)).toBeLessThan(8);
+  });
+
+  it("overlay shoot still releases from just inside the blue", () => {
+    const book = loadPlaybook("expansion");
+    const x = BLUE_LINE_X + 4;
+    const world = createWorld({
+      playId: { home: "5v5-212-forecheck", away: DEFAULT_PLAY_ID },
+      playbooks: { home: book, away: book },
+      iceIntents: {
+        home: { roles: {}, targets: {}, f1: "h-C", f1Action: "pass" },
+        away: { roles: {}, targets: {} },
+      },
+      directives: {
+        home: { playId: "5v5-212-forecheck", pressure: "aggressive", playParams: { shotPolicy: "shoot" } },
+        away: defaultDirective(),
+      },
+      puck: { pos: { x, y: 0 }, possessor: "h-C" },
+      bodies: {
+        "h-C": { pos: { x, y: 0 }, heading: 0, vel: { x: 0, y: 0 } },
       },
     });
     expect(maybeReleasePuck(world)).toBe(true);
