@@ -103,6 +103,26 @@
     }
     .stat .v { display: block; font-size: 1.3rem; font-weight: 700; color: var(--ok); }
     .stat .l { display: block; font-size: .72rem; color: var(--muted); text-transform: uppercase; margin-top: .2rem; }
+    .stat.warn .v { color: var(--warn); }
+    .stat.bad .v { color: var(--danger); }
+    .verdict {
+      display: grid; gap: .75rem; margin: 1rem 0;
+    }
+    @media (min-width: 560px) { .verdict { grid-template-columns: 1fr 1fr; } }
+    .verdict .vcard.ok::before { background: var(--ok); }
+    .verdict .vcard.no::before { background: var(--danger); }
+    table.score { font-size: .82rem; }
+    table.score td.lock { color: var(--warn); font-weight: 600; }
+    .mile-grid { display: grid; gap: .55rem; margin: 1rem 0; }
+    @media (min-width: 640px) { .mile-grid { grid-template-columns: 1fr 1fr; } }
+    .mile {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 10px; padding: .7rem .85rem;
+    }
+    .mile .when { font-size: .7rem; text-transform: uppercase; letter-spacing: .05em; color: var(--accent); }
+    .mile h4 { margin: .15rem 0 .3rem; font-size: .98rem; }
+    .mile p { margin: 0; font-size: .86rem; color: var(--muted); }
+    .callout.danger { border-left-color: var(--danger); }
     .card-grid { display: grid; gap: .75rem; margin: 1rem 0; grid-template-columns: 1fr; }
     @media (min-width: 560px) {
       .card-grid.cols-2 { grid-template-columns: 1fr 1fr; }
@@ -214,9 +234,14 @@
       0%, 70%, 100% { stroke: #2a3646; }
       78%, 88% { stroke: #fbbf24; }
     }
+    .road-pulse { animation: roadPulse 2.4s ease-in-out infinite; }
+    @keyframes roadPulse {
+      0%, 100% { stroke: #7dd3fc; }
+      50% { stroke: #a78bfa; }
+    }
     .pkt { offset-rotate: 0deg; }
     @media (prefers-reduced-motion: reduce) {
-      .ice-pulse, .hc-glow { animation: none; }
+      .ice-pulse, .hc-glow, .road-pulse { animation: none; }
       .diagram circle[r="4"],
       .diagram circle[r="4.5"],
       .diagram circle[r="5"] { display: none; }
@@ -231,21 +256,22 @@
         <div>
           <span class="badge">FORME</span>
           <span class="badge">Graph_Hockey</span>
-          <span class="badge">two benches, not twelve players</span>
+          <span class="badge">loop moved · quality not yet</span>
         </div>
         <h1>FORgasan — Graph_Hockey</h1>
-        <p class="lede" style="color:#c5d0db;margin:0">Independent LangGraph <em>staffs</em>. Ice is code. They learn together by patching a playbook — not by stuffing the game into a prompt.</p>
+        <p class="lede" style="color:#c5d0db;margin:0">Independent LangGraph <em>staffs</em>. Ice is code. They learn together by patching a playbook. Tonight we measured that loop — and the hockey did not yet get better.</p>
       </div>
     </header>
 
-    <p class="lede">You wanted two graphs to fight at hockey and get smarter after every result. What we shipped is more specific. This page is the honest map: who is a graph, who is a skater, how a call actually travels, and how game 7 can skate a different play than game 1.</p>
+    <p class="lede">You wanted two graphs to fight at hockey and get smarter after every result. What we shipped is more specific. This page is the honest map: who is a graph, who is a skater, how a call actually travels, and what tonight’s 7-game series actually proved.</p>
 
     <div class="stat-row">
       <div class="stat"><span class="v">10 Hz</span><span class="l">ice ticks, no LLM</span></div>
-      <div class="stat"><span class="v">2</span><span class="l">team graphs</span></div>
-      <div class="stat"><span class="v">1</span><span class="l">HC call / live epoch</span></div>
-      <div class="stat"><span class="v">3rd</span><span class="l">AAR graph after horn</span></div>
-      <div class="stat"><span class="v">382</span><span class="l">tests, no live vendor</span></div>
+      <div class="stat"><span class="v">code</span><span class="l">live AAR default</span></div>
+      <div class="stat"><span class="v">$0</span><span class="l">Glimmer away bench</span></div>
+      <div class="stat"><span class="v">1/6</span><span class="l">retrieveTop vs 0/6 control</span></div>
+      <div class="stat warn"><span class="v">−0.55</span><span class="l">home Δ xG g0→g6</span></div>
+      <div class="stat"><span class="v">404</span><span class="l">tests, no live vendor</span></div>
     </div>
 
     <nav class="toc" aria-label="Contents">
@@ -256,6 +282,7 @@
         <li><a href="#architecture">Architecture</a></li>
         <li><a href="#tech">Technologies we chose</a></li>
         <li><a href="#talk">How the parts talk</a></li>
+        <li><a href="#road">The road tonight</a></li>
         <li><a href="#scars">Bugs, scars, and fixes</a></li>
         <li><a href="#pitfalls">Pitfalls to avoid</a></li>
         <li><a href="#good">What good engineers did</a></li>
@@ -267,24 +294,24 @@
     <main>
       <section id="what">
         <h2><span class="n">1</span> What this project is (in one breath)</h2>
-        <p>Graph_Hockey is a <strong>localhost Node.js hockey game</strong> where <strong>two independently compiled LangGraph.js teams</strong> compete on a <strong>deterministic 2D rink</strong>. The Match Orchestrator ticks physics at 10 Hz. Coaches only speak at decision epochs. After every win, loss, or tie, a <strong>third graph</strong> — After-Action Review — cites real <code>eventId</code>s and patches a structured playbook.</p>
-        <p>The browser is a spectator. It never scores, never calls xAI, never sees the opponent playbook. After <code>npm run web</code>, open <a href="http://127.0.0.1:8787/" target="_blank" rel="noopener">http://127.0.0.1:8787/</a>.</p>
+        <p>Graph_Hockey is a <strong>localhost Node.js hockey game</strong> where <strong>two independently compiled LangGraph.js teams</strong> compete on a <strong>deterministic 2D rink</strong>. The Match Orchestrator ticks physics at 10 Hz. Coaches only speak at decision epochs. After every win, loss, or tie, After-Action Review cites real <code>eventId</code>s and patches a structured playbook.</p>
+        <p>Live default AAR is <code>--aar-mode code</code>: a cited <code>codeDraft</code> in milliseconds. That is <em>not</em> <code>--no-llm</code>. Live epochs still call the coach. <code>--no-llm</code> never mutates — it is the control arm. The browser is a spectator. After <code>npm run web</code>, open <a href="http://127.0.0.1:8787/" target="_blank" rel="noopener">http://127.0.0.1:8787/</a>.</p>
         <div class="card-grid cols-2">
           <div class="vcard"><span class="tag">Law</span><h4>Engine is the referee</h4><p><code>advanceWorld</code> is the only mutator of puck and bodies.</p></div>
           <div class="vcard"><span class="tag">Law</span><h4>Graphs are staff</h4><p>Live staff is Head Coach. Specialists are compiled, opt-in. Skaters are <code>src/ice/</code>.</p></div>
           <div class="vcard"><span class="tag">Law</span><h4>Learning is data</h4><p>Plays are JSON. AAR emits capped, cited patches. Retrieve ranks them next game.</p></div>
-          <div class="vcard"><span class="tag">Law</span><h4>Film is resimulation</h4><p>Same seed + stored directives. MP4 is mail, not the log.</p></div>
+          <div class="vcard"><span class="tag">Law</span><h4>Proof is a diff</h4><p><code>retrieveTop</code> vs a <code>--no-llm</code> twin. A version bump with the same top-1 is not learning. Quality is a second question.</p></div>
         </div>
 
         <h3>What we actually have (read this twice)</h3>
         <div class="callout warn"><strong>Not twelve LangGraph players.</strong> Independent agents without a shared play all hunt the puck. You already shipped that bug. They work as a team because they share a <em>play</em> — formation + <code>shotPolicy</code> — not because five skaters vote.</div>
         <div class="card-grid cols-3">
           <div class="vcard"><span class="tag">Live graph</span><h4>home / away compiles</h4><p>Two StateGraphs. Separate checkpointers, separate books. Never see opponent <code>playId</code>.</p></div>
-          <div class="vcard"><span class="tag">Live staff</span><h4>Head Coach only</h4><p>Macro: ingest → situation → retrieve → <strong>HC → assemble</strong>. One grok-4.5 call, 12s abort.</p></div>
+          <div class="vcard"><span class="tag">Live staff</span><h4>Head Coach only</h4><p>Macro: ingest → situation → retrieve → <strong>HC → assemble</strong>. Home grok-4.5. Away <strong>Glimmer local</strong>.</p></div>
           <div class="vcard off"><span class="tag">Compiled, idle</span><h4>OC DC ST goalie scout</h4><p>In the tree. Off unless <code>specialists: true</code>. Fan-out froze live-51 on <code>default-structure</code>.</p></div>
           <div class="vcard off"><span class="tag">Micro only</span><h4>Captain</h4><p>Offside / icing still Send captain. Those still time out.</p></div>
-          <div class="vcard"><span class="tag">Not a graph</span><h4>F1 F2 F3 Ds Dw G</h4><p>Every 10 Hz tick in <code>src/ice/</code>. Hunt / pass / shoot / clear. <code>shotLock</code> = one shot per possession.</p></div>
-          <div class="vcard"><span class="tag">Third graph</span><h4>AAR after the horn</h4><p>Both sides. Cite or discard. Rolls real xG into play stats. Loser counters <em>their</em> family.</p></div>
+          <div class="vcard"><span class="tag">Not a graph</span><h4>F1 F2 F3 Ds Dw G</h4><p>Every 10 Hz tick. Ice F1 <strong>shoot beats overlay pass/dump</strong>. <code>shotLock</code> = one shot per possession.</p></div>
+          <div class="vcard"><span class="tag">AAR default</span><h4><code>--aar-mode code</code></h4><p>Cited <code>codeDraft</code>, applies, no 45s graph. <code>auto</code> restores the LLM compile. <code>--no-llm</code> persist-only.</p></div>
         </div>
       </section>
 
@@ -292,12 +319,12 @@
         <h2><span class="n">2</span> The map of the code</h2>
         <p>Think basement → ice → benches → film room, not a dump of paths. LangGraph is the skill; the folders force the lesson: <strong>graphs propose, code disposes.</strong></p>
         <div class="card-grid cols-3">
-          <div class="vcard"><span class="tag">Basement</span><h4><code>src/engine/</code></h4><p>200×85 ft, 10 Hz Euler, icing/offside/goals, fatigue. Not a StateGraph.</p></div>
+          <div class="vcard"><span class="tag">Basement</span><h4><code>src/engine/</code></h4><p>200×85 ft, 10 Hz Euler. Honest chances: Shot then Goal; dump/pass freeze even if G clips.</p></div>
           <div class="vcard"><span class="tag">Skaters</span><h4><code>src/ice/</code></h4><p>F1/F2/F3/Ds/Dw/G every tick. Shoot / pass / clear. Code, not a graph.</p></div>
           <div class="vcard"><span class="tag">Benches</span><h4><code>src/agents/</code></h4><p>Two compiles. Live macro: Head Coach → assemble. Specialists opt-in.</p></div>
           <div class="vcard"><span class="tag">Referee</span><h4><code>src/orchestrator/</code></h4><p>Tick, mirrored observe, invoke. Never an LLM.</p></div>
           <div class="vcard"><span class="tag">Memory</span><h4><code>playbook/</code> + <code>persist/</code></h4><p>Seed books, sql.js events, replay resimulation.</p></div>
-          <div class="vcard"><span class="tag">After hours</span><h4><code>src/aar/</code></h4><p>Third graph. Actual is code. <code>cite_check</code> drops vibes.</p></div>
+          <div class="vcard"><span class="tag">After hours</span><h4><code>src/aar/</code></h4><p>Default: <code>codeDraft</code> + cite. LLM graph is <code>--aar-mode auto</code>.</p></div>
           <div class="vcard"><span class="tag">Film</span><h4><code>film/</code> + <code>web/</code></h4><p>Clips, ledger, Canvas 2D. No keys on the wire.</p></div>
         </div>
         <p>Cheat sheet: <code>AGENTS.md</code>. Long spec: <code>docs/DESIGN.md</code>. CLI twin: <code>src/cli/</code> (<code>gh simulate --no-llm</code>).</p>
@@ -335,8 +362,8 @@
             <text x="470" y="188" fill="#93a1b0" text-anchor="middle" font-size="9" font-family="Segoe UI, sans-serif">never sees home playId</text>
 
             <rect x="180" y="248" width="280" height="56" rx="8" fill="#151d28" stroke="#7dd3fc" stroke-width="1.5"/>
-            <text x="320" y="272" fill="#e8eef5" text-anchor="middle" font-size="13" font-family="Segoe UI, sans-serif">AAR graph × 2  →  playbook vN+1</text>
-            <text x="320" y="290" fill="#93a1b0" text-anchor="middle" font-size="10" font-family="Segoe UI, sans-serif">cite_check · max 3 ops · --no-llm never mutates</text>
+            <text x="320" y="272" fill="#e8eef5" text-anchor="middle" font-size="13" font-family="Segoe UI, sans-serif">AAR codeDraft × 2  →  playbook vN+1</text>
+            <text x="320" y="290" fill="#93a1b0" text-anchor="middle" font-size="10" font-family="Segoe UI, sans-serif">cite · max 3 ops · boost needs xG · --no-llm never mutates</text>
 
             <path id="p-ice" d="M204 57 L230 57" fill="none" stroke="#86efac" stroke-width="1.5"/>
             <path id="p-obs-h" d="M300 86 C300 110 170 110 170 130" fill="none" stroke="#fbbf24" stroke-width="1.2" stroke-dasharray="4 3"/>
@@ -367,7 +394,7 @@
             <span><i style="background:#7dd3fc"></i>AAR → book</span>
           </div>
         </div>
-        <p>Team compile path: <code>START → ingest → situation → retrieve_plays → (macro) head_coach → assemble → validate → END</code>. Live macro does not <code>Send[]</code> specialists. Micro still hits Captain only. There is no <code>route_specialists</code> node.</p>
+        <p>Team compile path: <code>START → ingest → situation → retrieve_plays → (macro) head_coach → assemble → validate → END</code>. Live macro does not <code>Send[]</code> specialists. Micro still hits Captain only. Empty-net families stay off the 5v5 retrieve menu. There is no <code>route_specialists</code> node.</p>
       </section>
 
       <section id="tech">
@@ -380,13 +407,14 @@
             <tr><td>LangGraph.js <code>StateSchema</code></td><td>Current Graph API</td><td>Pin versions; no <code>Annotation.Root</code></td></tr>
             <tr><td>xAI <code>ChatXAI</code> Completions</td><td><code>XAI_API_KEY</code>, <code>api.x.ai</code></td><td><code>modelKwargs.reasoning_effort</code></td></tr>
             <tr><td><code>grok-4.5</code> / <code>grok-4.3</code></td><td>Hybrid epochs, not per-tick LLM</td><td>4.5 reasoning cannot be off; in-game <code>low</code></td></tr>
+            <tr><td>Muse Glimmer 30B local</td><td>Away bench at $0. llama.cpp <code>127.0.0.1:8080</code></td><td>Skip native structured; JSON often in <code>reasoning_content</code>; cap 120 tokens</td></tr>
             <tr><td>sql.js WASM</td><td>No VS Build Tools / native CI addons</td><td>Adapter in <code>src/persist/db.ts</code></td></tr>
             <tr><td>Node <code>http</code> + <code>ws</code></td><td>Localhost only</td><td>Origin-locked loopback</td></tr>
             <tr><td>Canvas 2D</td><td>No second clock (Phaser)</td><td>Plot circles on ice</td></tr>
             <tr><td><code>@napi-rs/canvas</code> + ffmpeg</td><td>Boss-inbox MP4</td><td>Derivative; Film Room stays canonical</td></tr>
           </tbody>
         </table>
-        <p>We did not pick Unity, OpenAI-as-provider, or RL. Those hide LangGraph or bankrupt the token budget.</p>
+        <p>We did not pick Unity, OpenAI-as-provider, or RL. Those hide LangGraph or bankrupt the token budget. Hosted Muse Spark burned tokens for thinking we never used. Local Glimmer is the away bench. Never <code>muse-spark-*-contributor</code>.</p>
       </section>
 
       <section id="talk">
@@ -406,7 +434,7 @@
           <div class="clock">
             <div class="who">Clock 3</div>
             <div class="hz">Horn</div>
-            <p>AAR both sides. Cite or discard. Timeout still <code>codeDraft</code>. <code>--no-llm</code> never mutates.</p>
+            <p>Live default <code>--aar-mode code</code>: milliseconds, cited apply. <code>auto</code> is the 45s graph. <code>--no-llm</code> never mutates.</p>
           </div>
         </div>
 
@@ -421,7 +449,7 @@
             <text x="195" y="86" fill="#93a1b0" text-anchor="middle" font-size="9" font-family="Segoe UI, sans-serif">code · our book</text>
             <rect x="270" y="50" width="120" height="48" rx="8" fill="#151d28" stroke="#fbbf24"/>
             <text x="330" y="72" fill="#e8eef5" text-anchor="middle" font-size="11" font-family="Segoe UI, sans-serif">head_coach</text>
-            <text x="330" y="86" fill="#93a1b0" text-anchor="middle" font-size="9" font-family="Segoe UI, sans-serif">1× grok-4.5</text>
+            <text x="330" y="86" fill="#93a1b0" text-anchor="middle" font-size="9" font-family="Segoe UI, sans-serif">1× grok / Glimmer</text>
             <rect x="410" y="50" width="100" height="48" rx="8" fill="#151d28" stroke="#a78bfa"/>
             <text x="460" y="78" fill="#e8eef5" text-anchor="middle" font-size="11" font-family="Segoe UI, sans-serif">assemble</text>
             <rect x="530" y="50" width="90" height="48" rx="8" fill="#151d28" stroke="#86efac"/>
@@ -442,9 +470,9 @@
         <div class="flow-step"><div class="flow-dot">2</div><div class="flow-body"><strong>shouldDecide</strong> — per side: macro stoppage, micro (80 live ticks), or <code>playStillValid</code> skip. Valid play ⇒ that side pays zero tokens.</div></div>
         <div class="flow-step"><div class="flow-dot">3</div><div class="flow-body"><strong>observe</strong> — mirror so you attack +X. Home + away <code>puck.x</code> ≈ 0. No opponent <code>playId</code>.</div></div>
         <div class="flow-step"><div class="flow-dot">4</div><div class="flow-body"><strong>invokeTeam</strong> — never throws. Live 12s abort (8s <code>--no-llm</code>). Timeout on <code>default-structure</code> seeds the book 5v5 play.</div></div>
-        <div class="flow-step"><div class="flow-dot">5</div><div class="flow-body"><strong>retrieve_plays</strong> — code. Ranks OUR plays by net xG + <code>themFamily</code> counter bonus. Last game’s AAR is this epoch’s menu.</div></div>
-        <div class="flow-step"><div class="flow-dot">6</div><div class="flow-body"><strong>validateDirective</strong> — playId from retrieved list only. Illegal extra attacker rejected.</div></div>
-        <div class="flow-step"><div class="flow-dot">7</div><div class="flow-body"><strong>AAR both sides</strong> — live timeout still <code>codeDraft</code>+cite and auto-applies. <code>--no-llm</code> still does not mutate.</div></div>
+        <div class="flow-step"><div class="flow-dot">5</div><div class="flow-body"><strong>retrieve_plays</strong> — code. Ranks OUR plays by net xG + <code>themFamily</code> counter bonus. Empty-net families (<code>pull-early</code>, <code>en-scramble</code>) stay off unless strength is <code>EN</code>.</div></div>
+        <div class="flow-step"><div class="flow-dot">6</div><div class="flow-body"><strong>validateDirective</strong> — playId from retrieved list only. Illegal extra attacker rejected. Ice F1 shoot still beats overlay pass/dump.</div></div>
+        <div class="flow-step"><div class="flow-dot">7</div><div class="flow-body"><strong>AAR both sides</strong> — live default <code>--aar-mode code</code> applies a cited patch without the 45s graph. Boosts need match xG. <code>--no-llm</code> still does not mutate.</div></div>
         <div class="flow-step"><div class="flow-dot">8</div><div class="flow-body"><strong>Film</strong> — resimulation is canonical. <code>gh footage --mp4</code> is a derivative. Clip windows carry period because <code>liveTick</code> resets.</div></div>
 
         <h3>How the team learns together</h3>
@@ -481,13 +509,100 @@
                 path="M100 66 L260 66 L420 66 C500 66 540 100 540 154 C540 200 400 234 320 234 C180 234 100 160 100 90"/>
             </circle>
           </svg>
-          <p class="diagram-caption">Winner: cited boost + real xG on <code>play.stats</code>. Loser: <code>add_counter</code> of <em>their</em> family. Next retrieve can rank a different 5v5. Proof is whether retrieveTop moved — not a version integer.</p>
+          <p class="diagram-caption">Winner: cited boost + real xG on <code>play.stats</code>. Loser: <code>add_counter</code> of <em>their</em> family. Next retrieve can rank a different 5v5. Proof is two diffs: did retrieveTop move vs the control, and did the hockey get better?</p>
         </div>
         <div class="callout law"><strong>Together means a shared sheet.</strong> During the game they skate one play. After the horn each AAR writes into that sheet. Next faceoff, both the code retrieve and the coach see the new menu. Ten independent skater graphs would not share a sheet — they would all hunt.</div>
       </section>
 
+      <section id="road">
+        <h2><span class="n">6</span> The road tonight — LangGraph learning, measured</h2>
+        <p>Tonight was the first night the <em>learning machine</em> was honest enough to measure. We did not invent a new architecture. We stopped lying to the scorecard, stopped paying Spark for thinking tokens, and ran a control.</p>
+        <figure class="figure">
+          <img src="forme/road-tonight.jpg" alt="Film lab with seven playbook folders in a row, two glowing benches, and a local GPU workstation overlooking empty ice" />
+          <figcaption>Seven games as a row of books. The loop is the row getting thicker. Quality is whether game 7 is better hockey than game 1.</figcaption>
+        </figure>
+
+        <div class="diagram" role="img" aria-label="Animated road from the failed 7-gamer through A-D, Glimmer, the EN gate, and the empirical series">
+          <svg viewBox="0 0 640 220" xmlns="http://www.w3.org/2000/svg">
+            <rect x="8" y="8" width="624" height="204" rx="12" fill="#0a0e14" stroke="#2a3646"/>
+            <path class="road-pulse" d="M40 110 L120 110 L200 70 L280 70 L360 150 L440 150 L520 110 L600 110" fill="none" stroke="#7dd3fc" stroke-width="2"/>
+            <circle cx="40" cy="110" r="8" fill="#151d28" stroke="#f87171"/>
+            <circle cx="120" cy="110" r="8" fill="#151d28" stroke="#86efac"/>
+            <circle cx="200" cy="70" r="8" fill="#151d28" stroke="#7dd3fc"/>
+            <circle cx="280" cy="70" r="8" fill="#151d28" stroke="#fbbf24"/>
+            <circle cx="360" cy="150" r="8" fill="#151d28" stroke="#86efac"/>
+            <circle cx="440" cy="150" r="8" fill="#151d28" stroke="#a78bfa"/>
+            <circle cx="520" cy="110" r="8" fill="#151d28" stroke="#fbbf24"/>
+            <circle cx="600" cy="110" r="8" fill="#151d28" stroke="#7dd3fc"/>
+            <text x="40" y="38" fill="#f87171" text-anchor="middle" font-size="10" font-family="Segoe UI, sans-serif">learn-7</text>
+            <text x="40" y="52" fill="#93a1b0" text-anchor="middle" font-size="8" font-family="Segoe UI, sans-serif">8 goals 0 shots</text>
+            <text x="120" y="38" fill="#86efac" text-anchor="middle" font-size="10" font-family="Segoe UI, sans-serif">A–D</text>
+            <text x="120" y="52" fill="#93a1b0" text-anchor="middle" font-size="8" font-family="Segoe UI, sans-serif">honest + code AAR</text>
+            <text x="200" y="28" fill="#7dd3fc" text-anchor="middle" font-size="10" font-family="Segoe UI, sans-serif">Glimmer</text>
+            <text x="200" y="42" fill="#93a1b0" text-anchor="middle" font-size="8" font-family="Segoe UI, sans-serif">local $0</text>
+            <text x="280" y="28" fill="#fbbf24" text-anchor="middle" font-size="10" font-family="Segoe UI, sans-serif">dirty 3</text>
+            <text x="280" y="42" fill="#93a1b0" text-anchor="middle" font-size="8" font-family="Segoe UI, sans-serif">pull-early 5v5</text>
+            <text x="360" y="188" fill="#86efac" text-anchor="middle" font-size="10" font-family="Segoe UI, sans-serif">EN gate</text>
+            <text x="360" y="202" fill="#93a1b0" text-anchor="middle" font-size="8" font-family="Segoe UI, sans-serif">JSON in 6s</text>
+            <text x="440" y="188" fill="#a78bfa" text-anchor="middle" font-size="10" font-family="Segoe UI, sans-serif">fresh 3</text>
+            <text x="440" y="202" fill="#93a1b0" text-anchor="middle" font-size="8" font-family="Segoe UI, sans-serif">menu moved</text>
+            <text x="520" y="38" fill="#fbbf24" text-anchor="middle" font-size="10" font-family="Segoe UI, sans-serif">emp-7</text>
+            <text x="520" y="52" fill="#93a1b0" text-anchor="middle" font-size="8" font-family="Segoe UI, sans-serif">loop yes</text>
+            <text x="600" y="38" fill="#7dd3fc" text-anchor="middle" font-size="10" font-family="Segoe UI, sans-serif">control</text>
+            <text x="600" y="52" fill="#93a1b0" text-anchor="middle" font-size="8" font-family="Segoe UI, sans-serif">books v1</text>
+            <circle r="5" fill="#fbbf24">
+              <animateMotion dur="8s" repeatCount="indefinite" path="M40 110 L120 110 L200 70 L280 70 L360 150 L440 150 L520 110 L600 110"/>
+            </circle>
+          </svg>
+          <p class="diagram-caption">Gold packet is the night. Red start is the failed learner. Green is a fix. Amber is a measurement that was not yet a win.</p>
+        </div>
+
+        <div class="mile-grid">
+          <div class="mile"><span class="when">Before A–D</span><h4><code>ser-learn-7</code></h4><p>Home <strong>8 goals, 0 shots</strong>. Books v1→v8, retrieveTop <strong>0/6</strong>. Overlay pass gagged ice F1. Carry-in Goal without Shot.</p></div>
+          <div class="mile"><span class="when">Shipped</span><h4>A–D on <code>main</code></h4><p>Honest chances. Ice F1 shoot beats overlay pass. <code>--aar-mode code</code> applies. Boost only if match xG &gt; 0. Goldens did not move.</p></div>
+          <div class="mile"><span class="when">Bench</span><h4>Spark → Glimmer</h4><p>Away is local <code>muse-glimmer-30b</code> on llama.cpp <code>:8080</code>. $0. Never <code>muse-spark-*-contributor</code>.</p></div>
+          <div class="mile"><span class="when">Dirty path</span><h4><code>ser-glimmer-3</code></h4><p>Away locked <code>pull-early-template</code> at 5v5. g1: <strong>106 shots / 108 offsides</strong>. 20s periods make “last 3 minutes” always true.</p></div>
+          <div class="mile"><span class="when">Adapter + predicate</span><h4>EN gate + Glimmer JSON</h4><p>Empty-net families excluded unless strength is <code>EN</code>. Skip native structured. Read <code>reasoning_content</code>. Cap 120 tokens.</p></div>
+          <div class="mile"><span class="when">Smoke</span><h4><code>ser-glimmer-fresh</code></h4><p>3×20s, 5v5 openings, offsides 1–1. retrieveTop home 2/2, away 1/2. Menu can move without pulling the goalie.</p></div>
+        </div>
+
+        <h3>The 7-game card (<code>ser-emp-7</code>)</h3>
+        <p>Home xAI, away Glimmer, <code>--aar-mode code</code>, 7×20s, seed 7, fresh db. Control: same seed, <code>--no-llm</code>.</p>
+        <div class="stat-row">
+          <div class="stat"><span class="v">v8</span><span class="l">books both sides</span></div>
+          <div class="stat"><span class="v">1/6</span><span class="l">retrieveTop live</span></div>
+          <div class="stat"><span class="v">0/6</span><span class="l">retrieveTop control</span></div>
+          <div class="stat warn"><span class="v">−0.55</span><span class="l">home Δ xG</span></div>
+          <div class="stat bad"><span class="v">0</span><span class="l">paired clips 0,6</span></div>
+        </div>
+        <table class="score">
+          <thead>
+            <tr><th>G</th><th>Score</th><th>Home retrieve</th><th>Away retrieve</th><th>Home ch/off</th><th>Away ch/off</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>0</td><td>3–2 home</td><td><code>5v5-122-forecheck</code></td><td><code>oz-crash-net</code></td><td>8 / 1</td><td>3 / 1</td></tr>
+            <tr><td>1</td><td>1–2 away</td><td><code>5v5-122-forecheck</code></td><td><code>oz-crash-net</code></td><td>6 / 1</td><td>2 / 0</td></tr>
+            <tr><td>2</td><td>1–3 away</td><td><code>5v5-122-forecheck</code></td><td><code>5v5-212-forecheck</code></td><td>4 / 2</td><td>3 / 1</td></tr>
+            <tr><td>3</td><td>2–4 away</td><td><code>5v5-122-forecheck</code></td><td><code>5v5-212-forecheck</code></td><td>7 / 0</td><td>5 / 0</td></tr>
+            <tr><td>4</td><td>1–5 away</td><td class="lock"><code>protect-lead-1-1-3</code></td><td><code>5v5-212-forecheck</code></td><td>9 / 1</td><td>9 / 0</td></tr>
+            <tr><td>5</td><td>2–3 away</td><td class="lock"><code>protect-lead-1-1-3</code></td><td><code>5v5-212-forecheck</code></td><td>6 / 1</td><td>6 / 1</td></tr>
+            <tr><td>6</td><td>2–2 tie</td><td class="lock"><code>protect-lead-1-1-3</code></td><td><code>5v5-212-forecheck</code></td><td>6 / 1</td><td>3 / 2</td></tr>
+          </tbody>
+        </table>
+        <p>Control books stay <strong>v1</strong>, openings frozen on <code>5v5-122</code> vs <code>5v5-212</code>. Control g6 away: <strong>15 offsides, 0 shots</strong> — ice noise, not a staff.</p>
+        <figure class="figure">
+          <img src="forme/loop-vs-quality.jpg" alt="Two glass cylinders of play sheets on ice: one cyan and turning, one amber and frozen, a puck between them" />
+          <figcaption>Cyan: the book is turning. Amber: the hockey is not yet better. The puck is still the same 20-second period.</figcaption>
+        </figure>
+        <div class="verdict">
+          <div class="vcard ok"><span class="tag">Loop</span><h4>Works</h4><p>Live AAR applies. retrieveTop moved 1/6 both sides. The <code>--no-llm</code> twin stayed 0/6 at v1. Offsides on the live series stayed 0–2, not 166.</p></div>
+          <div class="vcard no"><span class="tag">Quality</span><h4>Not proven</h4><p>Home locked <code>protect-lead-1-1-3</code> from g4 <em>while losing</em>. Δ xG −0.55. Pairs 0. Another 7-gamer will teach that wrong lesson faster.</p></div>
+        </div>
+        <div class="callout warn"><strong>Do not run another learner until score-state is gated.</strong> A lead-protect play must not win retrieve when you are trailing. That is the blocker — not more tokens, not a longer period, not a timeout bump.</div>
+      </section>
+
       <section id="scars">
-        <h2><span class="n">6</span> Bugs, scars, and how we fixed them</h2>
+        <h2><span class="n">7</span> Bugs, scars, and how we fixed them</h2>
         <p>Not hypothetical. These would have shipped a wrong hockey game.</p>
         <div class="scar">
           <h3>Scar 1 — The graph that never called Head Coach</h3>
@@ -551,6 +666,38 @@
           <div class="meta"><span class="k fix">Fix</span><span><code>shotLock</code> one shot per possession. AAR rolls real xG into stats. Retrieve bonuses counters. Series scorecard counts chances, not Shot rows.</span></div>
           <div class="meta"><span class="k lesson">Lesson</span><span>“The graph ran” is not hockey. Count distinct chances. Captain micro is the next 12s trap.</span></div>
         </div>
+        <div class="scar">
+          <h3>Scar 11 — Goals that were not chances</h3>
+          <div class="meta"><span class="k">What</span><span><code>ser-learn-7</code>: home 8 goals, 0 shots. Carry-in occupancy plus a goalie clip became Goal. Overlay pass sat on F1.</span></div>
+          <div class="meta"><span class="k">Root</span><span>Scoring trusted occupancy more than “there was a Shot this possession.” Overlay pass beat ice F1 shoot.</span></div>
+          <div class="meta"><span class="k fix">Fix</span><span>Attacking Goal needs a recent attacking Shot. Dump/pass/clear <code>waveOffNetEntry</code>. Actor is the shooter, not G. Ice F1 shoot beats overlay pass/dump.</span></div>
+          <div class="meta"><span class="k lesson">Lesson</span><span>If the label on the event is the training signal, fake labels teach fake hockey.</span></div>
+        </div>
+        <div class="scar">
+          <h3>Scar 12 — The 45s AAR we did not need</h3>
+          <div class="meta"><span class="k">What</span><span>Live AAR still paid for a grok-4.5 graph that routinely timed out into the code path we already trusted.</span></div>
+          <div class="meta"><span class="k fix">Fix</span><span><code>--aar-mode code</code> runs <code>codeOnlyAarReport</code> and still applies. Live default is <code>code</code>. Tests assert it is not <code>noLlm</code>.</span></div>
+          <div class="meta"><span class="k lesson">Lesson</span><span>The graph is a tool. The cited patch is the product. Do not bill a graph the timeout already replaced.</span></div>
+        </div>
+        <div class="scar">
+          <h3>Scar 13 — Boosting a play that never shot</h3>
+          <div class="meta"><span class="k">What</span><span>AAR could <code>boost</code> the opening 5v5 at 0 xG. Retrieve locked it. <code>ser-learn-7</code> retrieveTop never moved.</span></div>
+          <div class="meta"><span class="k fix">Fix</span><span><code>boost</code> only if <code>playUsage.xgFor &gt; 0</code>. Reject <code>zero-xg-boost</code> and replace with a play that did shoot.</span></div>
+          <div class="meta"><span class="k lesson">Lesson</span><span>A boost is a claim about xG. Memory writes need the same honesty as the event log.</span></div>
+        </div>
+        <div class="scar">
+          <h3>Scar 14 — Spark burned the night; Glimmer hid the JSON</h3>
+          <div class="meta"><span class="k">What</span><span>Hosted Spark was a token furnace. Local Glimmer returned empty <code>content</code> (JSON in <code>reasoning_content</code>) and blew 6s thinking until server <code>--reasoning off</code> and a 120-token cap.</span></div>
+          <div class="meta"><span class="k fix">Fix</span><span>Default Muse = local Glimmer. <code>skipNativeStructured</code>. Read <code>reasoning_content</code>. <code>GLIMMER_MAX_TOKENS = 120</code>. Cost table $0.</span></div>
+          <div class="meta"><span class="k lesson">Lesson</span><span>Local models are adapters, not drop-in ChatGPT. Prove JSON-in-6s before a series.</span></div>
+        </div>
+        <div class="scar">
+          <h3>Scar 15 — Empty-net at even strength, and protect-lead while trailing</h3>
+          <div class="meta"><span class="k">What</span><span>Dirty 3-gamer: <code>pull-early</code> at 5v5, 106 shots / 108 offsides. Honest 7-gamer: home retrieve locked <code>protect-lead-1-1-3</code> from g4 while losing 1–5.</span></div>
+          <div class="meta"><span class="k">Root</span><span><code>timeRemainingLt 180</code> is always true on a 20s period. Net-xG ranking does not care that you are trailing.</span></div>
+          <div class="meta"><span class="k fix">Fix</span><span>Half: seed EN-only; retrieve excludes empty-net families unless strength is <code>EN</code>. <strong>Not yet:</strong> score-state gating for protect-lead.</span></div>
+          <div class="meta"><span class="k lesson">Lesson</span><span>Short periods are a microscope. They will also lie if your triggers assume a 20-minute NHL clock.</span></div>
+        </div>
         <figure class="figure">
           <img src="forme/f1-ice.jpg" alt="Night rink with one glowing F1 attacker and four dimmer support roles" />
           <figcaption>F1 is code on every tick. The LangGraph is the bench. If F1 cannot shoot, AAR has nothing to cite.</figcaption>
@@ -558,7 +705,7 @@
       </section>
 
       <section id="pitfalls">
-        <h2><span class="n">7</span> Pitfalls to avoid next time</h2>
+        <h2><span class="n">8</span> Pitfalls to avoid next time</h2>
         <div class="pitfall"><strong>Don’t</strong> LLM every tick. 36,000 × 12 is not a small experiment.</div>
         <div class="pitfall"><strong>Don’t</strong> put a LangGraph on each skater until Head Coach is stable — independence without a shared play is ten hunts, not a team.</div>
         <div class="pitfall"><strong>Don’t</strong> return <code>Send[]</code> from a random node. Conditional edge or <code>Command.goto</code>, list <code>ends</code>, empty list still assembles.</div>
@@ -566,7 +713,12 @@
         <div class="pitfall"><strong>Don’t</strong> store 36k JSON frames. Replay is the footage; MP4 is mail.</div>
         <div class="pitfall"><strong>Don’t</strong> <code>Send[]</code> specialists on a 12s live epoch. Head Coach first, or abort freezes <code>default-structure</code>.</div>
         <div class="pitfall"><strong>Don’t</strong> treat AAR timeout as empty ops. Live still has to apply a cited patch.</div>
-        <div class="pitfall"><strong>Don’t</strong> count Shot rows as skill until F1 cannot fire every tick at the same xG.</div>
+        <div class="pitfall"><strong>Don’t</strong> treat <code>--aar-mode code</code> as <code>--no-llm</code>. Code applies. <code>--no-llm</code> is the control that must not write books.</div>
+        <div class="pitfall"><strong>Don’t</strong> count Shot rows as skill until F1 cannot fire every tick at the same xG. Count distinct chances.</div>
+        <div class="pitfall"><strong>Don’t</strong> call a version bump “learning.” Pass = retrieveTop moved <em>and</em> g0→g6 quality vs a <code>--no-llm</code> twin.</div>
+        <div class="pitfall"><strong>Don’t</strong> retrieve empty-net families at 5v5. 20s periods make “last three minutes” always true.</div>
+        <div class="pitfall"><strong>Don’t</strong> let <code>protect-lead</code> win retrieve while trailing. That is tonight’s unfixed bug.</div>
+        <div class="pitfall"><strong>Don’t</strong> raise timeouts as the fix. Cap tokens. Skip native structured. Attach the abort signal.</div>
         <div class="pitfall"><strong>Don’t</strong> mix lockfiles. This clone uses npm because pnpm died on corepack.</div>
         <div class="pitfall"><strong>Don’t</strong> bind <code>0.0.0.0</code> “for a demo.” Loopback is the product.</div>
         <div class="pitfall"><strong>Don’t</strong> name a node the same as a state channel in LangGraph.js.</div>
@@ -574,28 +726,30 @@
       </section>
 
       <section id="good">
-        <h2><span class="n">8</span> What good engineers did here</h2>
+        <h2><span class="n">9</span> What good engineers did here</h2>
         <div class="habit-grid">
           <div class="habit"><strong>Referee in code</strong><span>Fairness is testable without an API key.</span></div>
           <div class="habit"><strong>Two compiles</strong><span>Not <code>side</code> on one graph. Hiding is structural.</span></div>
-          <div class="habit"><strong>382 tests, all faked LLM</strong><span><code>setCreateChatModel</code> / <code>FakeListChatModel</code>.</span></div>
-          <div class="habit"><strong>PR slices</strong><span>Engine → stubs → rink → coaches → AAR → series.</span></div>
-          <div class="habit"><strong>Caps on learning</strong><span>Max 3 AAR ops, cited events, winner cannot retire a working play from one bounce.</span></div>
-          <div class="habit"><strong>Golden hashes</strong><span><code>GRAPH_HOCKEY_PERIOD_SECONDS=5</code> keeps CI honest.</span></div>
-          <div class="habit"><strong>Keys stay in .env</strong><span>Health exposes <code>llmConfigured: boolean</code>, never the secret.</span></div>
-          <div class="habit"><strong>Visit tests for graphs</strong><span>Assert node names in a stream, not “the prompt looks right.”</span></div>
+          <div class="habit"><strong>404 tests, all faked LLM</strong><span><code>setCreateChatModel</code> / <code>FakeListChatModel</code>.</span></div>
+          <div class="habit"><strong>PR slices</strong><span>Engine → stubs → rink → coaches → AAR → series → honest chances → code AAR → Glimmer.</span></div>
+          <div class="habit"><strong>Caps on learning</strong><span>Max 3 AAR ops, cited events, boost needs match xG.</span></div>
+          <div class="habit"><strong>Golden hashes</strong><span>A–D and Glimmer did not move pr7/pr8.</span></div>
+          <div class="habit"><strong>Control arm</strong><span>Same seed, <code>--no-llm</code>, books must stay v1. Without that, “retrieveTop moved” is a story.</span></div>
+          <div class="habit"><strong>Honest scorecard</strong><span>We published the negative quality result: home Δ xG −0.55, pairs 0.</span></div>
         </div>
       </section>
 
       <section id="lessons">
-        <h2><span class="n">9</span> Lessons you can steal</h2>
+        <h2><span class="n">10</span> Lessons you can steal</h2>
         <div class="habit-grid">
           <div class="habit"><strong>Hybrid agentic systems</strong><span>Deterministic world + sparse LLM decisions. The world is the unit test.</span></div>
           <div class="habit"><strong>Cite or discard</strong><span>Long-term memory changes need a pointer into a log you already trust.</span></div>
           <div class="habit"><strong>Mirror observations</strong><span>Home + away <code>puck.x ≈ 0</code> is a one-liner that caught leaks.</span></div>
-          <div class="habit"><strong>Learning is a diff</strong><span>Playbook vN+1 beats a paragraph of “the team adapted.”</span></div>
-          <div class="habit"><strong>Native addons fail on Windows CI</strong><span>Plan a WASM adapter before you promise sqlite3.</span></div>
+          <div class="habit"><strong>Learning is two diffs</strong><span>(a) Did the menu change vs a no-write control? (b) Did the hockey get better? Say so when only (a) is true.</span></div>
+          <div class="habit"><strong>Local models are adapters</strong><span>Reasoning channels, empty content, token caps, server flags. Ping JSON-in-timeout first.</span></div>
+          <div class="habit"><strong>Short experiments lie about time</strong><span>If a trigger is “last three minutes,” a 20s period is always the last three minutes.</span></div>
           <div class="habit"><strong>A shared sheet is the team</strong><span>Five independent hunters are not a bench. The play is the coordination.</span></div>
+          <div class="habit"><strong>Native addons fail on Windows CI</strong><span>Plan a WASM adapter before you promise sqlite3.</span></div>
         </div>
         <figure class="figure">
           <img src="forme/dual-film.jpg" alt="Dark film room with two monitors overlooking ice" />
@@ -604,23 +758,24 @@
       </section>
 
       <section id="next">
-        <h2><span class="n">10</span> Where to go next</h2>
+        <h2><span class="n">11</span> Where to go next</h2>
         <ol class="next">
-          <li><strong>7-game LLM series (20s, clean db).</strong> <code>gh series --games 7 --home-provider xai --away-provider muse --period-seconds 20</code>. Pass = retrieveTop actually moves, not just a version bump.</li>
+          <li><strong>Gate <code>protect-lead</code> on score state.</strong> Trailing / tied must not retrieve a lead-protect family. This is the blocker for the next empirical series.</li>
+          <li><strong>Then a fresh 7-game + <code>--no-llm</code> twin.</strong> Same protocol as <code>ser-emp-7</code>. Pass = retrieveTop moves <em>and</em> g0→g6 quality does not collapse.</li>
           <li><strong>Captain micro budget.</strong> Offside/icing still times out captain. Skip the specialist or code-fallback; no JSON retry.</li>
-          <li><strong>Offside rate.</strong> Counted on the series scorecard; F2 tag-up / NZ pass targets still need ice work.</li>
-          <li><strong>Goal attribution.</strong> live-52 HOME GOAL actor <code>h-G</code> in OZ. Audit <code>maybeGoal</code> + last contact.</li>
+          <li><strong>Offside rate on ice.</strong> Live series is 0–2; control g6 away 15/0 shots is still ice noise.</li>
+          <li><strong>Dump-in still stays live.</strong> Wave-off is for net entry, not for the dump staying a live puck.</li>
           <li><strong>HITL later</strong> — LangGraph <code>interrupt()</code>, off the 12s clock.</li>
-          <li>Keep <code>AGENTS.md</code> honest: <code>src/ice/</code> is environment. MP4 is derivative. Skater-level graphs are a later rung, not the current product.</li>
+          <li>Keep <code>AGENTS.md</code> honest: <code>src/ice/</code> is environment. Glimmer is local. <code>--aar-mode code</code> is not <code>--no-llm</code>.</li>
         </ol>
         <div class="callout">
-          <strong>Glossary:</strong> Epoch = we bother the LLM. Directive = legal action sheet. Playbook = versioned JSON. <code>cite_check</code> = drop uncited ops. Resimulation = replay by running the engine again. Inspect = see one team’s play name.
+          <strong>Glossary:</strong> Epoch = we bother the LLM. Directive = legal action sheet. Playbook = versioned JSON. <code>cite_check</code> = drop uncited ops. <code>--aar-mode code</code> = cited apply, no AAR graph (live default, not <code>--no-llm</code>). Glimmer = local Muse 30B on <code>:8080</code>. <code>retrieveTop</code> = #1 play retrieve would hand the coach.
         </div>
       </section>
     </main>
 
     <footer>
-      Generated 2026-08-25 · Source: <a href="FORgasan.md">FORgasan.md</a> · Visuals: <code>docs/forme/</code> · 382 tests · two benches, ice in code · live-52 Muse 3–1 · HITL not in v1
+      Generated 2026-08-25 · Source: <a href="FORgasan.md">FORgasan.md</a> · Visuals: <code>docs/forme/</code> · 404 tests · code AAR default · Glimmer local away · loop moved, quality not yet · HITL not in v1
     </footer>
   </div>
 </body>

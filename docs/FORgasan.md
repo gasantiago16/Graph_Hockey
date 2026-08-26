@@ -2,15 +2,17 @@
 
 You wanted two LangGraphs to fight each other at hockey, then get smarter after every result. That is still the product. What we *shipped* is more specific, and this file is honest about it: **two independent benches**, **ice that is code**, **one Head Coach call per live epoch**, and **an After-Action Review that patches a playbook** so game 7 is not a rerun of game 1.
 
-The rest is how we kept the LLMs from inventing goals, how a call actually travels, how the team learns *together* (not ten solo opinions), and the scars we paid for.
+Tonight we finally *measured* that loop. The machinery moved. The hockey did not yet get better. That gap is the whole remaining lesson.
 
-This is a handbook for *you* — how the repo thinks, what is a graph and what is not, and what a good engineer would steal from it.
+This is a handbook for *you* — how the repo thinks, what is a graph and what is not, how a call travels, how the team learns *together*, and the scars we paid for on the road to LangGraph learning.
 
 ---
 
 ## What this project is (in one breath)
 
-Graph_Hockey is a **localhost Node.js hockey game** where **two independently compiled LangGraph.js teams** compete on a **deterministic 2D rink**. A Match Orchestrator ticks physics at 10 Hz. Coaches only speak at *decision epochs* (faceoff, special teams, a possession that has lasted eight seconds). After every win, loss, or tie, a **third graph** — the After-Action Review — reads the event log, cites real `eventId`s, and patches a **structured playbook** so game 7 is not a rerun of game 1.
+Graph_Hockey is a **localhost Node.js hockey game** where **two independently compiled LangGraph.js teams** compete on a **deterministic 2D rink**. A Match Orchestrator ticks physics at 10 Hz. Coaches only speak at *decision epochs* (faceoff, special teams, a possession that has lasted eight seconds). After every win, loss, or tie, **After-Action Review** reads the event log, cites real `eventId`s, and patches a **structured playbook** so game 7 is not a rerun of game 1.
+
+Live default AAR is **`--aar-mode code`**: a cited `codeDraft` in milliseconds, no 45s grok graph. That is *not* `--no-llm`. Live epochs still call the coach. `--no-llm` still never mutates playbooks — it is the control arm.
 
 The browser is a spectator. It never scores, never calls xAI, and never sees the opponent’s playbook. Open `http://127.0.0.1:8787/` after `npm run web`.
 
@@ -20,6 +22,7 @@ The browser is a spectator. It never scores, never calls xAI, and never sees the
 | Graphs are staff, not skaters | Live staff is **Head Coach**. OC / DC / ST / goalie / scout / captain are compiled, **opt-in**. F1–G are code. |
 | Learning is data | Plays are JSON; AAR emits capped, *cited* patches. Retrieve ranks those stats next game. |
 | Film is resimulation | Same seed + stored directives. MP4 export is a derivative, not the log |
+| Proof is a diff | `retrieveTop` must move vs a `--no-llm` control. A version bump with the same top-1 is not learning. Game-over quality (xG, paired clips) is a *second* question. |
 
 ### What we actually have (read this twice)
 
@@ -28,16 +31,16 @@ This is the part people get wrong. We did **not** build twelve LangGraph players
 | Layer | Independent LangGraph? | What it does live |
 | --- | --- | --- |
 | `homeTeamGraph` / `awayTeamGraph` | **Yes — two compiles** | Separate checkpointers, separate playbooks. Never see the opponent `playId`. |
-| Head Coach (`grok-4.5`) | One node per team graph | **The live staff.** Macro epoch: ingest → situation → retrieve → **HC → assemble → validate**. |
+| Head Coach (`grok-4.5` home; **Muse Glimmer** away) | One node per team graph | **The live staff.** Macro epoch: ingest → situation → retrieve → **HC → assemble → validate**. |
 | OC, DC, ST, goalie, scout | Compiled subgraphs | **Off** unless `specialists: true`. Fan-out ate the 12s clock (Scar 9). |
 | Captain | Compiled subgraph | Micro only (offside / icing). Still times out. |
-| F1 / F2 / F3 / Ds / Dw / G | **No. `src/ice/`** | Every 10 Hz tick. Hunt / pass / shoot / clear. Overlay may override F1. |
-| AAR graph | **Yes — third compile** | After the horn. Intent / actual / why / cite. Patches the book. |
+| F1 / F2 / F3 / Ds / Dw / G | **No. `src/ice/`** | Every 10 Hz tick. Hunt / pass / shoot / clear. Ice F1 **shoot beats overlay pass/dump**. Overlay shoot/crash/hold/cycle still wins. |
+| AAR | **Code path by default** | `--aar-mode code`: `codeOnlyAarReport` + apply. `--aar-mode auto` restores the third LangGraph (45s). `--no-llm` persist-only. |
 | Browser | Never | Draws frames. No keys, no scoring, no opponent book. |
 
 They work as a **team** because they share a **play** (JSON formation + `shotPolicy`), not because five skaters vote. Independent agents without a shared sheet all hunt the puck. You already shipped that bug.
 
-If F1 cannot shoot, AAR has nothing to cite. If AAR cannot cite, the next retrieve is the same as game 1. That is the whole learning story.
+If F1 cannot shoot, AAR has nothing to cite. If AAR cannot cite, the next retrieve is the same as game 1. If retrieve ranks `protect-lead` while you are losing, game 7 can be *worse* than game 1. That is the whole learning story.
 
 ---
 
@@ -47,15 +50,15 @@ Think **basement → ice → benches → film room**, not a folder dump.
 
 | Floor | Folder | What you keep in your head |
 | --- | --- | --- |
-| Basement | `src/engine/` | 200×85 ft rink, 10 Hz Euler, icing/offside/goals, fatigue |
+| Basement | `src/engine/` | 200×85 ft rink, 10 Hz Euler, icing/offside/goals, fatigue. Honest chances: Shot then Goal; dump/pass/clear freeze even if G clips. |
 | Skaters (code) | `src/ice/` | F1/F2/F3/Ds/Dw/G every tick. F1 shoot / pass / clear. Not a graph. |
 | Benches | `src/agents/` | Two `StateGraph`s. Live macro is Head Coach → assemble. |
 | Referee | `src/orchestrator/` | Tick, observe (mirrored), invoke, never an LLM |
-| Memory | `src/playbook/` + `src/persist/` | Seed books, SQLite events, replay |
-| After hours | `src/aar/` | Third graph: intent / actual / why / cite_check |
-| Film | `src/film/` + `src/web/` | Clips, ledger, Canvas 2D |
+| Memory | `src/playbook/` + `src/persist/` | Seed books, SQLite events, replay. Retrieve is code; EN plays stay off 5v5. |
+| After hours | `src/aar/` | Default: `codeDraft` + `cite_check`. LLM graph is `--aar-mode auto`. |
+| Film | `src/film/` + `src/web/` | Clips, ledger, Canvas 2D. `gh series --json` is the scorecard. |
 
-`src/cli/` is the same host without a browser (`gh simulate --no-llm`). `src/llm/` is xAI-only factories plus a circuit breaker. `src/config.ts` boots with empty env.
+`src/cli/` is the same host without a browser (`gh simulate --no-llm`). `src/llm/` is xAI plus OpenAI-compat (local Glimmer on `:8080`). `src/config.ts` boots with empty env. Muse default is **local Glimmer**, not hosted Spark.
 
 Contributor cheat sheet: [`AGENTS.md`](../AGENTS.md). The long spec: [`DESIGN.md`](DESIGN.md).
 
@@ -73,7 +76,7 @@ flowchart TB
   Eng["advanceWorld 10 Hz"]
   Home["homeTeamGraph"]
   Away["awayTeamGraph"]
-  AAR["AAR StateGraph"]
+  AAR["AAR codeDraft<br/>or LLM graph"]
   PB[(Playbooks SQLite)]
   Browser <--> WS
   WS --> Orch
@@ -116,7 +119,9 @@ flowchart LR
 
 Live macro **does not** `Send[]` OC/DC/captain/scout. Opt in with `specialists: true`. That 12s epoch belongs to Head Coach. Micro still hits **Captain only** (`grok-4.3`) — and those still time out on offsides. There is no `route_specialists` node.
 
-AAR is a **separate compile**: load → intent (LLM) → **actual (code)** → why → winner/loser lens → draft → `cite_check`. The actual node is not allowed to “remember” a shot that is not in the log.
+AAR **code mode** (live default): load events → `computeActual` → `codeDraft` → `cite_check` → apply. No grok. `--aar-mode auto` is the separate compile: load → intent (LLM) → **actual (code)** → why → winner/loser lens → draft → `cite_check`. The actual node is not allowed to “remember” a shot that is not in the log.
+
+Boosts only stick if that play had **match xG > 0**. A 0-xG boost is rejected and replaced. `--no-llm` still never writes `playbook_versions`.
 
 ---
 
@@ -129,13 +134,14 @@ AAR is a **separate compile**: load → intent (LLM) → **actual (code)** → w
 | LangGraph.js `StateSchema` | Current Graph API (not `Annotation.Root`) | API drift is a real risk; versions pinned |
 | xAI `ChatXAI` Completions | SpaceXAI / `XAI_API_KEY` / `https://api.x.ai/v1` | `modelKwargs.reasoning_effort`, not `.withConfig` |
 | `grok-4.5` coach/AAR, `grok-4.3` specialists | Cost: hybrid epochs, not per-tick LLM | 4.5 reasoning cannot be disabled; in-game `low` |
-| **sql.js** (WASM) | `better-sqlite3` needs VS Build Tools; CI has no native addons | Slower than native; adapter in `src/persist/db.ts` |
+| **Muse Glimmer 30B local** | Away bench at `$0`. llama.cpp OpenAI-compat `127.0.0.1:8080` | Must skip native structured output; JSON often lives in `reasoning_content`; cap 120 tokens to fit 6s |
+| `sql.js` (WASM) | `better-sqlite3` needs VS Build Tools; CI has no native addons | Slower than native; adapter in `src/persist/db.ts` |
 | Node `http` + `ws` | Fastify was extra surface for a localhost game | Still origin-locked to loopback |
 | Canvas 2D, not Phaser | Phaser invites a second clock | ~one file to plot circles on ice |
-| Vitest + `FakeListChatModel` | 382 tests, **zero** live vendor calls in CI | You must inject the fake or skip the factory |
+| Vitest + `FakeListChatModel` | **404 tests**, **zero** live vendor calls in CI | You must inject the fake or skip the factory |
 | `@napi-rs/canvas` + ffmpeg | Optional MP4 highlight for a human inbox | Film Room remains the source of truth |
 
-We did **not** pick Unity, OpenAI-as-provider, or RL. Those would hide LangGraph or bankrupt the token budget.
+We did **not** pick Unity, OpenAI-as-provider, or RL. Those would hide LangGraph or bankrupt the token budget. We *tried* hosted Muse Spark. It burned tokens for thinking we never used. Local Glimmer is the away bench now. Never `muse-spark-*-contributor`.
 
 ---
 
@@ -146,8 +152,8 @@ There are **three clocks**, not one “the agents think.” Mixing them is how y
 | Clock | Rate | Who speaks | Typical call |
 | --- | --- | --- | --- |
 | Physics | **10 Hz**, every live tick | Engine + `src/ice/` | Zero LLM. F1 may shoot. `shotLock` = one shot per possession. |
-| Epoch | Faceoff, ST, 8s possession, last two minutes | **Head Coach** (macro) or **Captain** (micro) | One structured `CoachIntent`. 6s coach / 12s abort. |
-| After the horn | Once per side, per result | **AAR graph** | Intent + actual + why + cite. 45s. Timeout still `codeDraft`. |
+| Epoch | Faceoff, ST, 8s possession, last two minutes | **Head Coach** (macro) or **Captain** (micro) | One structured `CoachIntent`. 6s coach / 12s abort. Glimmer max 120 tokens. |
+| After the horn | Once per side, per result | **code AAR** (default) or AAR graph | Cite + apply. Live default milliseconds. `--no-llm` never mutates. |
 
 ```mermaid
 sequenceDiagram
@@ -161,7 +167,7 @@ sequenceDiagram
   alt epoch for that side
     Orch->>Home: observe (mirrored, no their playId)
     Home->>Home: retrieve_plays from OUR book
-    Home->>Home: head_coach (one grok-4.5 call)
+    Home->>Home: head_coach (one grok-4.5 or Glimmer call)
     Home-->>Orch: TeamDirective
     Orch->>Ice: constraints, not teleport
   end
@@ -173,11 +179,11 @@ One live tick, spoken slowly:
 1. **`advanceWorld`** (`src/engine/step.ts`) fills `iceIntents` (F1/F2/F3), steers, maybe **releases** a pass/shot/clear (`maybeReleasePuck`), and maybe blows a whistle.
 2. **`shouldDecide`** (`src/orchestrator/epochs.ts`) asks each side independently: macro stoppage, micro possession review (80 live ticks), or `playStillValid` skip. If valid, **that side skips the LLM**.
 3. **`observe`** mirrors geometry so *you* always attack +X. Away’s live `puck.x` and home’s sum to ~0. The opponent `playId` is not in the JSON.
-4. **`invokeTeam`** never throws. Live abort is **12s** (`--no-llm` stays 8s). Thread id is `match:{id}:team:{side}:epoch:{n}`. Timeout on opening `default-structure` seeds the book’s 5v5 play, not a silent freeze.
-5. **`retrieve_plays`** is **code**. It ranks OUR plays by net xG, plus a small bonus if `counters` include a public-geometry `themFamily`. That is how last game’s AAR shows up as this epoch’s menu.
+4. **`invokeTeam`** never throws. Live abort is **12s** (`--no-llm` stays 8s). Thread id is `match:{id}:team:{side}:epoch:{n}`. Timeout on opening `default-structure` seeds the book’s 5v5 play, not a silent freeze. `timeoutDirective` strips `playParams` so a late overlay cannot gag ice F1.
+5. **`retrieve_plays`** is **code**. It ranks OUR plays by net xG, plus a small bonus if `counters` include a public-geometry `themFamily`. Empty-net families (`pull-early`, `en-scramble`) are **excluded unless strength is `EN`**. That is how last game’s AAR shows up as this epoch’s menu — and how a 20s period does not open 6v5.
 6. **`validateDirective`** clamps `playId` to the retrieved list, rejects illegal extra attackers.
-7. Directives become constraints on the next physics steps — not teleportation. Ice F1 still shoots in OZ even if the coach is late.
-8. On `game_over`, **both** AAR graphs run. `--no-llm` writes a digest and **does not** mutate. Live timeout still runs `codeDraft` + `cite_check` and **auto-applies**. Caps: max 3 ops, cited `eventIds` only.
+7. Directives become constraints on the next physics steps — not teleportation. Ice F1 still **shoots in OZ even if the overlay said pass**. `shotLock` demotes a locked shoot to pass.
+8. On `game_over`, **both** AARs run. Live default `--aar-mode code` applies a cited patch without the 45s graph. `--aar-mode auto` still times out into `codeDraft`. `--no-llm` writes a digest and **does not** mutate. Caps: max 3 ops, cited `eventIds` only, boosts need match xG.
 9. **`recordMatchFilm`** builds clips. `gh footage --match ID --mp4` is a derivative H.264 file (`data/film-export/`, gitignored). Replay remains canonical. `liveTick` **resets each period** — clip windows must carry the period from the anchor event.
 
 The WebSocket allowlist is snapshots, ticker, cost numbers, one-sided inspect. That is how a HUD can show “1-2-2 dump-and-chase” for Home and still hide Away’s playbook.
@@ -189,8 +195,8 @@ They do **not** learn by stuffing the whole game into a prompt. They learn becau
 ```mermaid
 flowchart TB
   G["Game N: ice + HC directives"] --> L["Event log + xG"]
-  L --> AAR["AAR both sides"]
-  AAR -->|"winner: cited boost"| PB["Playbook vN+1"]
+  L --> AAR["AAR both sides (code default)"]
+  AAR -->|"winner: cited boost if xG > 0"| PB["Playbook vN+1"]
   AAR -->|"loser: add_counter their family"| PB
   AAR -->|"roll playUsage into stats.games / xG"| PB
   PB --> R["retrieve_plays Game N+1"]
@@ -202,11 +208,74 @@ Together, specifically:
 
 1. **During the game** they share a play (formation slots, F1 action, `shotPolicy`). That is the team, not five LLMs arguing.
 2. **After the horn** each side’s AAR reads the **same public log** plus **their** book. Winners lock what produced xG (`boost` + real `playUsage` rolled into `stats`). Losers write `add_counter` for the **opponent family** that hurt them (`stretch-pass`, `crash-net`, …), not a random family from our own catalog.
-3. **`--no-llm` never mutates.** CI can still prove the rink. Learning is a live-AAR privilege.
-4. **Next faceoff**, `retrieve_plays` ranks by those stats and a `themFamily` bonus inferred from **public geometry** (never their `playId`). The coach can only pick from that list. Validator throws away invented ids.
-5. **Proof is a diff**, not a vibe. `gh series --json` prints distinct chances, offsides, opening play, and whether `retrieveTop` **moved**. A version bump with the same top-1 is not learning.
+3. **`--no-llm` never mutates.** CI can still prove the rink. The 7-game control (`ser-emp-7-nollm`) stayed at book **v1** and `retrieveTopChanged 0/6`. That is the gate that makes a live series scientific.
+4. **`--aar-mode code` is not that gate.** Code AAR still applies. Live epochs still call Grok / Glimmer. Mixing those two flags is how you “prove learning” by turning learning off.
+5. **Next faceoff**, `retrieve_plays` ranks by those stats and a `themFamily` bonus inferred from **public geometry** (never their `playId`). The coach can only pick from that list. Validator throws away invented ids.
+6. **Proof is two diffs**, not a vibe. (a) Did `retrieveTop` move vs the control? (b) Did g0→g6 xG / paired clips get *better*? Tonight: (a) yes, (b) no.
 
 The HTML page animates this loop. If you only remember one picture: **ice writes the log → AAR patches the book → retrieve changes the menu → the same five-man code skates a different play.**
+
+---
+
+## The road tonight — LangGraph learning, measured
+
+Tonight was the first night the *learning machine* was honest enough to measure. We did not invent a new architecture. We stopped lying to the scorecard, stopped paying Spark for thinking tokens, and ran a control.
+
+![Seven playbooks on a table; two benches; a local GPU](forme/road-tonight.jpg)
+
+Seven games as a row of books. The loop is the row getting thicker. Quality is whether game 7 is better hockey than game 1.
+
+### Mile markers
+
+| Marker | What happened | What it taught |
+| --- | --- | --- |
+| **`ser-learn-7`** | 7×20s 5v5 *before* A–D. Home **8 goals, 0 shots**. Books v1→v8, **retrieveTop 0/6**. Overlay pass gagged ice F1. Carry-in Goal without Shot. AAR LLM timed out. | A version bump is not learning. A Goal without a Shot is not a chance. |
+| **A–D on `main`** | Honest chances (Shot then Goal; dump/pass freeze; G is not the OZ scorer). Ice F1 shoot beats overlay pass. `--aar-mode code` applies without the 45s graph. Boost only if match xG > 0. | Repair the *environment* and the *memory write* before you buy more tokens. NHL goldens did not move. |
+| **Spark → Glimmer** | Hosted Muse Spark burned tokens. Away bench is now **local `muse-glimmer-30b`** via llama.cpp `:8080`, `$0`, ~36 tok/s. | The learning skill is LangGraph + playbooks, not a cloud invoice. |
+| **`ser-glimmer-3`** | Dirty path. Away locked **`pull-early-template` at 5v5**. g1: **106 shots / 108 offsides**. Coach 6s aborts while Glimmer thought. | A 20s period makes `timeRemainingLt 180` always true. EN plays must not be on the 5v5 menu. |
+| **EN gate + Glimmer JSON** | Seed `pull-early` is **EN-only**. Retrieve excludes empty-net families unless strength is `EN`. Glimmer: skip native structured, read `reasoning_content`, `GLIMMER_MAX_TOKENS=120`, server `--reasoning off`. | Adapter bugs look like hockey. Fix the adapter *and* the predicate. |
+| **`ser-glimmer-fresh`** | Fresh db, 3×20s. 5v5 openings. Offsides **1–1**. retrieveTop **home 2/2, away 1/2**. Books v4. Home xG still down. | The menu *can* move without pulling the goalie. Three games is a smoke, not a proof. |
+| **`ser-emp-7` + `--no-llm` control** | Fresh db, 7×20s, seed 7, home xAI / away Glimmer, `--aar-mode code`. Control: same seed, `--no-llm`. | This is the experiment. Numbers below. |
+
+### The 7-game card (`ser-emp-7`)
+
+Command (do not restart 8787 to run this):
+
+```text
+npm run gh -- series --games 7 --period-seconds 20 --seed 7
+  --home-provider xai --away-provider muse --aar-mode code
+  --db data/ser-emp-7.sqlite --id ser-emp-7 --json
+```
+
+Control: same seed, `--no-llm --db data/ser-emp-7-nollm.sqlite --id ser-emp-7-nollm`.
+
+| Game | Score | Home retrieveTop | Away retrieveTop | Home ch/off | Away ch/off |
+| --- | --- | --- | --- | --- | --- |
+| g0 | 3–2 home | `5v5-122-forecheck` | `oz-crash-net` | 8 / 1 | 3 / 1 |
+| g1 | 1–2 away | `5v5-122-forecheck` | `oz-crash-net` | 6 / 1 | 2 / 0 |
+| g2 | 1–3 away | `5v5-122-forecheck` | `5v5-212-forecheck` | 4 / 2 | 3 / 1 |
+| g3 | 2–4 away | `5v5-122-forecheck` | `5v5-212-forecheck` | 7 / 0 | 5 / 0 |
+| g4 | 1–5 away | **`protect-lead-1-1-3`** | `5v5-212-forecheck` | 9 / 1 | 9 / 0 |
+| g5 | 2–3 away | `protect-lead-1-1-3` | `5v5-212-forecheck` | 6 / 1 | 6 / 1 |
+| g6 | 2–2 tie | `protect-lead-1-1-3` | `5v5-212-forecheck` | 6 / 1 | 3 / 2 |
+
+Books: **v1 → v8** both sides. `retrieveTopChanged`: **home 1/6, away 1/6**. Footage `--compare 0,6`: home Δ xG **−0.552**, **pairs = 0**.
+
+Control (`ser-emp-7-nollm`): books **stay v1**, retrieveTop **0/6 both**, openings frozen on `5v5-122` vs `5v5-212`. g6 away **15 offsides, 0 shots** — that is ice noise, not a staff.
+
+![Loop moving vs quality frozen](forme/loop-vs-quality.jpg)
+
+Cyan column: the book is turning. Amber column: the hockey is not yet better. The puck in the middle is still the same 20-second period.
+
+### Honest verdict
+
+**The LangGraph learning *loop* works.** Live AAR applies. Retrieve’s top-1 moved. The `--no-llm` twin proves that movement is not a hash of the seed — it is the write path. Offsides on the live series stayed in **0–2** per side, not the 166 of live-52 or the 108 of the dirty Glimmer opener.
+
+**The LangGraph learning *product* is not proven.** Home, after winning g0, locked `protect-lead-1-1-3` from g4 onward *while losing*. Game 7 was not a better fight than game 1. No paired clips. Home xG fell. Away’s retrieve *did* leave `oz-crash-net` for `5v5-212-forecheck` — a real menu change — and they still did not produce a rising xG curve.
+
+That is not a failure of “we should run 20 more games.” It is a retrieve / predicate bug: **a lead-protect play must not win the menu when you are trailing.** Until that is gated, more series will teach the same wrong lesson faster.
+
+404 tests. Goldens (pr7 / pr8) did not move on A–D or Glimmer. Do not raise timeouts as the fix. Do not implement `--aar-mode code` as `noLlm: true`.
 
 ---
 
@@ -314,6 +383,56 @@ These are not hypothetical. They showed up in design review or PR review and wou
 
 **Lesson.** “The graph ran” is not “they play hockey.” Count distinct chances, not Shot rows.
 
+### Scar 11 — Goals that were not chances
+
+**What.** `ser-learn-7`: home **8 goals, 0 shots**. Carry-in occupancy plus a goalie clip became Goal. Overlay `pass` sat on F1 so ice never shot. AAR had Goals to celebrate and nothing honest to boost.
+
+**Root.** Scoring still trusted occupancy / last contact more than “there was a Shot this possession.” Overlay pass beat ice F1 shoot.
+
+**Fix.** Honest chances in `src/engine/rules.ts`: attacking Goal needs a recent attacking Shot (`GOAL_REBOUND_TICKS`). Dump/pass/clear `waveOffNetEntry` even if G clips. Actor is the shooter, not G. Ice F1 shoot beats overlay pass/dump (`releasePolicy` in `tactics.ts`).
+
+**Lesson.** If the label on the event is the training signal, fake labels teach fake hockey.
+
+### Scar 12 — The 45s AAR we did not need
+
+**What.** Live AAR still paid for a grok-4.5 graph that routinely timed out into the code path we already trusted.
+
+**Root.** “Learning is a LangGraph” was treated as “every apply must walk the 45s compile.” `--no-llm` was the only skip — and that skip correctly refuses to mutate.
+
+**Fix.** `--aar-mode code` runs `codeOnlyAarReport` and **still applies**. Live simulate/series/web default to `code`. `--aar-mode auto` restores the LLM graph. Tests assert `code` is not `noLlm`.
+
+**Lesson.** The graph is a tool. The cited patch is the product. Do not bill a graph that the timeout already replaced.
+
+### Scar 13 — Boosting a play that never shot
+
+**What.** AAR could `boost` the opening 5v5 because it was *on the ice*, even at 0 xG. Retrieve then locked that play. `ser-learn-7` retrieveTop never moved.
+
+**Root.** Usage maps onto whoever was assigned, not whoever created chance.
+
+**Fix.** `boost` only if `playUsage.xgFor > 0`. Reject `zero-xg-boost` and **replace** with a play that did shoot. Always `ensureMandatoryBoost` after the gate. Stats still roll.
+
+**Lesson.** Memory writes need the same honesty as the event log. A boost is a claim about xG.
+
+### Scar 14 — Spark burned the night; Glimmer hid the JSON
+
+**What.** Hosted Muse Spark was a token furnace. Local Glimmer then returned empty `content` (JSON in `reasoning_content`) and blew the 6s coach budget thinking (~580 tokens) until the server got `--reasoning off` *and* we capped 120 tokens.
+
+**Root.** OpenAI-compat is not OpenAI. Native `withStructuredOutput` parsed an empty string. `reasoning: off` in the request is not the same as llama-server `--reasoning off`.
+
+**Fix.** Default Muse = local `muse-glimmer-30b` at `http://127.0.0.1:8080/v1`. `skipNativeStructured` when the model name contains `glimmer`. `extractMessageText` reads content then `additional_kwargs.reasoning_content`. `GLIMMER_MAX_TOKENS = 120`. Cost table: $0.
+
+**Lesson.** Local models are adapters, not drop-in ChatGPT. Prove JSON-in-6s with a ping before you run a series.
+
+### Scar 15 — Empty-net at even strength, and protect-lead while trailing
+
+**What.** Dirty `ser-glimmer-3` g1: away `pull-early-template`, **106 shots / 108 offsides**. Later, honest `ser-emp-7` home retrieve locked **`protect-lead-1-1-3` from g4 while they were losing 1–5**.
+
+**Root.** `pull-early` listed strength `["EN","5v5"]` and a `timeRemainingLt 180` trigger that is *always true* on a 20s period. Retrieve ranked it. Separately, net-xG ranking does not care that you are trailing — a lead-protect play with leftover stats wins the menu.
+
+**Fix (half).** Seed strength is **`["EN"]` only**. `isEmptyNetPlay` excludes `pull-early` / `en-scramble` unless query strength is `EN`. **Not yet fixed:** score-state gating so `protect-lead` cannot retrieve on a trailing bench.
+
+**Lesson.** Predicates that are true in a short experiment will dominate retrieve. Short periods are a microscope. They will also lie if your triggers assume a 20-minute NHL clock.
+
 ---
 
 ## Pitfalls to avoid next time
@@ -324,11 +443,16 @@ These are not hypothetical. They showed up in design review or PR review and wou
 - **Do not store 36k JSON frames.** Replay is the footage. Clip index is the catalog. MP4 is mail, not memory.
 - **Do not `Send[]` specialists on a 12s live epoch.** Head Coach first, or the abort freezes `default-structure` for the whole match.
 - **Do not treat AAR timeout as “code digest, empty ops.”** Live still has to apply a cited patch.
-- **Do not count Shot events as skill** until F1 cannot fire every tick at the same xG.
+- **Do not treat `--aar-mode code` as `--no-llm`.** Code applies. `--no-llm` is the control that must not write books.
+- **Do not count Shot events as skill** until F1 cannot fire every tick at the same xG. Count distinct chances.
+- **Do not call a version bump “learning.”** Pass = `retrieveTop` moved *and* g0→g6 quality vs a `--no-llm` twin.
+- **Do not retrieve empty-net families at 5v5.** 20s periods make “last three minutes” always true.
+- **Do not let `protect-lead` win retrieve while trailing.** That is tonight’s unfixed bug. Another 7-gamer will only lock it harder.
+- **Do not raise timeouts as the fix.** Cap tokens. Skip native structured. Attach the abort signal.
 - **Do not mix lockfiles.** This machine uses npm because pnpm died on corepack. Pick one on a new clone.
 - **Do not bind `0.0.0.0` “just for a demo.”** Origin lock and loopback are the product, not a nicety.
 - **Do not name a node the same as a state channel** in LangGraph.js.
-- **Do not treat `--no-llm` as optional.** It is how CI proves the engine without credits.
+- **Do not treat `--no-llm` as optional.** It is how CI proves the engine without credits — and how a series proves the write path.
 
 ---
 
@@ -336,11 +460,13 @@ These are not hypothetical. They showed up in design review or PR review and wou
 
 - **Referee in code.** Fairness is testable without an API key.
 - **Two compiles, not `side` on one graph.** Information hiding is structural.
-- **382 tests, fakes for every LLM node.** `setCreateChatModel` / `FakeListChatModel`.
-- **PR slices.** Engine → stub graphs → rink → coaches → AAR → series. Each independently reviewable.
-- **Caps on learning.** Max 3 AAR ops, cited events only, winner cannot retire a play that just worked from one lucky bounce.
-- **Golden hashes.** Short periods (`GRAPH_HOCKEY_PERIOD_SECONDS=5`) keep CI honest without 36k ticks.
-- **Credentials stay in `.env`.** Health exposes `llmConfigured: boolean`, never the key.
+- **404 tests, fakes for every LLM node.** `setCreateChatModel` / `FakeListChatModel`.
+- **PR slices.** Engine → stub graphs → rink → coaches → AAR → series → honest chances → code AAR → Glimmer. Each independently reviewable.
+- **Caps on learning.** Max 3 AAR ops, cited events only, winner cannot retire a play that just worked from one lucky bounce, boost needs match xG.
+- **Golden hashes.** Short periods (`GRAPH_HOCKEY_PERIOD_SECONDS=5`) keep CI honest without 36k ticks. A–D did not move pr7/pr8.
+- **Credentials stay in `.env`.** Health exposes `llmConfigured: boolean`, never the key. `.env` is not committed. Local Glimmer key is `local`.
+- **Control arm.** Same seed, `--no-llm`, books must stay v1. Without that, “retrieveTop moved” is a story.
+- **Honest scorecard.** `gh series --json` prints chances, offsides, opening play, retrieveTop. Footage `--compare 0,6` prints Δ xG and paired clips. We published the negative quality result.
 
 ---
 
@@ -350,21 +476,25 @@ These are not hypothetical. They showed up in design review or PR review and wou
 2. **Cite or discard.** If an agent is allowed to change long-term memory, every mutation needs a pointer into a log you already trust.
 3. **Visit tests for graphs.** Assert node names in a stream, not “the prompt looks right.”
 4. **Mirror observations.** Fairness bugs love coordinate frames. Home + away `puck.x ≈ 0` is a one-liner that caught leaks.
-5. **Product of learning is a diff.** Playbook version N+1 is a better demo than a paragraph of “the team adapted.”
+5. **Product of learning is two diffs.** (a) Did the menu change vs a no-write control? (b) Did the hockey get better? Shipping (a) without (b) is still progress — as long as you say so.
 6. **Windows native addons fail in CI.** Plan a WASM/JS adapter before you promise sqlite3.
+7. **Local models are adapters.** Reasoning channels, empty `content`, token budgets, and server flags are part of the contract. Ping JSON-in-timeout before a series.
+8. **Short experiments lie about time predicates.** If a trigger is “last three minutes,” a 20s period is always the last three minutes.
+9. **A shared sheet is the team.** Five independent hunters are not a bench. The play is the coordination. Retrieve is how last game’s sheet reaches this faceoff.
 
 ---
 
 ## Where to go next
 
-`main` **is** the game. live-52 proved Head Coach can pick `5v5-122-forecheck` / `stretch-pass-nz` and AAR still bumps books. The next work is hockey quality, not more folders.
+`main` **is** the game. Tonight proved the write path. The next work is *which play retrieve is allowed to put on the menu* — then ice quality — not more folders and not another 7-gamer that will lock `protect-lead` again.
 
-1. **7-game LLM series (20s periods, clean db).** `npm run gh -- series --games 7 --home-provider xai --away-provider muse --period-seconds 20`. Pass = retrieveTop actually moves, not just a version bump. 60s is a later demo.
-2. **Captain micro budget.** Offside/icing still `Send`s captain into a 4s timeout (`structured:specialist:captain`). Same pattern as Scar 9: skip the specialist or give micro a code fallback and **do not JSON-retry**.
-3. **Offside rate.** Counted on the series scorecard; F2 tag-up / NZ pass targets still need ice work.
-4. **Goal attribution.** live-52 “HOME GOAL” actor `h-G` in OZ. Audit `maybeGoal` + last contact so a goalie cannot be the scorer of an attacking-zone goal unless that is actually what happened.
-5. **HITL later.** LangGraph `interrupt()` for a human coach, **off** the default compile. Do not put it on the 12s clock.
-6. Keep `AGENTS.md` honest: `src/ice/` is environment, not a graph. `gh footage --mp4` is derivative.
+1. **Gate `protect-lead` (and friends) on score state.** Trailing / tied must not retrieve a lead-protect family. This is the blocker for the next empirical series.
+2. **Then a fresh 7-game + `--no-llm` twin.** Same seed protocol as `ser-emp-7`. Pass = retrieveTop moves *and* g0→g6 xG / paired clips do not collapse. 60s periods are a later demo, not a substitute for the gate.
+3. **Captain micro budget.** Offside/icing still `Send`s captain into a 4s timeout (`structured:specialist:captain`). Same pattern as Scar 9: skip the specialist or give micro a code fallback and **do not JSON-retry**.
+4. **Offside rate on ice.** Live series is 0–2; control g6 away 15/0 shots is still ice noise. F2 tag-up / NZ pass targets.
+5. **Dump-in still stays live.** Cranky already flagged it. Wave-off is for net entry, not for the dump staying a live puck.
+6. **HITL later.** LangGraph `interrupt()` for a human coach, **off** the default compile. Do not put it on the 12s clock.
+7. Keep `AGENTS.md` honest: `src/ice/` is environment, not a graph. `gh footage --mp4` is derivative. Glimmer is local. `--aar-mode code` is not `--no-llm`.
 
 ---
 
@@ -376,9 +506,13 @@ These are not hypothetical. They showed up in design review or PR review and wou
 | Directive | The legal action sheet the engine will skate |
 | Playbook | Versioned JSON plays, not a system prompt |
 | `cite_check` | Drop AAR ops that don’t point at this match’s events |
+| `--aar-mode code` | Cited `codeDraft`, apply, no AAR LLM graph. Live default. Not `--no-llm`. |
+| `--no-llm` | No coach calls, no playbook mutation. The control arm. |
+| `retrieveTop` | The #1 play retrieve would hand the coach at that snapshot |
+| Glimmer | Local Muse 30B on llama.cpp `:8080`. Away bench. $0. |
 | Resimulation | Replay by running the engine again with stored directives |
 | Inspect side | Operator toggle: see *one* team’s play name |
 
 ---
 
-*Generated 2026-08-25. `main` is playable. Two benches, ice in code, HC-only live staff, AAR playbook loop. 382 tests. live-52: Muse 3–1, 211/212 epochs ok. HITL not in v1.*
+*Generated 2026-08-25. `main` is playable. Two benches, ice in code, HC-only live staff, code AAR by default, Glimmer local away. 404 tests. Tonight: loop moved (`ser-emp-7` retrieveTop 1/6 vs control 0/6); g0→g6 quality not proven (home Δ xG −0.55, pairs 0). HITL not in v1.*
