@@ -4,7 +4,7 @@
 | --- | --- |
 | **Author** | Graph_Hockey staff (design) |
 | **Date** | 2026-08-26 |
-| **Status** | **Cycle 2, Evaluate 7 not credited (bank 1/5).** Δ xG **−0.131** would beat previous-best; pairs **1** failed the floor. |
+| **Status** | **Cycle 2, Evaluate 8 credited (bank 2/5).** Δ xG **−0.071**, pairs **4**. Next credit: `homeΔxG > −0.071` and pairs ≥ **4**. |
 | **Repo** | `C:\Users\gasan\Graph_Hockey` (private, `main` playable) |
 | **Success criterion** | **Five empirical improvements.** Not five attempts. Not five version bumps. Not “stop when the numbered PR stack is done.” Keep cycling (including a **post-stack Diagnose menu**) until `improvements == 5` or the user stops. |
 | **PLAN_ID** | `f1d4bdeb` (resume leftover PRs with `/execute-plan --resume f1d4bdeb` after Evaluate context) |
@@ -17,15 +17,15 @@ This is the live scoreboard. Update it after every counting Evaluate. Handbook: 
 
 | Counter | Value | Notes |
 | --- | --- | --- |
-| **Bank** (goal) | **1 / 5** | Kept on cycle abort. Next credit still `homeΔxG > −0.376` **and** pairs ≥ **3** |
-| Previous-best home Δ xG | **−0.376** | `ser-emp-9` g0→g6. Unchanged |
-| Previous-best pairs | **3** | Evaluate 2. Evaluates 3–5 all pairs 0–1 |
-| Cycle | **2** | Cycle 1 aborted. Attempts reset. Bank kept |
-| Attempts this cycle | **2 / 5** | Evaluate 7 counted |
-| Flat streak | **2 / 3** | Evaluate 7 pairs 1 < 3. One more flat aborts cycle 2 |
-| On `main` | dump-in + AAR 5v5 + F2 chase `78b17cb` + **F2 tighten** | Deep OZ second man; shallow OZ onside |
+| **Bank** (goal) | **2 / 5** | Evaluate 8 credited. Next credit `homeΔxG > −0.071` **and** pairs ≥ **4** |
+| Previous-best home Δ xG | **−0.071** | `ser-emp-15` g0→g6 |
+| Previous-best pairs | **4** | Evaluate 8 (chance-kind pairing). Was 3 |
+| Cycle | **2** | Cycle 1 aborted. Bank kept |
+| Attempts this cycle | **3 / 5** | Evaluate 8 counted (improved → flat 0) |
+| Flat streak | **0 / 3** | Reset on credit |
+| On `main` | dump-in + AAR 5v5 + F2 chase/tighten + DZ leftover + **film chance-pair** `db2a458` | Same play+zone goal/shot/save pair under Jaccard 0.3 |
 | Glimmer | **running** `:8080 --reasoning off` | Do not restart 8787 unless asked. |
-| Goldens | pr7 `1378ddf6…` count **57**; pr8 `9dae311e…` count **280**, epochs **11** | DZ leftover assemble. pr7 unchanged. pr8 Shot **0**, Offside **2** |
+| Goldens | pr7 `1378ddf6…` count **57**; pr8 `9dae311e…` count **280**, epochs **11** | Film PR did not move ice. pr8 Shot **0**, Offside **2** |
 
 ### Evaluate 1 — `ser-emp-8` (2026-08-26)
 
@@ -88,7 +88,7 @@ Control twin (`ser-emp-9-nollm`): books v1, retrieveTop 0/6, offsides 0–2 (g6 
 | F2 dump-chase | `78b17cb` on `main` | OZ loose puck: F2 contests. NZ stays onside | Evaluate 5 (**not credited**, cycle abort) |
 | F2 tighten | `66d96d0` on `main` | Deep OZ only (`BLUE+8`), second man `alongPuck-6` | Evaluate 6 (**not credited**) |
 | DZ leftover assemble | `b414450` on `main` | Micro drops last play that fails zone/strength (122 in DZ → breakout) | Evaluate 7 (**not credited**) |
-| Film chance-pair | on `main` | Same play+zone goal/shot/save pair under Jaccard 0.3 | counting Evaluate 8 |
+| Film chance-pair | `db2a458` on `main` | Same play+zone goal/shot/save pair under Jaccard 0.3 | Evaluate 8 (**improved**) |
 | PR-5 Ds tag-up | [#5](https://github.com/gasantiago16/Graph_Hockey/pull/5) | closed; absorbed into `c1e7707` | — |
 | PR-6 captain | skipped | env off | — |
 | PR-7 `lpTrail` flag | [#4](https://github.com/gasantiago16/Graph_Hockey/pull/4) | draft | never |
@@ -257,9 +257,45 @@ Live card:
 | 5 | 2–4 away | `5v5-122-forecheck` | `5v5-212-forecheck` | 5 / 0 | 8 / 1 |
 | 6 | 4–1 home | `5v5-122-forecheck` | `5v5-212-forecheck` | 9 / 0 | 3 / 0 |
 
-g1/g2 no longer 0-chance DZ traps. Dump-and-chase film g0 vs g6 still does not pair (one away-212 DZ signature).
+g1/g2 no longer 0-chance DZ traps. Dump-and-chase film g0 vs g6 still does not pair (one away-212 DZ signature). **Do not recode Evaluate 7 as a credit** after the pairing fix; Evaluate 8 is the counting series.
 
-**Cycle 2 PR-3 (shipping):** same play+zone chance clips (goal/shot/save) pair even when dump-chase Jaccard is 0.27. Merge unions signature bags. Then Evaluate 8 (`ser-emp-15`). Need pairs ≥ **3** and Δ xG **> −0.376**. One more flat aborts cycle 2.
+**Cycle 2 PR-3 (shipped `db2a458`):** same play+zone chance clips (goal/shot/save) pair even when dump-chase Jaccard is 0.27. Merge unions signature bags. Evaluate 8 ran.
+
+### Evaluate 8 — `ser-emp-15` (2026-08-26)
+
+Film chance-pair `db2a458`. Same protocol. Twin `ser-emp-15-nollm` event hashes **match** `ser-emp-14-nollm` (film PR did not move `--no-llm` ice). Live g0 hash **`d263876a`** matches Evaluate 7 g0. Timeout 8000. Not raised.
+
+| Gate | Result |
+| --- | --- |
+| Control honest | **pass** — v1, retrieveTop 0/6, `booksMoved` false. Hashes match Evaluate 7 twin |
+| Live writes books | **pass** — v1→v8 both. Home retrieveTop 0/6. Away 0/6 (212). AAR boosted **122** on g6 (share 76%) |
+| Lead-protect skating | **pass** — 0 hits; snapshot `protect-lead` games **0** every after-game |
+| Offsides 0–2 | **pass** — max 2 (g0 away 2). Home 0,1,1,1,1,1,0 |
+| Chance mean | **6.57** (8,3,4,9,8,6,8) ≥ 6 |
+| Pairs `--compare 0,6` | **4** ≥ 3 (**floor pass**). Three home 122-OZ chance pairs (goal→goal, shot→Goal, shot→Goal) + one away 212-DZ goal→goal |
+| Home Δ xG g0→g6 | **−0.071** > −0.376 |
+
+**Improved: yes.** Bank **2 / 5**. Cycle 2 attempt 3, flat 0. Previous-best Δ xG is now **−0.071**. Previous-best pairs is now **4**.
+
+Live card:
+
+| G | Score | Home retrieve | Away retrieve | Home ch/off | Away ch/off |
+| --- | --- | --- | --- | --- | --- |
+| 0 | 1–1 tie | `5v5-122-forecheck` | `5v5-212-forecheck` | 8 / 0 | 1 / 2 |
+| 1 | 2–3 away | `5v5-122-forecheck` | `5v5-212-forecheck` | 3 / 1 | 8 / 0 |
+| 2 | 2–2 tie | `5v5-122-forecheck` | `5v5-212-forecheck` | 4 / 1 | 6 / 0 |
+| 3 | 2–1 home | `5v5-122-forecheck` | `5v5-212-forecheck` | 9 / 1 | 3 / 0 |
+| 4 | 3–2 home | `5v5-122-forecheck` | `5v5-212-forecheck` | 8 / 1 | 5 / 0 |
+| 5 | 2–3 away | `5v5-122-forecheck` | `5v5-212-forecheck` | 6 / 1 | 8 / 0 |
+| 6 | 4–2 home | `5v5-122-forecheck` | `5v5-212-forecheck` | 8 / 0 | 3 / 0 |
+
+g6 was a **4–2** home win, 8 chances, 122 share 76% / xG 0.53. Footage home Δ xG **−0.071** (g0 0.771 → g6 0.700). Away Δ xG **+0.35** (g0 0.01 → g6 0.36). Coach HTTP timeouts still happened; leftovers used; timeouts not raised.
+
+**Diagnose:** pairing was the Evaluate 7 fail; it is now a floor pass. Film did not move ice. g0 is still a 28s-OZ spray (away dead at 0.01 xG). g6 is a fight against a learned 212. Home Δ vs own g0 punishes that fight. Next credit needs g6 xG **> 0.700** if g0 stays ~0.771, and pairs ≥ **4**.
+
+g1/g5 digest `topPlay` is still `pp1-umbrella` (share 50–51%). That is the **unfiltered** usage label in `formatActualSummary`, not proof that `codeDraft` boosted PP — `lessonUsage` still prefers 5v5 when even-strength has xG.
+
+**Cycle 2 PR-4 (next):** OZ F1 with the puck should not one-time from just inside the blue on a dump recovery. Carry or pass toward the slot until deep enough to shoot. Goal: higher xG per chance in later games without leaving the 0–2 offside band or dropping chance mean below 6.
 
 ### Dump-in golden move (intentional)
 
