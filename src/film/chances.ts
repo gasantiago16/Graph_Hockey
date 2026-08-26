@@ -1,5 +1,5 @@
 import { eventSide, payloadRecord } from "../aar/nodes/actual.ts";
-import { retrievePlays } from "../playbook/retrieve.ts";
+import { isLeadProtectPlay, retrievePlays } from "../playbook/retrieve.ts";
 import type { MatchEvent } from "../types/events.ts";
 import type { Side } from "../types/hockey.ts";
 import type { Playbook } from "../types/play.ts";
@@ -26,17 +26,50 @@ export type ChanceCounts = {
   offsides: number;
 };
 
+function appliedPlayId(event: MatchEvent): string | undefined {
+  const rec = payloadRecord(event.payload);
+  const dir = rec?.directive;
+  if (dir && typeof dir === "object" && "playId" in dir && typeof (dir as { playId: unknown }).playId === "string") {
+    return (dir as { playId: string }).playId;
+  }
+  return undefined;
+}
+
 export function openingPlayId(events: readonly MatchEvent[], side: Side): string | undefined {
   for (const event of events) {
     if (event.type !== "DirectiveApplied") continue;
     const rec = payloadRecord(event.payload);
     if (rec?.side !== side) continue;
-    const dir = rec.directive;
-    if (dir && typeof dir === "object" && "playId" in dir && typeof (dir as { playId: unknown }).playId === "string") {
-      return (dir as { playId: string }).playId;
-    }
+    const playId = appliedPlayId(event);
+    if (playId !== undefined) return playId;
   }
   return undefined;
+}
+
+/**
+ * True if this side applied a lead-protect play while tied or trailing.
+ * Running score is Goal payload.side only; playId resolves via isLeadProtectPlay.
+ */
+export function leadProtectWhileTrailing(events: readonly MatchEvent[], side: Side): boolean {
+  const them: Side = side === "home" ? "away" : "home";
+  let us = 0;
+  let opp = 0;
+  for (const event of events) {
+    if (event.type === "Goal") {
+      const rec = payloadRecord(event.payload);
+      if (rec?.side === side) us += 1;
+      else if (rec?.side === them) opp += 1;
+      continue;
+    }
+    if (event.type !== "DirectiveApplied") continue;
+    const rec = payloadRecord(event.payload);
+    if (rec?.side !== side) continue;
+    const playId = appliedPlayId(event);
+    if (playId === undefined) continue;
+    if (!isLeadProtectPlay({ id: playId, family: "" })) continue;
+    if (us <= opp) return true;
+  }
+  return false;
 }
 
 export function retrieveTopId(book: Playbook | undefined): string | undefined {
@@ -92,6 +125,7 @@ export type SideScorecard = ChanceCounts & {
   openingPlayId?: string;
   retrieveTopId?: string;
   playbookVersion: number;
+  leadProtectWhileTrailing: boolean;
 };
 
 export function sideScorecard(
@@ -105,6 +139,7 @@ export function sideScorecard(
     openingPlayId: openingPlayId(events, side),
     retrieveTopId: retrieveTopId(book),
     playbookVersion,
+    leadProtectWhileTrailing: leadProtectWhileTrailing(events, side),
   };
 }
 

@@ -4,9 +4,11 @@ import { makeEventId } from "../types/ids.ts";
 import type { MatchEvent } from "../types/events.ts";
 import {
   chanceCounts,
+  leadProtectWhileTrailing,
   openingPlayId,
   retrieveTopChanged,
   retrieveTopId,
+  sideScorecard,
 } from "./chances.ts";
 
 function ev(seq: number, type: string, over: Partial<MatchEvent> = {}): MatchEvent {
@@ -82,5 +84,41 @@ describe("opening + retrieve top", () => {
       }),
     };
     expect(retrieveTopId(book)).toBe("5v5-122-forecheck");
+  });
+});
+
+describe("leadProtectWhileTrailing", () => {
+  it("flags trailing home DirectiveApplied protect-lead-1-1-3", () => {
+    const events = [
+      ev(0, "Goal", { payload: { side: "away" } }),
+      ev(1, "DirectiveApplied", {
+        payload: { side: "home", directive: { playId: "protect-lead-1-1-3" } },
+      }),
+    ];
+    expect(leadProtectWhileTrailing(events, "home")).toBe(true);
+    expect(leadProtectWhileTrailing(events, "away")).toBe(false);
+  });
+
+  it("does not flag leading home Goal then protect-lead", () => {
+    const events = [
+      ev(0, "Goal", { payload: { side: "home" } }),
+      ev(1, "DirectiveApplied", {
+        payload: { side: "home", directive: { playId: "protect-lead-1-1-3" } },
+      }),
+    ];
+    expect(leadProtectWhileTrailing(events, "home")).toBe(false);
+  });
+
+  it("flags tied 0-0 protect-lead and lands on the sideScorecard", () => {
+    const events = [
+      ev(0, "DirectiveApplied", {
+        payload: { side: "home", directive: { playId: "protect-lead-1-1-3" } },
+      }),
+    ];
+    expect(leadProtectWhileTrailing(events, "home")).toBe(true);
+    const card = sideScorecard(events, "home", undefined, 1);
+    expect(card.leadProtectWhileTrailing).toBe(true);
+    expect(card.shots).toBe(0);
+    expect(card.distinctChances).toBe(0);
   });
 });
