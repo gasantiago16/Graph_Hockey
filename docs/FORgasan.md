@@ -2,9 +2,9 @@
 
 You wanted two LangGraphs to fight each other at hockey, then get smarter after every result. That is still the product. What we *shipped* is more specific, and this file is honest about it: **two independent benches**, **ice that is code**, **one Head Coach call per live epoch**, and **an After-Action Review that patches a playbook** so game 7 is not a rerun of game 1.
 
-We measured that loop (`ser-emp-7`), gated retrieve, killed offside storms, shipped dump-in, taught AAR to boost 5v5, F2 dump-chase, DZ leftover, film chance-pair, high-slot shots, then DZ outlet. Evaluate 8 credited bank **2/5**. Cycle 2 aborted after Evaluate 10.
+We measured that loop (`ser-emp-7`), gated retrieve, killed offside storms, shipped dump-in, taught AAR to boost 5v5, F2 dump-chase, DZ leftover, film chance-pair, high-slot shots, DZ outlet, then F2 OZ outlet. Evaluate 8 credited bank **2/5**. Evaluate 11 Δ xG **+0.443** was not credited (chance mean 4.71, g2 home 3 offs, pairs 3).
 
-Three proofs, not one slogan: **write path proven**, **retention across series not proven** (fresh sqlite every Evaluate), **hockey bank 2/5**. Plan: [`knowledge-and-learning.md`](knowledge-and-learning.md). Scoreboard: [`better-hockey.md`](better-hockey.md).
+Three proofs, not one slogan: **write path proven**, **retention survive proven** (`ser-retain-1` g0 v8), **transfer of a different skill failed** (still `5v5-122-forecheck`), **hockey bank 2/5**. Plan: [`knowledge-and-learning.md`](knowledge-and-learning.md). Scoreboard: [`better-hockey.md`](better-hockey.md).
 
 This is a handbook for *you* — how the repo thinks, what is a graph and what is not, how a call travels, how the team learns *together*, and the scars we paid for on the road to LangGraph learning.
 
@@ -256,6 +256,10 @@ Seven games as a row of books. The loop is the row getting thicker. Quality is w
 | **`ser-emp-16` Evaluate 9** | Δ xG **+0.097**. Chance mean **5.57**. Pairs **3**. g6 4–1, xG 1.02. Not credited. | g2/g3 sat in the DZ. Do not revert the high slot. |
 | **DZ outlet (`c92df85`)** | DZ F1 pass-to-outlet else clear. Ice pass beats overlay dump in DZ only. pr8 Offside 2→0. | Breakout with possession. |
 | **`ser-emp-17` Evaluate 10** | Same g0 hash and g6 xG as Evaluate 9. Chance mean **5.29**. Pairs 3. **Cycle 2 abort.** | Outlet did not unstick g2. Bank kept 2/5. |
+| **`--from-snapshot` + play mix** | Carry books into game 0. Scorecard prints `playMix` / `openingMatchesRetrieve`. | Retention is a protocol, not a slogan. |
+| **F2 OZ outlet (`be9be08`)** | Shallow OZ F2 wide ahead of F1. pr7 count 57→106; pr8 263→282, Shot 1, Offside 1. | Second man as an outlet. Goldens moved on purpose. |
+| **`ser-emp-18` Evaluate 11** | Δ xG **+0.443**. Chance mean **4.71**. g2 home **3** offs. Pairs 3. Not credited. | F2 lead the instant the puck nicks OZ. Control g0 4–2 / xG 0.70 vs live 2–6 / 0.15. |
+| **`ser-retain-1`** | Carry emp-17 after-g6. g0 v8→v9, xG 0.386 vs seed-fresh 0.152. Still 122. **Not a bank slot.** | Survive yes. Transfer no. Confirmatory leftover. |
 
 ### The 7-game card (`ser-emp-7`)
 
@@ -505,7 +509,7 @@ These are not hypothetical. They showed up in design review or PR review and wou
 2. **Cite or discard.** If an agent is allowed to change long-term memory, every mutation needs a pointer into a log you already trust.
 3. **Visit tests for graphs.** Assert node names in a stream, not “the prompt looks right.”
 4. **Mirror observations.** Fairness bugs love coordinate frames. Home + away `puck.x ≈ 0` is a one-liner that caught leaks.
-5. **Product of learning is three diffs.** (a) Did the menu write vs a no-write control? (b) Did the next series *start from* that menu? (c) Did the hockey get better? We have (a). We have not run (b). (c) is bank 2/5. Ice edits are not (a) or (b).
+5. **Product of learning is three diffs.** (a) Did the menu write vs a no-write control? (b) Did the next series *start from* that menu? (c) Did the hockey get better? We have (a). We have (b) as **survive** (`ser-retain-1` g0 v8) and **not** as transfer (still 122). (c) is bank 2/5. Ice edits are not (a) or (b).
 6. **Windows native addons fail in CI.** Plan a WASM/JS adapter before you promise sqlite3.
 7. **Local models are adapters.** Reasoning channels, empty `content`, token budgets, and server flags are part of the contract. Ping JSON-in-timeout before a series.
 8. **Short experiments lie about time predicates.** If a trigger is “last three minutes,” a 20s period is always the last three minutes.
@@ -517,10 +521,10 @@ These are not hypothetical. They showed up in design review or PR review and wou
 
 Live counters: [`better-hockey.md`](better-hockey.md) (bank **2/5**). Learning plan: [`knowledge-and-learning.md`](knowledge-and-learning.md). Bibliography: [`ANNOTATED_BIBLIOGRAPHY.md`](ANNOTATED_BIBLIOGRAPHY.md).
 
-1. **Carry-forward (`--from-snapshot`).** Every Evaluate has been a fresh seed book. That cannot prove the staff *kept* the lesson. Series B must open from series A’s after-game-6 JSON. Retention Evaluate does not steal a quality-bank slot.
-2. **F2 support on the OZ carry** (hockey volume). Chance mean stayed under 6. Ice is environment.
+1. **F2 outlet only in established OZ (`BLUE+8`).** Evaluate 11 leaked 3 home offs at the attacking blue (tick 46 on 122). Ice is environment. Counting Evaluate 12.
+2. **Retrieve/AAR targeting.** Carry survived; retrieve still ranks leftover 122. Loser `add_counter` on 122 makes it stickier (`COUNTER_BONUS` 0.25 vs net 1.84). Learning Evaluate `ser-retain-2` does not steal a quality-bank slot.
 3. **Captain micro** stays off. **HITL later.**
-4. Glimmer was **killed**. Do not restart `:8080` or 8787 unless asked. Do not raise timeouts.
+4. Glimmer is **up** on `:8080` this session. Do not restart 8787. Do not raise timeouts.
 5. Keep `AGENTS.md` honest: `src/ice/` is environment. Playbooks are agent memory. `--aar-mode code` is not `--no-llm`. We do **not** compile LangGraph `store` today.
 
 ---
@@ -542,4 +546,4 @@ Live counters: [`better-hockey.md`](better-hockey.md) (bank **2/5**). Learning p
 
 ---
 
-*Generated 2026-08-26. `main` is playable. Write path proven. Retention across series not proven. Quality bank 2/5. Glimmer down. HITL not in v1.*
+*Generated 2026-08-26. `main` is playable. Write path proven. Retention survive proven; transfer failed (still 122). Quality bank 2/5. Glimmer up. HITL not in v1.*

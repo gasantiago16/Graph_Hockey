@@ -4,7 +4,7 @@
 | --- | --- |
 | **Author** | Graph_Hockey staff (design) |
 | **Date** | 2026-08-26 |
-| **Status** | **Cycle 2 aborted (bank 2/5).** Write path proven. Retention across series **not** proven. Quality last-two Δ xG +0.097 uncashed (chance mean). Plan: [`knowledge-and-learning.md`](knowledge-and-learning.md). |
+| **Status** | **Cycle 3 attempt 1 not credited (bank 2/5).** Write path proven. Retention **survive** proven (`ser-retain-1`); **transfer** of a different skill failed (still `5v5-122-forecheck`). Evaluate 11 Δ xG **+0.443** uncashed (chance mean 4.71, g2 home 3 offs, pairs 3). Plan: [`knowledge-and-learning.md`](knowledge-and-learning.md). |
 | **Repo** | `C:\Users\gasan\Graph_Hockey` (private, `main` playable) |
 | **Success criterion** | **Five empirical improvements.** Not five attempts. Not five version bumps. Not “stop when the numbered PR stack is done.” Keep cycling (including a **post-stack Diagnose menu**) until `improvements == 5` or the user stops. |
 | **PLAN_ID** | `f1d4bdeb` (resume leftover PRs with `/execute-plan --resume f1d4bdeb` after Evaluate context) |
@@ -20,21 +20,21 @@ This is the live **quality** scoreboard. Update it after every counting Evaluate
 | Proof | Status | What we measured |
 | --- | --- | --- |
 | **Write path** | **Proven** | Live books v1→v8. `--no-llm` stays v1. AAR is background memory write. |
-| **Retain / transfer** | **Not proven across series** | Every Evaluate is a **fresh sqlite + seed books**. v8 snapshots exist on disk and are not the next g0. Home still opens `5v5-122-forecheck`. |
-| **Hockey quality** | **Bank 2 / 5** | Credited Δ xG −0.376 then −0.071. Evaluate 9–10 Δ **+0.097** missed chance mean. Ice repairs are environment, not the graph. |
+| **Retain / transfer** | **Survive yes · transfer no** | `ser-retain-1` carried `ser-emp-17` after-game-6: g0 books **v8→v9**, g0 xG **0.386** vs seed-fresh **0.152**. `retrieveTop` still `5v5-122-forecheck` every game (confirmatory). |
+| **Hockey quality** | **Bank 2 / 5** | Credited Δ xG −0.376 then −0.071. Evaluate 11 Δ **+0.443** missed chance mean, offs band, pairs. Ice repairs are environment, not the graph. |
 
 | Counter | Value | Notes |
 | --- | --- | --- |
 | **Bank** (goal) | **2 / 5** | Kept on cycle abort. Next credit `homeΔxG > −0.071` **and** pairs ≥ **4** **and** chance mean ≥ 6 |
-| Previous-best home Δ xG | **−0.071** | `ser-emp-15` g0→g6. Unchanged |
-| Previous-best pairs | **4** | Evaluate 8. Evaluates 9–10 pairs 3 |
+| Previous-best home Δ xG | **−0.071** | `ser-emp-15` g0→g6. Unchanged (Evaluate 11 +0.443 not credited) |
+| Previous-best pairs | **4** | Evaluate 8. Evaluates 9–11 pairs 3 |
 | Cycle | **3** | Cycles 1 and 2 aborted. Bank kept. Attempts reset |
-| Attempts this cycle | **0 / 5** | After Evaluate 10 abort |
-| Flat streak | **0 / 3** | Reset on abort |
-| On `main` | … + high-slot `70c4b3b` + **DZ outlet** `c92df85` | DZ F1 pass-to-outlet else clear |
-| Glimmer | **down** (killed; do not restart unless asked) | Live Evaluates wait. Ice + `npm test` do not. Do not restart 8787. |
-| Learning proofs | write **yes** · retain **no** · quality **2/5** | See [`knowledge-and-learning.md`](knowledge-and-learning.md) |
-| Goldens | pr7 `1378ddf6…` count **57**; pr8 `4ced9501…` count **263**, epochs **11** | DZ outlet moved pr8. Shot **0**, Offside **0** (was 2). pr7 unchanged |
+| Attempts this cycle | **1 / 5** | Evaluate 11 counted, not credited |
+| Flat streak | **1 / 3** | Evaluate 11 |
+| On `main` | carry `--from-snapshot` `7edabe9` + play mix `dd4cd03` + **F2 OZ outlet** `be9be08` | pr7 `8ad26e09` count 106; pr8 `98ab8f59` count 282 epochs 13 Shot 1 Offside 1 |
+| Glimmer | **up** `:8080` (this session; do not restart 8787) | Timeouts not raised (`GRAPH_HOCKEY_EPOCH_TIMEOUT_MS=8000` from `.env`). |
+| Learning proofs | write **yes** · retain survive **yes** · transfer **no** · quality **2/5** | See [`knowledge-and-learning.md`](knowledge-and-learning.md) |
+| Goldens | pr7 `8ad26e09…` count **106**; pr8 `98ab8f59…` count **282**, epochs **13** | F2 OZ outlet moved both. Shot **0/1**, Offside **0/1**. |
 
 ### Evaluate 1 — `ser-emp-8` (2026-08-26)
 
@@ -100,7 +100,10 @@ Control twin (`ser-emp-9-nollm`): books v1, retrieveTop 0/6, offsides 0–2 (g6 
 | Film chance-pair | `db2a458` on `main` | Same play+zone goal/shot/save pair under Jaccard 0.3 | Evaluate 8 (**improved**) |
 | Ice high-slot shot | `70c4b3b` on `main` | Ice-source OZ shots wait for BLUE+20 (carry). Overlay shoot/crash still BLUE-8 | Evaluate 9 (**not credited**) |
 | DZ outlet pass | `c92df85` on `main` | DZ F1 passes to a mate 8 ft up-ice, else clears. Ice pass beats overlay dump in DZ only | Evaluate 10 (**not credited**, cycle abort) |
-| Three-proofs plan | docs on `main` | Carry-forward `--from-snapshot`; retention ≠ quality bank | never (this slice) |
+| Three-proofs plan | `a89c46d` on `main` | Carry-forward `--from-snapshot`; retention ≠ quality bank | never |
+| `--from-snapshot` | `7edabe9` on `main` | Restore snapshot books before game 0. `--from-db` copies another sqlite. `--no-llm` does not mutate | Retention Evaluate |
+| Series play mix | `dd4cd03` on `main` | `playMix` + `openingMatchesRetrieve` on scorecard | never |
+| F2 OZ carry outlet | `be9be08` on `main` | Shallow OZ F2 wide ahead of F1; deep slot support-below | Evaluate 11 |
 | PR-5 Ds tag-up | [#5](https://github.com/gasantiago16/Graph_Hockey/pull/5) | closed; absorbed into `c1e7707` | — |
 | PR-6 captain | skipped | env off | — |
 | PR-7 `lpTrail` flag | [#4](https://github.com/gasantiago16/Graph_Hockey/pull/4) | draft | never |
@@ -377,12 +380,70 @@ g0 eventHash **`85fa9942`** matches Evaluate 9 g0. g6 xG **1.015** matches Evalu
 
 Bank stays 2. Do not raise timeouts. Do not change the Δ xG bar. Do **not** revert high-slot or DZ outlet — g0/g6 quality is the best we have measured (xG 0.92 → 1.02, 4–1). The floor fail is **quiet middle games** (g1/g2/g3/g5).
 
-**Cycle 3 — two tracks** (see [`knowledge-and-learning.md`](knowledge-and-learning.md)):
+**Cycle 3 — ran:** `--from-snapshot` `7edabe9`, play mix `dd4cd03`, F2 OZ outlet `be9be08`. Cards below. Do not restart 8787. Timeouts not raised.
 
-1. **Learning (recommended next code):** `--from-snapshot` so series B opens from series A’s after-game-6 books. Retention Evaluate `ser-retain-1` when Glimmer is back. **Does not** increment the quality bank.
-2. **Hockey:** F2 support on the OZ carry so the high-slot walk has an outlet. Goal: chance mean ≥ 6. Counting quality Evaluate 11 when Glimmer is back.
+### Evaluate 11 — `ser-emp-18` (2026-08-26)
 
-Glimmer is down. Do not restart `:8080` or 8787 unless asked. `--from-snapshot` unit tests do not need an LLM.
+F2 OZ outlet `be9be08`. Same protocol. Twin `ser-emp-18-nollm` (ice hashes **moved** vs Evaluate 10 twin). Timeout 8000. Not raised. Glimmer up on `:8080`.
+
+| Gate | Result |
+| --- | --- |
+| Control honest | **pass** — v1, retrieveTop 0/6, `booksMoved` false. Offsides 0–2 (max away 2). Control g0 is a **4–2** home win, xG **0.699**, OZ **35s** |
+| Live writes books | **pass** — v1→v8 both. Home retrieveTop **0/6**. Away 0/6 (`5v5-212-forecheck` from g0). `openingMatchesRetrieve` home **7/7** |
+| Lead-protect skating | **pass** — event scan 0 hits. Snapshot `protect-lead` `games` **1** is a leading-only skate (legal) |
+| Offsides 0–2 | **fail** — g2 home **3** (ticks 46 / 192 / 157, all `5v5-122-forecheck`). Control g2 home **0** — not twin ice noise |
+| Chance mean | **4.71** (2,8,7,1,3,4,8) < 6 (**floor fail**) |
+| Pairs `--compare 0,6` | **3** < 4 (**floor fail**). Two away-212 DZ goals + one home 122-OZ goal→goal |
+| Home Δ xG g0→g6 | **+0.443** (0.152 → 0.595) > −0.071 (would credit) |
+
+**Improved: no.** Bank **2 / 5**. Cycle 3 attempt 1, flat 1. Do not cash Δ xG while chance mean, offs, and pairs miss.
+
+Live card:
+
+| G | Score | Home retrieve | Away retrieve | Home ch/off | Away ch/off |
+| --- | --- | --- | --- | --- | --- |
+| 0 | 2–6 away | `5v5-122-forecheck` | `5v5-212-forecheck` | 2 / 0 | 11 / 0 |
+| 1 | 3–1 home | `5v5-122-forecheck` | `5v5-212-forecheck` | 8 / 0 | 1 / 2 |
+| 2 | 4–3 home | `5v5-122-forecheck` | `5v5-212-forecheck` | 7 / **3** | 5 / 0 |
+| 3 | 1–0 home | `5v5-122-forecheck` | `5v5-212-forecheck` | 1 / 1 | 3 / 1 |
+| 4 | 2–4 away | `5v5-122-forecheck` | `5v5-212-forecheck` | 3 / 0 | 6 / 1 |
+| 5 | 1–2 away | `5v5-122-forecheck` | `5v5-212-forecheck` | 4 / 1 | 3 / 1 |
+| 6 | 3–3 tie | `5v5-122-forecheck` | `5v5-212-forecheck` | 8 / 2 | 5 / 1 |
+
+g0 OZ **8s** / DZ **26s**, xG **0.152** vs control **0.699** / OZ **35s**. Live playMix g0: 122×14 + breakout×11. g3 AAR boosted **`pk1-box`** (win, even-strength xG 0, digest `topPlay=pk1-box` share 100%). g6 playMix 122 / dz-collapse / ot-3v3 / oz-cycle — not protect-lead.
+
+**Diagnose:** F2 `alongPuck+10` the instant `ozLive` (puck just over BLUE) is an entry lead. g2/g5/retain share a **tick-46 seq-133** home offside on 122. Control never hits that. Do **not** revert high-slot. Do **not** treat Δ +0.443 as the graph learning — g0 collapsed versus `--no-llm` on the same ice. Next ice: F2 outlet only after the puck is established (`BLUE+8`, same gate as dump-chase). Learning hole is separate: leftover 122 net xG (+1.84) always beats `oz-cycle-low` (0); loser `add_counter` on 122 adds `COUNTER_BONUS` and makes 122 *stickier*.
+
+### Retention — `ser-retain-1` (2026-08-26) — **not a quality-bank slot**
+
+Carry `data/playbook-snapshots/ser-emp-17/after-game-6.json` into a fresh sqlite. Same 7×20s seed 7, xAI vs Glimmer, `--aar-mode code`. Seed-fresh twin is Evaluate 11 `ser-emp-18`. Control is `ser-emp-18-nollm`.
+
+| Gate | Result |
+| --- | --- |
+| `carriedFromSnapshot` | **true** |
+| g0 playbookVersion > 1 | **pass** — home/away **8→9** (seed-fresh is 1→2) |
+| g0 stats / hockey differ from seed-fresh | **pass** — g0 xG **0.386** vs **0.152**; score **2–2** vs **2–6**; OZ **14s** vs **8s** |
+| `--no-llm` still v1 | **pass** — `ser-emp-18-nollm` |
+| Transfer (different skill) | **fail** — `retrieveTop` still `5v5-122-forecheck` 0/6 both. After g6: 122 net **+4.05** / 14 games; cycle net **0**. Menu did not move |
+| Beneficial transfer (optional) | **mixed** — carry g0 xG better than seed-fresh; chance mean **4.43** worse; g0 and g5 home **3** offs |
+
+Carry card:
+
+| G | Score | Home v | Home ch/off | Notes |
+| --- | ---: | ---: | ---: | --- |
+| 0 | 2–2 | 8→9 | 4 / **3** | tick-46 seq-133 122 offside again |
+| 1 | 3–2 home | 9→10 | 8 / 0 | |
+| 2 | 1–1 | 10→11 | 3 / 2 | |
+| 3 | 1–0 home | 11→12 | 1 / 1 | eventHash **matches** emp-18 g3 (`b3826478…`) |
+| 4 | 2–4 away | 12→13 | 3 / 0 | eventHash **matches** emp-18 g4 (`8ebaa436…`) |
+| 5 | 1–1 | 13→14 | 4 / **3** | tick-46 seq-133 again |
+| 6 | 3–3 | 14→15 | 8 / 2 | g6 xG **0.595** same as emp-18 g6 |
+
+g3/g4 hash match is confirmatory 122 leftover (same seed + same opening sheet), not a new skill. Quality bank **not** used.
+
+**Retention: survive PASS. Transfer FAIL.** Next learning PR (not this ice slice): stop loser `add_counter` on the play they just lost with, and/or rank retrieve by rate so leftover 122 net cannot lock the OZ menu forever. `COUNTER_BONUS` 0.25 cannot beat cumulative net **1.84**.
+
+**Cycle 3 next (quality):** F2 outlet only when `alongPuck > BLUE+8` (established OZ), else support-below. Counting Evaluate 12. Do not raise timeouts. Do not change the Δ xG bar.
 
 ### Dump-in golden move (intentional)
 
