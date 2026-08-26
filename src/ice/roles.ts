@@ -91,6 +91,9 @@ export function computeIceIntent(world: WorldState, side: Side): IceIntent {
       } else if (!inOwnCrease(world, side, puck)) {
         intent.targets[f1.id] = { x: puck.x, y: puck.y };
       }
+    } else if (taggingUp) {
+      intent.f1Action = "pass";
+      intent.targets[f1.id] = alongWorld(dir, ONSIDE_ALONG, f1.pos.y, f1.radius);
     } else if (z === "OZ" && world.shotLock[side]) {
       intent.f1Action = "pass";
     } else {
@@ -133,6 +136,7 @@ export function computeIceIntent(world: WorldState, side: Side): IceIntent {
     } else {
       dsAlong = -BLUE_LINE_X + 4;
     }
+    if (taggingUp) dsAlong = Math.min(dsAlong, ONSIDE_ALONG);
     intent.targets[dsBody.id] = alongWorld(dir, dsAlong, puck.y * 0.4, dsBody.radius);
   }
   if (dwBody) {

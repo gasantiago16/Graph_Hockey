@@ -263,6 +263,7 @@ export function maybeReleasePuck(world: WorldState): boolean {
   if (!id) return false;
   const body = world.bodies[id];
   if (!body || isGoalie(body)) return false;
+  if (world.delayedOffside?.attacking === body.side) return false;
   const play = playForSide(world, body.side);
   const { policy, source } = releasePolicy(world, body.side, play);
   if (policy === "cycle" || policy === "hold") return false;

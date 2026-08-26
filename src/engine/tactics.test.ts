@@ -339,6 +339,25 @@ describe("pass / shoot release", () => {
     expect(world.stickRelease).toBe("shot");
   });
 
+  it("does not release while delayed offside for the attacking side", () => {
+    const book = loadPlaybook("expansion");
+    const world = createWorld({
+      delayedOffside: { attacking: "home" },
+      playId: { home: "5v5-212-forecheck", away: DEFAULT_PLAY_ID },
+      playbooks: { home: book, away: book },
+      directives: {
+        home: { playId: "5v5-212-forecheck", pressure: "aggressive", playParams: { shotPolicy: "shoot" } },
+        away: defaultDirective(),
+      },
+      puck: { pos: { x: 50, y: 0 }, possessor: "h-C" },
+      bodies: {
+        "h-C": { pos: { x: 50, y: 0 }, heading: 0, vel: { x: 0, y: 0 } },
+      },
+    });
+    expect(maybeReleasePuck(world)).toBe(false);
+    expect(world.puck.possessor).toBe("h-C");
+  });
+
   it("locked overlay shoot with a receiver passes instead of holding", () => {
     const book = loadPlaybook("expansion");
     const world = createWorld({

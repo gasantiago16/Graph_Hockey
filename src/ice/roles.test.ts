@@ -73,6 +73,21 @@ describe("computeIceIntent five-man", () => {
     expect(t.x).toBeGreaterThan(-80);
   });
 
+  it("Ds tags up to ONSIDE_ALONG on delayed offside", () => {
+    const world = createWorld({
+      delayedOffside: { attacking: "home" },
+      puck: { pos: { x: 40, y: 0 }, possessor: "h-C" },
+      bodies: {
+        "h-C": { pos: { x: 40, y: 0 } },
+        "h-LD": { pos: { x: 32, y: 6 } },
+        "h-RD": { pos: { x: 28, y: -8 } },
+      },
+    });
+    const ice = computeIceIntent(world, "home");
+    const ds = ice.roles["h-LD"] === "Ds" ? "h-LD" : "h-RD";
+    expect(ice.targets[ds]!.x).toBeCloseTo(BLUE_LINE_X - 4, 5);
+  });
+
   it("F3 holds the attacking blue until the puck is in the OZ", () => {
     const nz = createWorld({
       puck: { pos: { x: 0, y: 0 }, possessor: "h-C" },

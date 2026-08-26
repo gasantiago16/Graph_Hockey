@@ -22,7 +22,7 @@ import {
   type RuleEmit,
 } from "./rules.ts";
 import { createRng } from "./rng.ts";
-import { END_ZONE_FACEOFF_X, GOAL_LINE_X, HASH_OFFSET_Y, NZ_FACEOFF_X } from "./rink.ts";
+import { BLUE_LINE_X, END_ZONE_FACEOFF_X, GOAL_LINE_X, HASH_OFFSET_Y, NZ_FACEOFF_X } from "./rink.ts";
 import { advanceWorld } from "./step.ts";
 import { addBenchLine, createWorld, defaultDirective } from "./world.ts";
 import type { MatchEvent } from "../types/events.ts";
@@ -399,6 +399,23 @@ describe("offside", () => {
     expect(world.phase).toBe("whistle");
     expect(world.faceoffSpot).toEqual({ x: NZ_FACEOFF_X, y: HASH_OFFSET_Y });
     expect(world.lastEvents.some((e) => e.type === "Offside")).toBe(true);
+  });
+
+  it("NZ offside faceoff pulls leftover attackers back onside", () => {
+    const world = createWorld({
+      phase: "whistle",
+      whistle: "offside",
+      faceoffSpot: { x: NZ_FACEOFF_X, y: HASH_OFFSET_Y },
+      puck: { pos: { x: 40, y: 0 }, possessor: null },
+      bodies: {
+        "h-LD": { pos: { x: 40, y: 8 }, vel: { x: 0, y: 0 }, heading: 0 },
+        "h-C": { pos: { x: 30, y: 0 }, vel: { x: 0, y: 0 }, heading: 0 },
+      },
+    });
+    advanceWorld(world, dirs, createRng(1));
+    expect(world.phase).toBe("faceoff_drop");
+    expect(world.bodies["h-LD"]!.pos.x).toBeLessThanOrEqual(BLUE_LINE_X - 4 + 1e-6);
+    expect(world.puck.pos.x).toBeCloseTo(NZ_FACEOFF_X, 5);
   });
 });
 

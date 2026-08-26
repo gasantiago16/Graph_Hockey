@@ -249,6 +249,24 @@ export function alignFaceoffCenters(world: WorldState): void {
   }
 }
 
+/** After offside, everyone but C kept their OZ spots — next drop immediately offsides again. */
+export function clampAttackersOnsideAtFaceoff(world: WorldState): void {
+  const spot = world.faceoffSpot ?? CENTER_ICE;
+  const cap = BLUE_LINE_X - 4;
+  for (const side of ["home", "away"] as const) {
+    const dir = world.attackingDir[side];
+    if (spot.x * dir > BLUE_LINE_X) continue;
+    for (const id of world.onIce[side]) {
+      const b = world.bodies[id];
+      if (!b || isGoalie(b)) continue;
+      if (b.pos.x * dir <= cap) continue;
+      b.pos.x = dir * cap;
+      b.vel.x = 0;
+      b.vel.y = 0;
+    }
+  }
+}
+
 function playerIdFromContact(c: ContactEvent): PlayerId | null {
   const id = c.a === "puck" ? c.b : c.a;
   return id === "puck" ? null : id;
@@ -1411,6 +1429,7 @@ export function prepareFaceoff(world: WorldState, emit: RuleEmit): void {
   world.puck.pos.y = spot.y;
   world.puck.possessor = null;
   alignFaceoffCenters(world);
+  clampAttackersOnsideAtFaceoff(world);
 }
 
 export function completeFaceoff(world: WorldState, rng: Rng, emit: RuleEmit): void {
