@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | **Date** | 2026-08-26 |
-| **Status** | Cycle 4 attempt 2. Bank **2/5**. Write path proven. Retention survive proven. Transfer: Evaluate 15 retrieveTop **`oz-cycle-low`** (menu moved; skating still mostly 122). Quality not credited (chance mean 3.86). |
+| **Status** | Cycle 4 aborted (bank **2/5**). Leftover retrieve #1 skated (Evaluate 16 g1 trap). Unused expired (cycle games 1). Quality not credited. Next: do not boost PP/PK when 5v5 was on the ice. |
 | **Scoreboard** | [`better-hockey.md`](better-hockey.md) |
 | **Bibliography** | [`ANNOTATED_BIBLIOGRAPHY.md`](ANNOTATED_BIBLIOGRAPHY.md) |
 | **Handbook** | [`FORgasan.md`](FORgasan.md) |
