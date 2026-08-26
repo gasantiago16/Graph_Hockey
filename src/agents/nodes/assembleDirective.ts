@@ -1,7 +1,8 @@
 import type { PlayParams, SpecialistMemo, SpecialistParams, TeamDirective } from "../../types/directive.ts";
-import { DEFAULT_PLAY_ID, type Playbook } from "../../types/play.ts";
+import { DEFAULT_PLAY_ID, type Play, type Playbook, type PlayStrength } from "../../types/play.ts";
 import { defaultDirective } from "../../engine/world.ts";
 import { asPlayStrength, isLeadProtectPlay } from "../../playbook/retrieve.ts";
+import type { Zone } from "../../types/hockey.ts";
 import { defaultPlayIdForBook, resolvePlay } from "../../playbook/store.ts";
 import type { TeamGraphNode, TeamGraphStateType } from "../state.ts";
 import { scoreStateFromObservation, type SpecialistId } from "./situation.ts";
@@ -24,6 +25,12 @@ function applyDcParams(playParams: PlayParams, params: SpecialistParams, zone: "
   if (zone === "DZ" && params.dz !== undefined) playParams.dz = params.dz;
 }
 
+function lastFitsObservation(play: Play, zone: Zone, strength: PlayStrength): boolean {
+  if (play.strength.length > 0 && !play.strength.includes(strength)) return false;
+  if (play.zoneBias.length > 0 && !play.zoneBias.includes("any") && !play.zoneBias.includes(zone)) return false;
+  return true;
+}
+
 function stUnit(playStr: string, last: TeamDirective): "PP1" | "PP2" | "PK1" | "PK2" {
   if (last.specialTeams?.unit) return last.specialTeams.unit;
   return playStr === "PK" ? "PK1" : "PP1";
@@ -31,8 +38,8 @@ function stUnit(playStr: string, last: TeamDirective): "PP1" | "PP2" | "PK1" | "
 
 /**
  * §10.4 merge table. HC owns playId/pressure/bench on macro. Micro: drop leftover
- * lead-protect when not leading; else captain playId if retrieved, else lastDirective.
- * Specialist playIdSuggestion is advisory.
+ * lead-protect when not leading, or last play that fails zone/strength;
+ * else captain if retrieved, else lastDirective.
  */
 export function mergeAssembleDirective(state: TeamGraphStateType, playbook: Playbook): TeamDirective {
   const last = state.lastDirective ?? defaultDirective(DEFAULT_PLAY_ID);
@@ -55,7 +62,10 @@ export function mergeAssembleDirective(state: TeamGraphStateType, playbook: Play
   let playId: string;
   if (isMicro) {
     const lastPlay = resolvePlay(last.playId, playbook);
-    if (isLeadProtectPlay(lastPlay) && scoreStateFromObservation(state.observation) !== "leading") {
+    const leftoverProtect =
+      isLeadProtectPlay(lastPlay) && scoreStateFromObservation(state.observation) !== "leading";
+    const leftoverFit = !lastFitsObservation(lastPlay, zone, playStr);
+    if (leftoverProtect || leftoverFit) {
       playId = retrieved.find((p) => !isLeadProtectPlay(p))?.id ?? defaultPlayIdForBook(playbook);
     } else {
       const sug = captain?.playIdSuggestion;

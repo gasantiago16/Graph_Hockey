@@ -165,6 +165,25 @@ describe("assemble_directive merge table §10.4", () => {
     expect(directive.playId).not.toBe("protect-lead-1-1-3");
   });
 
+  it("micro assemble DZ + last 122 dump uses retrieved breakout", () => {
+    const observation = obs({
+      epochKind: "micro",
+      epochReason: "possession_review",
+      zone: "DZ",
+      score: { us: 1, them: 1 },
+    });
+    const directive = mergeAssembleDirective(
+      st({
+        observation,
+        epochKind: "micro",
+        lastDirective: { playId: "5v5-122-forecheck", pressure: "aggressive" },
+      }),
+      book,
+    );
+    expect(directive.playId).toBe("5v5-breakout-d-to-winger");
+    expect(directive.playId).not.toBe("5v5-122-forecheck");
+  });
+
   it("goalie only from goalie memo; notesForCaptain from HC", () => {
     const directive = mergeAssembleDirective(
       st({

@@ -4,7 +4,7 @@
 | --- | --- |
 | **Author** | Graph_Hockey staff (design) |
 | **Date** | 2026-08-26 |
-| **Status** | **Cycle 2 — F2 tighten on `main`, Evaluate 6 next.** Bank **1/5**. |
+| **Status** | **Cycle 2, Evaluate 6 not credited (bank 1/5).** F2 tighten fixed g0 offsides. Chance mean failed. |
 | **Repo** | `C:\Users\gasan\Graph_Hockey` (private, `main` playable) |
 | **Success criterion** | **Five empirical improvements.** Not five attempts. Not five version bumps. Not “stop when the numbered PR stack is done.” Keep cycling (including a **post-stack Diagnose menu**) until `improvements == 5` or the user stops. |
 | **PLAN_ID** | `f1d4bdeb` (resume leftover PRs with `/execute-plan --resume f1d4bdeb` after Evaluate context) |
@@ -21,11 +21,11 @@ This is the live scoreboard. Update it after every counting Evaluate. Handbook: 
 | Previous-best home Δ xG | **−0.376** | `ser-emp-9` g0→g6. Unchanged |
 | Previous-best pairs | **3** | Evaluate 2. Evaluates 3–5 all pairs 0–1 |
 | Cycle | **2** | Cycle 1 aborted. Attempts reset. Bank kept |
-| Attempts this cycle | **0 / 5** | Evaluate 6 is attempt 1 |
-| Flat streak | **0 / 3** | Reset on new cycle |
+| Attempts this cycle | **1 / 5** | Evaluate 6 counted |
+| Flat streak | **1 / 3** | Chance mean 4.57 and pairs 0 |
 | On `main` | dump-in + AAR 5v5 + F2 chase `78b17cb` + **F2 tighten** | Deep OZ second man; shallow OZ onside |
 | Glimmer | **running** `:8080 --reasoning off` | Do not restart 8787 unless asked. |
-| Goldens | pr7 `1378ddf6…` count **57**; pr8 `ea244284…` count **259**, epochs **12** | F2 tighten. pr7 unchanged. pr8 Shot **0**, Offside **2** (not a storm) |
+| Goldens | pr7 `1378ddf6…` count **57**; pr8 `9dae311e…` count **280**, epochs **11** | DZ leftover assemble. pr7 unchanged. pr8 Shot **0**, Offside **2** |
 
 ### Evaluate 1 — `ser-emp-8` (2026-08-26)
 
@@ -86,7 +86,8 @@ Control twin (`ser-emp-9-nollm`): books v1, retrieveTop 0/6, offsides 0–2 (g6 
 | PR-4 dump-in | `f689802` on `main` | NZ ice `clear` beats overlay dump; goldens moved (explained) | Evaluate 3 (**not credited**) |
 | AAR 5v5 lesson | `6f01c3e` on `main` | `codeDraft` prefers 5v5/3v3 xG over PP/PK/EN | Evaluate 4 (**not credited**) |
 | F2 dump-chase | `78b17cb` on `main` | OZ loose puck: F2 contests. NZ stays onside | Evaluate 5 (**not credited**, cycle abort) |
-| F2 tighten | on `main` | Deep OZ only (`BLUE+8`), second man `alongPuck-6` | counting Evaluate 6 |
+| F2 tighten | `66d96d0` on `main` | Deep OZ only (`BLUE+8`), second man `alongPuck-6` | Evaluate 6 (**not credited**) |
+| DZ leftover assemble | on `main` | Micro drops last play that fails zone/strength (122 in DZ → breakout) | counting Evaluate 7 |
 | PR-5 Ds tag-up | [#5](https://github.com/gasantiago16/Graph_Hockey/pull/5) | closed; absorbed into `c1e7707` | — |
 | PR-6 captain | skipped | env off | — |
 | PR-7 `lpTrail` flag | [#4](https://github.com/gasantiago16/Graph_Hockey/pull/4) | draft | never |
@@ -193,7 +194,39 @@ g0 AAR boosted **122** (share 81%). g5/g6 home OZ time **8s / 3s** vs DZ **12s /
 
 Bank stays 1. Do not raise timeouts. Do not change the Δ xG bar. F2 dump-chase stays (control got more shots; pr8 Offside 0) but live g0 leaked 3 offsides and later games collapsed into the DZ.
 
-**Cycle 2 PR-1 (shipping):** F2 OZ contest only when the puck is **already past `BLUE_LINE_X + 8`**, second man at `alongPuck - 6`. Shallow OZ / NZ / tag-up stay onside trailers. pr7 unchanged. Then counting Evaluate 6 (`ser-emp-13`). Need Δ xG **> −0.376** and pairs ≥ **3**.
+**Cycle 2 PR-1 (shipped `66d96d0`):** F2 tighten. Evaluate 6 ran.
+
+### Evaluate 6 — `ser-emp-13` (2026-08-26)
+
+F2 tighten `66d96d0`. Same protocol. Twin `ser-emp-13-nollm`. Timeout 8000.
+
+| Gate | Result |
+| --- | --- |
+| Control honest | **pass** — v1, retrieveTop 0/6. Control g2 home 3 offs is ice noise on the twin, not a live fail |
+| Live writes books | **pass** — v1→v8. Home retrieveTop 0/6. Away 0/6 (crash-net from g0). AAR wrote 122 |
+| Lead-protect skating | **pass** — 0 hits; snapshot games **0** |
+| Offsides 0–2 | **pass** — g0 home **0** (was 3 on Evaluate 5) |
+| Chance mean | **4.57** (9,0,1,6,3,5,8) < 6 (**floor fail**) |
+| Pairs `--compare 0,6` | **0** < 3 |
+| Home Δ xG g0→g6 | **−0.365** **would** beat −0.376 |
+
+**Improved: no.** Bank **1 / 5**. Cycle 2 attempt 1, flat 1. Δ xG moved; chance mean and pairs did not.
+
+Live card:
+
+| G | Score | Home retrieve | Away retrieve | Home ch/off | Away ch/off |
+| --- | --- | --- | --- | --- | --- |
+| 0 | 2–2 tie | `5v5-122-forecheck` | `oz-crash-net` | 9 / 0 | 2 / 1 |
+| 1 | 1–5 away | `5v5-122-forecheck` | `oz-crash-net` | **0** / 1 | 14 / 1 |
+| 2 | 1–2 away | `5v5-122-forecheck` | `oz-crash-net` | 1 / 1 | 7 / 1 |
+| 3 | 0–4 away | `5v5-122-forecheck` | `oz-crash-net` | 6 / 0 | 5 / 0 |
+| 4 | 0–0 tie | `5v5-122-forecheck` | `oz-crash-net` | 3 / 0 | 8 / 1 |
+| 5 | 2–2 tie | `5v5-122-forecheck` | `oz-crash-net` | 5 / 0 | 5 / 0 |
+| 6 | 2–3 away | `5v5-122-forecheck` | `oz-crash-net` | 8 / 0 | 4 / 1 |
+
+g1/g2 home OZ **6s / 2s**, DZ **21s / 33s**. They sat in their own end. `5v5-122-forecheck` `zoneBias` is NZ/OZ only — micro assemble copied last 122 into the DZ.
+
+**Cycle 2 PR-2:** micro assemble: if last play fails zone/strength (not only lead-protect), use first retrieved non-protect (DZ → `5v5-breakout-d-to-winger`). Then Evaluate 7.
 
 ### Dump-in golden move (intentional)
 
