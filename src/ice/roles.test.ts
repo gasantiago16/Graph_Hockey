@@ -22,7 +22,7 @@ describe("computeIceIntent five-man", () => {
     expect(ice.roles["h-RW"]).toBe("F3");
     expect(ice.targets["h-C"]).toBeUndefined();
     expect(ice.targets["h-LW"]!.x).toBeLessThan(30);
-    expect(ice.targets["h-RW"]!.x).toBeGreaterThan(50);
+    expect(ice.targets["h-RW"]!.x).toBeLessThanOrEqual(BLUE_LINE_X);
   });
 
   it("F2 is a wide outlet on an established OZ carry, not a just-in entry lead", () => {
@@ -178,6 +178,18 @@ describe("computeIceIntent five-man", () => {
     const ozIce = computeIceIntent(oz, "home");
     const f3 = ozIce.roles["h-RW"] === "F3" ? "h-RW" : "h-LW";
     expect(ozIce.targets[f3]!.x).toBeGreaterThan(BLUE_LINE_X);
+
+    const justIn = createWorld({
+      puck: { pos: { x: BLUE_LINE_X + 4, y: 0 }, possessor: "h-C" },
+      bodies: {
+        "h-C": { pos: { x: BLUE_LINE_X + 4, y: 0 } },
+        "h-LW": { pos: { x: 10, y: 10 } },
+        "h-RW": { pos: { x: 8, y: -10 } },
+      },
+    });
+    const justIce = computeIceIntent(justIn, "home");
+    const justF3 = justIce.roles["h-RW"] === "F3" ? "h-RW" : "h-LW";
+    expect(justIce.targets[justF3]!.x).toBeLessThanOrEqual(BLUE_LINE_X);
   });
 
   it("F2 contests a loose puck instead of trailing eight feet behind", () => {

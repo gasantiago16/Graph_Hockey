@@ -31,10 +31,10 @@ This is the live **quality** scoreboard. Update it after every counting Evaluate
 | Cycle | **3** | Cycles 1 and 2 aborted. Bank kept. Attempts reset |
 | Attempts this cycle | **2 / 5** | Evaluates 11–12 counted, not credited |
 | Flat streak | **2 / 3** | One more flat aborts the cycle |
-| On `main` | carry `--from-snapshot` `7edabe9` + play mix `dd4cd03` + F2 OZ outlet `be9be08` + **F2 established OZ** | pr7 `8ad26e09` count 106 unchanged; pr8 `d2798fd1` count 286 epochs 11 Shot 0 Offside 1 |
+| On `main` | F2 established `9ddd4f4` + **F3 established OZ** | pr7 `8ad26e09` count 106 unchanged; pr8 `ebbe0e96` count 378 epochs 11 Shot 0 Offside **0** |
 | Glimmer | **up** `:8080` (this session; do not restart 8787) | Timeouts not raised (`GRAPH_HOCKEY_EPOCH_TIMEOUT_MS=8000` from `.env`). |
 | Learning proofs | write **yes** · retain survive **yes** · transfer **no** · quality **2/5** | See [`knowledge-and-learning.md`](knowledge-and-learning.md) |
-| Goldens | pr7 `8ad26e09…` count **106** (unchanged); pr8 `d2798fd1…` count **286**, epochs **11** | Established-OZ F2. Shot **1→0**, Offside **1** (not exploding). |
+| Goldens | pr7 `8ad26e09…` count **106** (unchanged); pr8 `ebbe0e96…` count **378**, epochs **11** | F3 established OZ. Shot **0**, Offside **1→0**. Count up is NZ Contact, not a Shot storm. |
 
 ### Evaluate 1 — `ser-emp-8` (2026-08-26)
 
@@ -105,6 +105,7 @@ Control twin (`ser-emp-9-nollm`): books v1, retrieveTop 0/6, offsides 0–2 (g6 
 | Series play mix | `dd4cd03` on `main` | `playMix` + `openingMatchesRetrieve` on scorecard | never |
 | F2 OZ carry outlet | `be9be08` on `main` | Shallow OZ F2 wide ahead of F1; deep slot support-below | Evaluate 11 (**not credited**) |
 | F2 established OZ | `9ddd4f4` on `main` | F2 outlet only when `alongPuck > BLUE+8`; just-in OZ support-below. pr8 Shot 1→0 Offside 1 | Evaluate 12 (**not credited**) |
+| F3 established OZ | this commit | F3 holds `ONSIDE_ALONG` until `alongPuck > BLUE+8`, then slot. pr8 Offside **1→0**, Shot 0, count 286→378 | Evaluate 13 |
 | PR-5 Ds tag-up | [#5](https://github.com/gasantiago16/Graph_Hockey/pull/5) | closed; absorbed into `c1e7707` | — |
 | PR-6 captain | skipped | env off | — |
 | PR-7 `lpTrail` flag | [#4](https://github.com/gasantiago16/Graph_Hockey/pull/4) | draft | never |

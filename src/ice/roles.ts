@@ -59,7 +59,7 @@ function alongWorld(dir: 1 | -1, along: number, y: number, radius: number): { x:
 
 /**
  * Five-man geometry. F1 hunts or carries; F2 contests a loose puck (dump-and-chase),
- * outlets ahead on an established OZ carry (BLUE+8), else support-below; F3 slot; Ds gaps; Dw weak-side high.
+ * outlets ahead on an established OZ carry (BLUE+8), else support-below; F3 slot once the puck is established; Ds gaps; Dw weak-side high.
  */
 export function computeIceIntent(world: WorldState, side: Side): IceIntent {
   const dir = world.attackingDir[side];
@@ -142,7 +142,8 @@ export function computeIceIntent(world: WorldState, side: Side): IceIntent {
   if (f3) {
     intent.roles[f3.id] = "F3";
     const slotY = (puck.y >= 0 ? -1 : 1) * 10;
-    const f3Along = ozLive ? GOAL_LINE_X - 16 : ONSIDE_ALONG;
+    const f3Along =
+      ozLive && alongPuck > ESTABLISHED_OZ_ALONG ? GOAL_LINE_X - 16 : ONSIDE_ALONG;
     intent.targets[f3.id] = alongWorld(dir, f3Along, slotY, f3.radius);
   }
 
