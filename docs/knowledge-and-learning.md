@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | **Date** | 2026-08-26 |
-| **Status** | Cycle 4 attempt 1. Bank **2/5**. Write path proven. Retention survive proven. Transfer failed (still 122). Evaluate 14 offs pass, chance mean 3.43, still 122. Next: retrieve/AAR. |
+| **Status** | Cycle 4 attempt 2. Bank **2/5**. Write path proven. Retention survive proven. Transfer: Evaluate 15 retrieveTop **`oz-cycle-low`** (menu moved; skating still mostly 122). Quality not credited (chance mean 3.86). |
 | **Scoreboard** | [`better-hockey.md`](better-hockey.md) |
 | **Bibliography** | [`ANNOTATED_BIBLIOGRAPHY.md`](ANNOTATED_BIBLIOGRAPHY.md) |
 | **Handbook** | [`FORgasan.md`](FORgasan.md) |

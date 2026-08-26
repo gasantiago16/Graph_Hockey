@@ -266,6 +266,8 @@ Seven games as a row of books. The loop is the row getting thicker. Quality is w
 | **`ser-emp-20` Evaluate 13** | Offs **0–2**. Chance mean **2.71**. Δ xG **−0.304**. g3/g6 **0** chances. **Cycle 3 abort.** | F3 parked in the NZ. Dump-and-chase had no third man. |
 | **F3 just-in occupy (`f9aa178`)** | Just-in F3 at `alongPuck+4`. Slot after `BLUE+8`. | Third man in the OZ without racing the slot. |
 | **`ser-emp-21` Evaluate 14** | Offs **pass**. Chance mean **3.43**. Δ xG **−0.230**. Pairs 1. g6 4–1 at xG 0.26. Not credited. | No 0-chance games. Quiet 2-chance middle. Still 122. Next is retrieve/AAR, not more F3. |
+| **Retrieve unused (`5f7ca56`)** | Rate rank + unused bonus. Loser counters a different 5v5 sheet. Goldens unchanged. | Menu can leave 122. |
+| **`ser-emp-22` Evaluate 15** | retrieveTop **`oz-cycle-low`**. g1 opened trap. Δ **+0.359**. Chance mean **3.86**, pairs 0. Not credited. | Menu transferred. Skating still mostly 122 (timeout leftover). Unused never expires: cycle `stats.games` stayed 0. |
 
 ### The 7-game card (`ser-emp-7`)
 
@@ -527,8 +529,8 @@ These are not hypothetical. They showed up in design review or PR review and wou
 
 Live counters: [`better-hockey.md`](better-hockey.md) (bank **2/5**). Learning plan: [`knowledge-and-learning.md`](knowledge-and-learning.md). Bibliography: [`ANNOTATED_BIBLIOGRAPHY.md`](ANNOTATED_BIBLIOGRAPHY.md).
 
-1. **Retrieve/AAR targeting.** Offs band has held two live series. Carry survived; retrieve still ranks leftover 122. Loser `add_counter` on 122 makes it stickier. Learning Evaluate `ser-retain-2` does not steal a quality-bank slot.
-2. **Chance mean** is still under 6 (Evaluate 14: 3.43, quiet 2-chance middle games). That may move if retrieve picks a non-dump sheet. Do not start another F3 PR first.
+1. **Timeout / assemble leftover vs retrieve #1.** Evaluate 15 menu is cycle; they still open 122. Unused bonus never expires because cycle `stats.games` stayed 0.
+2. **Chance mean** still under 6 (Evaluate 15: 3.86, g1 0 chances on a trap opening). Do not start another F3 PR.
 3. **Captain micro** stays off. **HITL later.**
 4. Glimmer is **up** on `:8080` this session. Do not restart 8787. Do not raise timeouts.
 5. Keep `AGENTS.md` honest: `src/ice/` is environment. Playbooks are agent memory. `--aar-mode code` is not `--no-llm`. We do **not** compile LangGraph `store` today.
