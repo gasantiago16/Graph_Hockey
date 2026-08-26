@@ -9,6 +9,7 @@ import {
   isLeadProtectPlay,
   playStillValid,
   requiredScoreState,
+  retrieveFallbackId,
   retrievePlays,
   toDigest,
   UNUSED_PLAY_BONUS,
@@ -246,6 +247,14 @@ describe("retrievePlays", () => {
     expect(
       retrievePlays(poisoned, { strength: "5v5", zone: "OZ", scoreState: "trailing" }).map((d) => d.id),
     ).not.toContain("pull-early-template");
+  });
+
+  it("retrieveFallbackId skips lead-protect unless leading", () => {
+    const book = loadPlaybook("original-six");
+    expect(retrieveFallbackId(book, { strength: "5v5", zone: "OZ" })).toBe("5v5-122-forecheck");
+    expect(retrieveFallbackId(book, { strength: "5v5", zone: "DZ", scoreState: "trailing" })).toBe(
+      "5v5-breakout-d-to-winger",
+    );
   });
 
   it("unused legal play ranks above leftover 122 so the menu can move", () => {

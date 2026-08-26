@@ -215,6 +215,13 @@ export function requiredScoreState(play: Pick<Play, "triggers">): ScoreState | u
   return first !== undefined && needs.every((s) => s === first) ? first : undefined;
 }
 
+/** First retrieved play that is legal to skate as leftover (no lead-protect unless leading). */
+export function retrieveFallbackId(book: Playbook, query: RetrieveQuery): string | undefined {
+  return retrievePlays(book, query).find(
+    (p) => query.scoreState === "leading" || !isLeadProtectPlay(p),
+  )?.id;
+}
+
 /** Filter active plays by strength/zone, rank by xG rate + unused look, return top 6 digests. */
 export function retrievePlays(book: Playbook, query: RetrieveQuery): PlayDigest[] {
   const strength = asPlayStrength(query.strength);

@@ -29,6 +29,7 @@ export {
   playStillValid,
   playStrengthFor,
   requiredScoreState,
+  retrieveFallbackId,
   retrievePlays,
   scoreStateFor,
   toDigest,

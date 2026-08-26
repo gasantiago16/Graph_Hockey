@@ -15,7 +15,7 @@ import {
   type MatchBudget,
   type TokenUsage,
 } from "../llm/budgets.ts";
-import { isLeadProtectPlay } from "../playbook/retrieve.ts";
+import { inferThemFamily, isLeadProtectPlay, retrieveFallbackId } from "../playbook/retrieve.ts";
 import { defaultPlayIdForBook, resolvePlay } from "../playbook/store.ts";
 
 export type InvokableTeamGraph = {
@@ -79,30 +79,40 @@ function parseDirective(out: unknown, fallback: TeamDirective): { directive: Tea
   return { directive: parsed.data, ok: true };
 }
 
-function dropLeadProtectLast(
+function retrieveQuery(obs: TeamObservation) {
+  return {
+    strength: obs.strength,
+    zone: obs.zone,
+    scoreState: scoreStateFromObservation(obs),
+    themFamily: inferThemFamily(obs.players),
+  };
+}
+
+function leftoverFromRetrieve(
   last: TeamDirective,
   seedPlayId: string | undefined,
   obs: TeamObservation,
-  playbook: Playbook | undefined,
-): TeamDirective | undefined {
-  if (!playbook) return undefined;
-  const play = resolvePlay(last.playId, playbook);
-  if (isLeadProtectPlay(play) && scoreStateFromObservation(obs) !== "leading") {
-    return defaultDirective(seedPlayId ?? defaultPlayIdForBook(playbook));
+  playbook: Playbook,
+): TeamDirective {
+  const score = scoreStateFromObservation(obs);
+  const lastPlay = resolvePlay(last.playId, playbook);
+  if (isLeadProtectPlay(lastPlay) && score === "leading") {
+    if (last.playParams === undefined) return last;
+    const { playParams: _drop, ...rest } = last;
+    return rest;
   }
-  return undefined;
+  const id =
+    retrieveFallbackId(playbook, retrieveQuery(obs)) ?? seedPlayId ?? defaultPlayIdForBook(playbook);
+  return defaultDirective(id);
 }
 
-/** Opening last is default-structure. Timeout must not freeze that, a stale overlay, or leftover 1-1-3 while not leading. */
+/** Opening last is default-structure. Timeout must not freeze that, leftover 122 vs retrieve #1, or 1-1-3 while not leading. */
 export function timeoutDirective(
   last: TeamDirective,
   seedPlayId?: string,
   opts?: { obs: TeamObservation; playbook: Playbook },
 ): TeamDirective {
-  if (opts) {
-    const dropped = dropLeadProtectLast(last, seedPlayId, opts.obs, opts.playbook);
-    if (dropped) return dropped;
-  }
+  if (opts) return leftoverFromRetrieve(last, seedPlayId, opts.obs, opts.playbook);
   if (seedPlayId && last.playId === DEFAULT_PLAY_ID) return defaultDirective(seedPlayId);
   if (last.playParams === undefined) return last;
   const { playParams: _drop, ...rest } = last;
@@ -128,7 +138,7 @@ export async function invokeTeam(args: {
 }): Promise<TeamInvokeResult> {
   const threadId = epochThreadId(args.matchId, args.side, args.epochIndex);
   const timeoutOpts = args.playbook ? { obs: args.obs, playbook: args.playbook } : undefined;
-  const circuitLast = dropLeadProtectLast(args.last, args.seedPlayId, args.obs, args.playbook) ?? args.last;
+  const circuitLast = timeoutDirective(args.last, args.seedPlayId, timeoutOpts);
 
   if (teamTripped(args.budget, args.side) || gameTripped(args.budget)) {
     return {

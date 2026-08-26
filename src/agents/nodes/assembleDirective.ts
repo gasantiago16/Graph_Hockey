@@ -38,8 +38,8 @@ function stUnit(playStr: string, last: TeamDirective): "PP1" | "PP2" | "PK1" | "
 
 /**
  * §10.4 merge table. HC owns playId/pressure/bench on macro. Micro: drop leftover
- * lead-protect when not leading, or last play that fails zone/strength;
- * else captain if retrieved, else lastDirective.
+ * lead-protect when not leading, last play that fails zone/strength, or last that
+ * is not retrieve #1; else captain if retrieved, else lastDirective.
  */
 export function mergeAssembleDirective(state: TeamGraphStateType, playbook: Playbook): TeamDirective {
   const last = state.lastDirective ?? defaultDirective(DEFAULT_PLAY_ID);
@@ -65,8 +65,9 @@ export function mergeAssembleDirective(state: TeamGraphStateType, playbook: Play
     const leftoverProtect =
       isLeadProtectPlay(lastPlay) && scoreStateFromObservation(state.observation) !== "leading";
     const leftoverFit = !lastFitsObservation(lastPlay, zone, playStr);
-    if (leftoverProtect || leftoverFit) {
-      playId = retrieved.find((p) => !isLeadProtectPlay(p))?.id ?? defaultPlayIdForBook(playbook);
+    const topId = retrieved.find((p) => !isLeadProtectPlay(p))?.id ?? defaultPlayIdForBook(playbook);
+    if (leftoverProtect || leftoverFit || last.playId !== topId) {
+      playId = topId;
     } else {
       const sug = captain?.playIdSuggestion;
       playId = sug && (retrievedIds.has(sug) || sug === DEFAULT_PLAY_ID) ? sug : last.playId;

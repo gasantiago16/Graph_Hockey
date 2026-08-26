@@ -108,6 +108,7 @@ Control twin (`ser-emp-9-nollm`): books v1, retrieveTop 0/6, offsides 0–2 (g6 
 | F3 established OZ | `6a3e6d1` on `main` | F3 holds `ONSIDE_ALONG` until `alongPuck > BLUE+8`, then slot. pr8 Offside 1→0 | Evaluate 13 (**not credited**, cycle abort) |
 | F3 just-in occupy | `f9aa178` on `main` | Just-in OZ F3 at `alongPuck+4`. Slot after `BLUE+8`. pr7 106→107 Shot 0 Offside 0; pr8 count 315 Offside 0 | Evaluate 14 (**not credited**) |
 | Retrieve unused + loser retarget | `5f7ca56` on `main` | Rank retrieve by xG rate + unused-play bonus. Loser `add_counter` on a different even-strength sheet. Goldens unchanged. | Evaluate 15 (**not credited**; retrieveTop cycle) |
+| Leftover skates retrieve #1 | this commit | Timeout/circuit/micro leftover uses retrieveFallbackId, not leftover 122. Leading protect kept. Goldens unchanged. | Evaluate 16 |
 | PR-5 Ds tag-up | [#5](https://github.com/gasantiago16/Graph_Hockey/pull/5) | closed; absorbed into `c1e7707` | — |
 | PR-6 captain | skipped | env off | — |
 | PR-7 `lpTrail` flag | [#4](https://github.com/gasantiago16/Graph_Hockey/pull/4) | draft | never |

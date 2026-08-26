@@ -141,8 +141,31 @@ describe("assemble_directive merge table §10.4", () => {
       }),
       book,
     );
-    expect(miss.playId).toBe("nz-122-trap");
+    expect(miss.playId).toBe("5v5-122-forecheck");
     expect(miss.pressure).toBe("passive");
+  });
+
+  it("micro leftover 122 skates retrieve #1 after 122 has games", () => {
+    const used = {
+      ...book,
+      plays: book.plays.map((p) =>
+        p.id === "5v5-122-forecheck" ? { ...p, stats: { games: 1, xgFor: 0.2, xgAgainst: 0 } } : p,
+      ),
+    };
+    const observation = obs({ epochKind: "micro", epochReason: "possession_review", zone: "NZ" });
+    const retrievedPlays = retrievePlays(used, { strength: "5v5", zone: "NZ", scoreState: "tied" });
+    expect(retrievedPlays[0]?.id).not.toBe("5v5-122-forecheck");
+    const directive = mergeAssembleDirective(
+      st({
+        observation,
+        epochKind: "micro",
+        lastDirective: { playId: "5v5-122-forecheck", pressure: "aggressive" },
+        retrievedPlays,
+      }),
+      used,
+    );
+    expect(directive.playId).toBe(retrievedPlays[0]?.id);
+    expect(directive.playId).not.toBe("5v5-122-forecheck");
   });
 
   it("micro assemble DZ trailing + last protect-lead uses retrieved breakout, not 122", () => {

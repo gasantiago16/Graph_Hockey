@@ -309,6 +309,19 @@ describe("invokeTeam drops lead-protect last when not leading", () => {
     expect(r.directive.playId).toBe("5v5-122-forecheck");
   });
 
+  it("timeout leftover 122 uses retrieve #1 once 122 has games", () => {
+    const used = {
+      ...book,
+      plays: book.plays.map((p) =>
+        p.id === "5v5-122-forecheck" ? { ...p, stats: { games: 1, xgFor: 0.2, xgAgainst: 0 } } : p,
+      ),
+    };
+    const last122: TeamDirective = { playId: "5v5-122-forecheck", pressure: "aggressive" };
+    const playId = timeoutDirective(last122, "5v5-122-forecheck", { obs, playbook: used }).playId;
+    expect(playId).not.toBe("5v5-122-forecheck");
+    expect(playId).toBe("nz-122-trap");
+  });
+
   it("circuit path drops protect-lead when trailing", async () => {
     const budget = createBudget();
     recordLlmUsage(budget, "home", {
