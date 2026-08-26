@@ -64,6 +64,8 @@ export function codeOnlyAarReport(args: {
   epochs?: { seq: number; side: Side; reason: string; epochKind?: string | null; coachIntent?: string | null; directive?: { playId: string } | null }[];
   playbook?: Playbook;
   themPlaybook?: Playbook;
+  /** Default true for --no-llm / timeout digest. `--aar-mode code` passes false. */
+  noLlm?: boolean;
 }): AarReport {
   const playbook = args.playbook ?? { teamId: "", version: 1, plays: [] };
   const actual = computeActual(args.matchId, args.events, args.side);
@@ -105,7 +107,7 @@ export function codeOnlyAarReport(args: {
     rejectedOps: cited.rejectedOps,
     aggregates: actual.aggregates,
     eventLogDigest: actual.digest,
-    noLlm: true,
+    noLlm: args.noLlm !== false,
   };
 }
 
@@ -117,7 +119,7 @@ export type PostMatchAarOpts = {
   awayPlaybook: Playbook;
   events?: MatchEvent[];
   noLlm?: boolean;
-  /** Default auto. propose/hitl persist the report and do not bump playbook versions. */
+  /** Default auto. `code` skips the AAR LLM graph and still applies. propose/hitl do not bump. */
   aarMode?: AarMode;
   budget?: MatchBudget;
   graph?: CompiledAarGraph;
@@ -210,13 +212,15 @@ function finalizeSide(
 
 /**
  * Invoked twice after every result. `--no-llm` skips grok-4.5 and writes a code digest.
- * Auto-apply (default) writes playbook version N+1 unless `--aar-mode propose` / noLlm.
+ * `--aar-mode code` is the same digest without the 45s graph, and still auto-applies.
+ * Auto-apply writes playbook version N+1 unless `--aar-mode propose` / noLlm.
  */
 export async function runPostMatchAar(opts: PostMatchAarOpts): Promise<{ home: AarReport; away: AarReport }> {
   const events = opts.events ?? listEvents(opts.db, opts.matchId);
   const noLlm = opts.noLlm === true;
+  const aarMode = opts.aarMode ?? "auto";
 
-  if (noLlm) {
+  if (noLlm || aarMode === "code") {
     const epochs = listEpochInvocations(opts.db, opts.matchId);
     const home = codeOnlyAarReport({
       matchId: opts.matchId,
@@ -226,6 +230,7 @@ export async function runPostMatchAar(opts: PostMatchAarOpts): Promise<{ home: A
       epochs,
       playbook: opts.homePlaybook,
       themPlaybook: opts.awayPlaybook,
+      noLlm: noLlm ? true : false,
     });
     const away = codeOnlyAarReport({
       matchId: opts.matchId,
@@ -235,10 +240,17 @@ export async function runPostMatchAar(opts: PostMatchAarOpts): Promise<{ home: A
       epochs,
       playbook: opts.awayPlaybook,
       themPlaybook: opts.homePlaybook,
+      noLlm: noLlm ? true : false,
     });
-    persistAarReport(opts.db, home, false);
-    persistAarReport(opts.db, away, false);
-    return { home, away };
+    if (noLlm) {
+      persistAarReport(opts.db, home, false);
+      persistAarReport(opts.db, away, false);
+      return { home, away };
+    }
+    return {
+      home: finalizeSide(opts, opts.homePlaybook, home, events),
+      away: finalizeSide(opts, opts.awayPlaybook, away, events),
+    };
   }
 
   const homeGraph =

@@ -196,9 +196,10 @@ describe("compileTeamGraph", () => {
 });
 
 describe("epochRouter", () => {
-  it("routes macro to head_coach and micro to captain", () => {
+  it("routes macro to head_coach and micro to assemble unless captainMicro", () => {
     expect(epochRouter({ epochKind: "macro" })).toBe("head_coach");
-    expect(epochRouter({ epochKind: "micro" })).toBe("captain");
+    expect(epochRouter({ epochKind: "micro" })).toBe("assemble_directive");
+    expect(epochRouter({ epochKind: "micro" }, { captainMicro: true })).toBe("captain");
   });
 
   it("epochKind macro visits head_coach then assemble (no specialist Send)", async () => {
@@ -222,11 +223,23 @@ describe("epochRouter", () => {
       "match:m:team:home:epoch:micro",
     );
     expect(micro).not.toContain("head_coach");
-    expect(micro).toContain("captain");
+    expect(micro).not.toContain("captain");
     expect(micro).toContain("assemble_directive");
     expect(micro).not.toContain("oc");
     expect(micro).not.toContain("dc");
     expect(kinds).not.toContain("coach");
+    expect(kinds).not.toContain("fast");
+
+    kinds.length = 0;
+    const withCaptain = compile({ captainMicro: true });
+    const captainMicro = await visitedNodes(
+      withCaptain,
+      input({ epochKind: "micro", epochReason: "faceoff" }, { epochKind: "micro", epochReason: "faceoff" }),
+      "match:m:team:home:epoch:micro-captain",
+    );
+    expect(captainMicro).not.toContain("head_coach");
+    expect(captainMicro).toContain("captain");
+    expect(captainMicro).toContain("assemble_directive");
     expect(kinds).toContain("fast");
   });
 

@@ -251,6 +251,7 @@ export function createMatchControl(opts: CreateMatchControlOpts): MatchControl {
           signal: controller.signal,
           paceMs,
           noLlm,
+          aarMode: "code",
           homePlaybookVersion: homeRow?.version ?? 1,
           awayPlaybookVersion: awayRow?.version ?? 1,
           models: noLlm
@@ -358,6 +359,7 @@ export function createMatchControl(opts: CreateMatchControlOpts): MatchControl {
           games,
           seriesId,
           noLlm,
+          aarMode: "code",
           periodSeconds,
           otSeconds,
           timeoutMs: config.epochTimeoutMs,

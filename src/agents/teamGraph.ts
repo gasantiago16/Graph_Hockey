@@ -56,6 +56,8 @@ export type CompileTeamGraphOpts = {
   profile?: TeamLlmProfile;
   /** Specialists run only when opted in. */
   specialists?: boolean;
+  /** Micro epochs visit captain. Default off; GRAPH_HOCKEY_CAPTAIN=1 also enables. */
+  captainMicro?: boolean;
 };
 
 export type TeamGraphInvokeInput = {
@@ -76,7 +78,8 @@ export type TeamGraphInvokeConfig = {
 /**
  * Compile: START → ingest → situation → retrieve_plays → (macro) head_coach
  * → assemble_directive (Send[] specialists only when opts.specialists);
- * (micro) captain → assemble_directive → validate_directive → END.
+ * (micro) assemble_directive (captain only when captainMicro / GRAPH_HOCKEY_CAPTAIN=1)
+ * → validate_directive → END.
  */
 export type CompiledTeamGraph = {
   nodes: Record<string, unknown>;
@@ -87,9 +90,17 @@ export type CompiledTeamGraph = {
   ) => Promise<AsyncIterable<Record<string, unknown>>>;
 };
 
+export type EpochRoute = "head_coach" | "captain" | "assemble_directive";
+
+function captainMicroEnabled(opts?: { captainMicro?: boolean }): boolean {
+  if (opts?.captainMicro !== undefined) return opts.captainMicro;
+  return process.env.GRAPH_HOCKEY_CAPTAIN === "1";
+}
+
 /** Conditional edge after retrieve_plays. Reads graph-state epochKind, not observation. */
-export function epochRouter(state: { epochKind?: unknown }): "head_coach" | "captain" {
-  return state.epochKind === "macro" ? "head_coach" : "captain";
+export function epochRouter(state: { epochKind?: unknown }, opts?: { captainMicro?: boolean }): EpochRoute {
+  if (state.epochKind === "macro") return "head_coach";
+  return captainMicroEnabled(opts) ? "captain" : "assemble_directive";
 }
 
 export function compileTeamGraph(opts: CompileTeamGraphOpts): CompiledTeamGraph {
@@ -133,10 +144,15 @@ export function compileTeamGraph(opts: CompileTeamGraphOpts): CompiledTeamGraph 
     .addEdge(START, "ingest")
     .addEdge("ingest", "situation")
     .addEdge("situation", "retrieve_plays")
-    .addConditionalEdges("retrieve_plays", epochRouter as never, {
-      head_coach: "head_coach",
-      captain: "captain",
-    })
+    .addConditionalEdges(
+      "retrieve_plays",
+      ((state: { epochKind?: unknown }) => epochRouter(state, { captainMicro: opts.captainMicro })) as never,
+      {
+        head_coach: "head_coach",
+        captain: "captain",
+        assemble_directive: "assemble_directive",
+      },
+    )
     .addEdge("oc", "assemble_directive")
     .addEdge("dc", "assemble_directive")
     .addEdge("st", "assemble_directive")

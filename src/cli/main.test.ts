@@ -28,6 +28,8 @@ describe("gh CLI", () => {
       expect(printed).toContain("--compare");
       expect(printed).toContain("--no-record");
       expect(printed).toContain("--aar-mode");
+      expect(printed).toContain("--aar-mode code");
+      expect(USAGE).toContain("code is not --no-llm");
       expect(printed).toContain("--reset-playbook");
       expect(printed).toContain("GRAPH_HOCKEY_PERIOD_SECONDS");
       expect(printed).toContain("playbook-snapshots");

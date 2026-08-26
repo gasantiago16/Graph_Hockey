@@ -8,7 +8,7 @@ import type { MatchEvent } from "../types/events.ts";
 import type { PlayMutation, Playbook, PlaybookRevision } from "../types/play.ts";
 import { computeActual } from "./nodes/actual.ts";
 
-export const AAR_MODES = ["auto", "propose", "hitl"] as const;
+export const AAR_MODES = ["auto", "propose", "hitl", "code"] as const;
 export type AarMode = (typeof AAR_MODES)[number];
 
 export type ApplyAarResult = {
@@ -21,16 +21,20 @@ export type ApplyAarResult = {
   toVersion: number;
 };
 
-export function parseAarMode(raw: string | undefined): AarMode {
-  if (raw === undefined || raw === "") return "auto";
-  if (raw === "auto" || raw === "propose" || raw === "hitl") return raw;
-  throw new Error(`invalid aar-mode '${raw}' (expected auto|propose|hitl)`);
+export function parseAarMode(raw: string | undefined, fallback: AarMode = "auto"): AarMode {
+  if (raw === undefined || raw === "") return fallback;
+  if (raw === "auto" || raw === "propose" || raw === "hitl" || raw === "code") return raw;
+  throw new Error(`invalid aar-mode '${raw}' (expected auto|propose|hitl|code)`);
 }
 
-/** Default auto-apply. `--no-llm` and `--aar-mode propose|hitl` never write playbook_versions. */
+/**
+ * Auto and code apply capped ops. `--no-llm` and `--aar-mode propose|hitl` never write playbook_versions.
+ * `code` is not `--no-llm`.
+ */
 export function shouldApplyRevision(opts: { noLlm?: boolean; aarMode?: AarMode }): boolean {
   if (opts.noLlm === true) return false;
-  return (opts.aarMode ?? "auto") === "auto";
+  const mode = opts.aarMode ?? "auto";
+  return mode === "auto" || mode === "code";
 }
 
 export function persistAarReport(db: Db, report: AarReport, applied = false): void {
@@ -51,7 +55,7 @@ function ensureCurrentPlaybook(db: Db, teamId: string, playbook: Playbook): { ve
 }
 
 /**
- * Persist the AAR report. In auto mode, apply capped ops and write playbook version N+1.
+ * Persist the AAR report. In auto/code mode, apply capped ops and write playbook version N+1.
  * Propose/hitl write the JSON and stop. Caps live in playbook/mutate.ts.
  */
 export function applyAarRevision(opts: {

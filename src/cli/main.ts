@@ -28,12 +28,12 @@ export const USAGE = `graph-hockey — competing LangGraph teams on a hockey rin
 
 Usage:
   gh --help
-  gh simulate [--home ID] [--away ID] [--seed N] [--no-llm] [--no-record] [--aar-mode auto|propose] [--db PATH] [--match ID]
+  gh simulate [--home ID] [--away ID] [--seed N] [--no-llm] [--no-record] [--aar-mode code|auto|propose] [--db PATH] [--match ID]
               [--period-seconds N] [--home-provider xai|muse|openai|gemini] [--away-provider ...] [--home-model SLUG] [--away-model SLUG]
   gh replay --match ID [--to-tick N] [--db PATH]
-  gh aar --match ID [--side home|away] [--aar-mode auto|propose|hitl]
+  gh aar --match ID [--side home|away] [--aar-mode auto|propose|hitl|code]
   gh playbook --team ID [--diff] [--version N] [--reset-playbook]
-  gh series --games 7 [--home ID] [--away ID] [--seed N] [--no-llm] [--no-record] [--aar-mode auto|propose] [--db PATH] [--snapshot-dir PATH]
+  gh series --games 7 [--home ID] [--away ID] [--seed N] [--no-llm] [--no-record] [--aar-mode code|auto|propose] [--db PATH] [--snapshot-dir PATH]
             [--home-provider xai|muse|openai|gemini] [--away-provider ...] [--home-model SLUG] [--away-model SLUG]
   gh footage --match ID [--mp4] [--highlight] [--full] [--clip ID] [--out PATH]
   gh footage --series ID [--compare i,j] [--json]
@@ -41,11 +41,12 @@ Usage:
 
 simulate --no-llm skips grok-4.5 / grok-4.3 and writes events to SQLite.
 Without --no-llm, live epochs call the home/away providers (keys in .env) and print a cost summary.
-AAR runs after every result; default --aar-mode auto applies capped playbook patches.
+AAR runs after every result. Live simulate/series default --aar-mode code: code digest, no grok-4.5 AAR graph, capped apply.
+--aar-mode auto restores the LLM AAR graph (45s/side). --aar-mode code is not --no-llm (live epochs still call grok).
 --aar-mode propose writes the AAR JSON and does not bump playbook versions.
 --no-llm skips AAR LLM, stores a code-only digest, and never mutates playbooks.
 --no-record skips the clip index (events still stored). CI golden hashes use --no-record.
-series default is 7 games; gameSeed = seed + gameIndex. AAR auto-apply mutates playbooks between games (not --no-llm).
+series default is 7 games; gameSeed = seed + gameIndex. AAR code/auto apply mutates playbooks between games (not --no-llm).
 Playbook snapshots go in data/playbook-snapshots/<seriesId>/ (before.json + after-game-N.json).
 --no-llm series uses 5s periods unless GRAPH_HOCKEY_PERIOD_SECONDS or --period-seconds is set.
 footage --match lists auto-clips + open ticks. --mp4 writes a derivative H.264 file (ffmpeg required; Film Room stays the review surface).
@@ -178,7 +179,7 @@ async function cmdSimulate(argv: string[], env: EnvMap): Promise<number> {
   const seed = parseSeed(argv);
   const homeTeamId = parseTeam(argv, "home", "original-six");
   const awayTeamId = parseTeam(argv, "away", "expansion");
-  const aarMode = parseAarMode(opt(argv, "aar-mode"));
+  const aarMode = parseAarMode(opt(argv, "aar-mode"), "code");
   const dbPath = opt(argv, "db") ?? defaultDbPath();
   const matchId = opt(argv, "match") ?? `sim-${seed}-${Date.now().toString(36)}`;
   const record = !flag(argv, "no-record");
@@ -621,7 +622,7 @@ async function cmdSeries(argv: string[], env: EnvMap): Promise<number> {
   const seed = parseSeed(argv);
   const homeTeamId = parseTeam(argv, "home", "original-six");
   const awayTeamId = parseTeam(argv, "away", "expansion");
-  const aarMode = parseAarMode(opt(argv, "aar-mode"));
+  const aarMode = parseAarMode(opt(argv, "aar-mode"), "code");
   const dbPath = opt(argv, "db") ?? defaultDbPath();
   const games = parseGames(argv);
   const record = !flag(argv, "no-record");

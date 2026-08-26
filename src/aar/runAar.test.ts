@@ -28,7 +28,10 @@ function ev(seq: number, type: string, over: Partial<MatchEvent> = {}): MatchEve
 }
 
 const EVENTS: MatchEvent[] = [
-  ev(0, "FaceoffWin", { zone: "NZ" }),
+  ev(0, "DirectiveApplied", {
+    zone: "NZ",
+    payload: { side: "home", directive: { playId: "5v5-122-forecheck", pressure: "neutral" } },
+  }),
   ev(1, "Shot", { xG: 0.22 }),
   ev(2, "Goal", { xG: 0.22 }),
 ];
@@ -88,6 +91,46 @@ describe("runPostMatchAar", () => {
         homeGraph: throwingGraph,
         awayGraph: throwingGraph,
       });
+      expect(out.home.revision?.ops.some((o) => o.op === "boost")).toBe(true);
+      expect(latestPlaybook(db, "original-six")?.version).toBeGreaterThan(1);
+    } finally {
+      db.close();
+    }
+  });
+
+  it("--aar-mode code applies without invoking the AAR graph", async () => {
+    const db = await openMemoryDb();
+    let invoked = 0;
+    const graph: CompiledAarGraph = {
+      nodes: {},
+      invoke: async () => {
+        invoked += 1;
+        throw new Error("aar graph must not run in code mode");
+      },
+      stream: async () => {
+        throw new Error("unused");
+      },
+    };
+    try {
+      insertMatch(db, makeOpeningSnapshot({ matchId: "m1", seed: 1 }));
+      insertEvents(db, "m1", EVENTS);
+      ensureSeedPlaybooks(db);
+      expect(shouldApplyRevision({ noLlm: false, aarMode: "code" })).toBe(true);
+      const book = loadPlaybook("original-six");
+      const out = await runPostMatchAar({
+        db,
+        matchId: "m1",
+        matchResult: "home",
+        homePlaybook: book,
+        awayPlaybook: loadPlaybook("expansion"),
+        events: EVENTS,
+        noLlm: false,
+        aarMode: "code",
+        homeGraph: graph,
+        awayGraph: graph,
+      });
+      expect(invoked).toBe(0);
+      expect(out.home.noLlm).not.toBe(true);
       expect(out.home.revision?.ops.some((o) => o.op === "boost")).toBe(true);
       expect(latestPlaybook(db, "original-six")?.version).toBeGreaterThan(1);
     } finally {

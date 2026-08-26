@@ -222,7 +222,7 @@ describe("runMatch --no-llm stub graphs", () => {
   });
 
   it("compiled graph micro path never visits head_coach", async () => {
-    expect(epochRouter({ epochKind: "micro" })).toBe("captain");
+    expect(epochRouter({ epochKind: "micro" })).toBe("assemble_directive");
     const kinds: string[] = [];
     setCreateChatModel((kind) => {
       kinds.push(kind);
@@ -252,9 +252,10 @@ describe("runMatch --no-llm stub graphs", () => {
       if (chunk && typeof chunk === "object") names.push(...Object.keys(chunk));
     }
     expect(names).not.toContain("head_coach");
-    expect(names).toContain("captain");
+    expect(names).not.toContain("captain");
+    expect(names).toContain("assemble_directive");
     expect(kinds).not.toContain("coach");
-    expect(kinds).toContain("fast");
+    expect(kinds).not.toContain("fast");
   });
 
   it("is stable across two independent runs with the same seed", async () => {
