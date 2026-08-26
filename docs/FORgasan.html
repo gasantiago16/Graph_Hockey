@@ -256,10 +256,10 @@
         <div>
           <span class="badge">FORME</span>
           <span class="badge">Graph_Hockey</span>
-          <span class="badge">loop moved · quality not yet</span>
+          <span class="badge">bank 0/5 · gate held · offsides fail</span>
         </div>
         <h1>FORgasan — Graph_Hockey</h1>
-        <p class="lede" style="color:#c5d0db;margin:0">Independent LangGraph <em>staffs</em>. Ice is code. They learn together by patching a playbook. Tonight we measured that loop — and the hockey did not yet get better.</p>
+        <p class="lede" style="color:#c5d0db;margin:0">Independent LangGraph <em>staffs</em>. Ice is code. Retrieve is gated. Evaluate 1 held the menu and still failed offsides. Plan: <code>docs/better-hockey.md</code>.</p>
       </div>
     </header>
 
@@ -270,7 +270,7 @@
       <div class="stat"><span class="v">code</span><span class="l">live AAR default</span></div>
       <div class="stat"><span class="v">$0</span><span class="l">Glimmer away bench</span></div>
       <div class="stat"><span class="v">1/6</span><span class="l">retrieveTop vs 0/6 control</span></div>
-      <div class="stat warn"><span class="v">−0.55</span><span class="l">home Δ xG g0→g6</span></div>
+      <div class="stat warn"><span class="v">0/5</span><span class="l">improve bank</span></div>
       <div class="stat"><span class="v">404</span><span class="l">tests, no live vendor</span></div>
     </div>
 
@@ -598,7 +598,20 @@
           <div class="vcard ok"><span class="tag">Loop</span><h4>Works</h4><p>Live AAR applies. retrieveTop moved 1/6 both sides. The <code>--no-llm</code> twin stayed 0/6 at v1. Offsides on the live series stayed 0–2, not 166.</p></div>
           <div class="vcard no"><span class="tag">Quality</span><h4>Not proven</h4><p>Home locked <code>protect-lead-1-1-3</code> from g4 <em>while losing</em>. Δ xG −0.55. Pairs 0. Another 7-gamer will teach that wrong lesson faster.</p></div>
         </div>
-        <div class="callout warn"><strong>Do not run another learner until score-state is gated.</strong> A lead-protect play must not win retrieve when you are trailing. That is the blocker — not more tokens, not a longer period, not a timeout bump.</div>
+        <h3>Evaluate 1 after the gate (<code>ser-emp-8</code>)</h3>
+        <p>Same protocol, gate on <code>main</code> (<code>ff23dd5</code>). Control stayed v1 / 0/6. Live books v8. Home retrieveTop stayed <code>5v5-122-forecheck</code>. Zero lead-protect skating. Δ xG <strong>+0.176</strong>, pairs 0.</p>
+        <div class="stat-row">
+          <div class="stat"><span class="v">0</span><span class="l">protect-lead skating</span></div>
+          <div class="stat"><span class="v">+0.18</span><span class="l">home Δ xG (not credited)</span></div>
+          <div class="stat bad"><span class="v">77</span><span class="l">g4 away offsides</span></div>
+          <div class="stat bad"><span class="v">63</span><span class="l">g6 home offsides</span></div>
+          <div class="stat warn"><span class="v">0/5</span><span class="l">bank after Evaluate 1</span></div>
+        </div>
+        <div class="verdict">
+          <div class="vcard ok"><span class="tag">Gate</span><h4>Held</h4><p>Trailing/tied 1-1-3 is gone from retrieve and from the event scan. The old home 1/6 retrieveTop <em>was</em> that bug.</p></div>
+          <div class="vcard no"><span class="tag">Quality</span><h4>Not credited</h4><p>Offsides left 0–2. Do not dump-in into g4/g6. Diagnose those games next. Full log: <a href="better-hockey.md">better-hockey.md</a>.</p></div>
+        </div>
+        <div class="callout warn"><strong>Do not credit Δ xG while offsides explode.</strong> +0.176 with 77/63 offsides is not better hockey. Do not raise timeouts. Restart Glimmer on :8080 before the next live series.</div>
       </section>
 
       <section id="scars">
@@ -695,7 +708,7 @@
           <h3>Scar 15 — Empty-net at even strength, and protect-lead while trailing</h3>
           <div class="meta"><span class="k">What</span><span>Dirty 3-gamer: <code>pull-early</code> at 5v5, 106 shots / 108 offsides. Honest 7-gamer: home retrieve locked <code>protect-lead-1-1-3</code> from g4 while losing 1–5.</span></div>
           <div class="meta"><span class="k">Root</span><span><code>timeRemainingLt 180</code> is always true on a 20s period. Net-xG ranking does not care that you are trailing.</span></div>
-          <div class="meta"><span class="k fix">Fix</span><span>Half: seed EN-only; retrieve excludes empty-net families unless strength is <code>EN</code>. <strong>Not yet:</strong> score-state gating for protect-lead.</span></div>
+          <div class="meta"><span class="k fix">Fix</span><span>EN-only pull-early. Lead-protect retrieve gate on <code>main</code> (<code>ff23dd5</code>). <code>ser-emp-8</code>: zero skating. <strong>Not yet:</strong> offsides 0–2 after the gate (g4 77 / g6 63).</span></div>
           <div class="meta"><span class="k lesson">Lesson</span><span>Short periods are a microscope. They will also lie if your triggers assume a 20-minute NHL clock.</span></div>
         </div>
         <figure class="figure">
@@ -717,7 +730,8 @@
         <div class="pitfall"><strong>Don’t</strong> count Shot rows as skill until F1 cannot fire every tick at the same xG. Count distinct chances.</div>
         <div class="pitfall"><strong>Don’t</strong> call a version bump “learning.” Pass = retrieveTop moved <em>and</em> g0→g6 quality vs a <code>--no-llm</code> twin.</div>
         <div class="pitfall"><strong>Don’t</strong> retrieve empty-net families at 5v5. 20s periods make “last three minutes” always true.</div>
-        <div class="pitfall"><strong>Don’t</strong> let <code>protect-lead</code> win retrieve while trailing. That is tonight’s unfixed bug.</div>
+        <div class="pitfall"><strong>Don’t</strong> let <code>protect-lead</code> win retrieve while trailing. Gated on <code>main</code>.</div>
+        <div class="pitfall"><strong>Don’t</strong> credit Δ xG while offsides explode. <code>ser-emp-8</code> +0.176 with 77/63 offsides is not better hockey.</div>
         <div class="pitfall"><strong>Don’t</strong> raise timeouts as the fix. Cap tokens. Skip native structured. Attach the abort signal.</div>
         <div class="pitfall"><strong>Don’t</strong> mix lockfiles. This clone uses npm because pnpm died on corepack.</div>
         <div class="pitfall"><strong>Don’t</strong> bind <code>0.0.0.0</code> “for a demo.” Loopback is the product.</div>
@@ -760,13 +774,12 @@
       <section id="next">
         <h2><span class="n">11</span> Where to go next</h2>
         <ol class="next">
-          <li><strong>Gate <code>protect-lead</code> on score state.</strong> Trailing / tied must not retrieve a lead-protect family. This is the blocker for the next empirical series.</li>
-          <li><strong>Then a fresh 7-game + <code>--no-llm</code> twin.</strong> Same protocol as <code>ser-emp-7</code>. Pass = retrieveTop moves <em>and</em> g0→g6 quality does not collapse.</li>
-          <li><strong>Captain micro budget.</strong> Offside/icing still times out captain. Skip the specialist or code-fallback; no JSON retry.</li>
-          <li><strong>Offside rate on ice.</strong> Live series is 0–2; control g6 away 15/0 shots is still ice noise.</li>
-          <li><strong>Dump-in still stays live.</strong> Wave-off is for net entry, not for the dump staying a live puck.</li>
+          <li><strong>Diagnose <code>ser-emp-8</code> g4/g6.</strong> Away 77 and home 63 offsides. Do not dump-in into that. Log: <a href="better-hockey.md">better-hockey.md</a> (bank 0/5, attempt 1, streak 1).</li>
+          <li><strong>Merge leftover stack without a counting Evaluate where the plan says so.</strong> GitHub #2 timeout leftover (skating already clean), #3 seed NZ/DZ. Retarget #2 onto <code>main</code>.</li>
+          <li><strong>Next counting Evaluate:</strong> Ds tag-up (#5) and/or dump-in (PR-4 not written) after Diagnose. Cranky → test → merge → 7+twin.</li>
+          <li><strong>Captain stays off.</strong> Do not enable it to fix offsides.</li>
           <li><strong>HITL later</strong> — LangGraph <code>interrupt()</code>, off the 12s clock.</li>
-          <li>Keep <code>AGENTS.md</code> honest: <code>src/ice/</code> is environment. Glimmer is local. <code>--aar-mode code</code> is not <code>--no-llm</code>.</li>
+          <li>Restart Glimmer on <code>:8080 --reasoning off</code> before the next live series. Do not restart 8787 unless asked. Do not raise timeouts. <code>--aar-mode code</code> is not <code>--no-llm</code>.</li>
         </ol>
         <div class="callout">
           <strong>Glossary:</strong> Epoch = we bother the LLM. Directive = legal action sheet. Playbook = versioned JSON. <code>cite_check</code> = drop uncited ops. <code>--aar-mode code</code> = cited apply, no AAR graph (live default, not <code>--no-llm</code>). Glimmer = local Muse 30B on <code>:8080</code>. <code>retrieveTop</code> = #1 play retrieve would hand the coach.
@@ -775,7 +788,7 @@
     </main>
 
     <footer>
-      Generated 2026-08-25 · Source: <a href="FORgasan.md">FORgasan.md</a> · Visuals: <code>docs/forme/</code> · 404 tests · code AAR default · Glimmer local away · loop moved, quality not yet · HITL not in v1
+      Generated 2026-08-26 · Source: <a href="FORgasan.md">FORgasan.md</a> · Plan: <a href="better-hockey.md">better-hockey.md</a> · Visuals: <code>docs/forme/</code> · retrieve gate on main · Evaluate 1 bank 0/5 · HITL not in v1
     </footer>
   </div>
 </body>

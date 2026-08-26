@@ -2,7 +2,7 @@
 
 You wanted two LangGraphs to fight each other at hockey, then get smarter after every result. That is still the product. What we *shipped* is more specific, and this file is honest about it: **two independent benches**, **ice that is code**, **one Head Coach call per live epoch**, and **an After-Action Review that patches a playbook** so game 7 is not a rerun of game 1.
 
-Tonight we finally *measured* that loop. The machinery moved. The hockey did not yet get better. That gap is the whole remaining lesson.
+We measured that loop (`ser-emp-7`), gated retrieve (`ser-emp-8`), and still have not credited better hockey: the menu bug is gone; g4/g6 offside storms failed the quality bar. Plan and live counters: [`docs/better-hockey.md`](better-hockey.md).
 
 This is a handbook for *you* — how the repo thinks, what is a graph and what is not, how a call travels, how the team learns *together*, and the scars we paid for on the road to LangGraph learning.
 
@@ -22,7 +22,7 @@ The browser is a spectator. It never scores, never calls xAI, and never sees the
 | Graphs are staff, not skaters | Live staff is **Head Coach**. OC / DC / ST / goalie / scout / captain are compiled, **opt-in**. F1–G are code. |
 | Learning is data | Plays are JSON; AAR emits capped, *cited* patches. Retrieve ranks those stats next game. |
 | Film is resimulation | Same seed + stored directives. MP4 export is a derivative, not the log |
-| Proof is a diff | `retrieveTop` must move vs a `--no-llm` control. A version bump with the same top-1 is not learning. Game-over quality (xG, paired clips) is a *second* question. |
+| Proof is a diff | Control stays v1. Live still writes books. Quality is Δ xG + offsides + no lead-protect skating — not Shot rows, not a version integer. After the retrieve gate, home `retrieveTopChanged` 0/6 can be success (the old 1/6 *was* protect-lead). |
 
 ### What we actually have (read this twice)
 
@@ -235,7 +235,9 @@ Seven games as a row of books. The loop is the row getting thicker. Quality is w
 | **`ser-glimmer-3`** | Dirty path. Away locked **`pull-early-template` at 5v5**. g1: **106 shots / 108 offsides**. Coach 6s aborts while Glimmer thought. | A 20s period makes `timeRemainingLt 180` always true. EN plays must not be on the 5v5 menu. |
 | **EN gate + Glimmer JSON** | Seed `pull-early` is **EN-only**. Retrieve excludes empty-net families unless strength is `EN`. Glimmer: skip native structured, read `reasoning_content`, `GLIMMER_MAX_TOKENS=120`, server `--reasoning off`. | Adapter bugs look like hockey. Fix the adapter *and* the predicate. |
 | **`ser-glimmer-fresh`** | Fresh db, 3×20s. 5v5 openings. Offsides **1–1**. retrieveTop **home 2/2, away 1/2**. Books v4. Home xG still down. | The menu *can* move without pulling the goalie. Three games is a smoke, not a proof. |
-| **`ser-emp-7` + `--no-llm` control** | Fresh db, 7×20s, seed 7, home xAI / away Glimmer, `--aar-mode code`. Control: same seed, `--no-llm`. | This is the experiment. Numbers below. |
+| **`ser-emp-7` + `--no-llm` control** | Fresh db, 7×20s, seed 7, home xAI / away Glimmer, `--aar-mode code`. Control: same seed, `--no-llm`. | Baseline. Loop yes; home locked protect-lead while losing. |
+| **PR-1 retrieve gate on `main`** | `ff23dd5` / GitHub #1. `isLeadProtectPlay` hard-exclude unless leading. | Menu bug closed. Counting Evaluate unblocked. |
+| **`ser-emp-8` Evaluate 1** | Same protocol, fresh db. Gate held. Δ xG **+0.176**. Offsides **failed** (g4 away 77, g6 home 63). Bank **0**. | Do not credit Δ xG while the ice is a storm. Diagnose g4/g6 before dump-in. |
 
 ### The 7-game card (`ser-emp-7`)
 
@@ -275,7 +277,13 @@ Cyan column: the book is turning. Amber column: the hockey is not yet better. Th
 
 That is not a failure of “we should run 20 more games.” It is a retrieve / predicate bug: **a lead-protect play must not win the menu when you are trailing.** Until that is gated, more series will teach the same wrong lesson faster.
 
-404 tests. Goldens (pr7 / pr8) did not move on A–D or Glimmer. Do not raise timeouts as the fix. Do not implement `--aar-mode code` as `noLlm: true`.
+### Evaluate 1 after the gate (`ser-emp-8`)
+
+Same protocol, fresh db, gate on `main`. Control `ser-emp-8-nollm` stayed v1 / 0/6. Live books **v8**. Home retrieveTop stayed `5v5-122-forecheck`. Event scan: **zero** lead-protect skating; `protect-lead` games **0**. Footage `--compare 0,6`: home Δ xG **+0.176**, pairs **0**.
+
+**Still not improved.** Offsides left 0–2: g2 home 5, g4 away **77**, g5 home 3, g6 home **63** / away 8. Bank **0/5**. Live counters: [`better-hockey.md`](better-hockey.md).
+
+Do not raise timeouts as the fix. Do not implement `--aar-mode code` as `noLlm: true`.
 
 ---
 
@@ -429,9 +437,11 @@ These are not hypothetical. They showed up in design review or PR review and wou
 
 **Root.** `pull-early` listed strength `["EN","5v5"]` and a `timeRemainingLt 180` trigger that is *always true* on a 20s period. Retrieve ranked it. Separately, net-xG ranking does not care that you are trailing — a lead-protect play with leftover stats wins the menu.
 
-**Fix (half).** Seed strength is **`["EN"]` only**. `isEmptyNetPlay` excludes `pull-early` / `en-scramble` unless query strength is `EN`. **Not yet fixed:** score-state gating so `protect-lead` cannot retrieve on a trailing bench.
+**Fix (retrieve half shipped).** Seed strength is **`["EN"]` only**. `isEmptyNetPlay` excludes `pull-early` / `en-scramble` unless query strength is `EN`. `isLeadProtectPlay` hard-excludes unless `scoreState === "leading"` (`ff23dd5`). `ser-emp-8`: zero lead-protect skating, games stayed 0.
 
-**Lesson.** Predicates that are true in a short experiment will dominate retrieve. Short periods are a microscope. They will also lie if your triggers assume a 20-minute NHL clock.
+**Not yet:** offsides in the 0–2 band after the gate (`ser-emp-8` g4 away 77, g6 home 63). Score-state retrieve is no longer the blocker.
+
+**Lesson.** Predicates that are true in a short experiment will dominate retrieve. Short periods are a microscope. Closing the menu leak can uncover the next ice leak on the same 20s clock.
 
 ---
 
@@ -447,7 +457,8 @@ These are not hypothetical. They showed up in design review or PR review and wou
 - **Do not count Shot events as skill** until F1 cannot fire every tick at the same xG. Count distinct chances.
 - **Do not call a version bump “learning.”** Pass = `retrieveTop` moved *and* g0→g6 quality vs a `--no-llm` twin.
 - **Do not retrieve empty-net families at 5v5.** 20s periods make “last three minutes” always true.
-- **Do not let `protect-lead` win retrieve while trailing.** That is tonight’s unfixed bug. Another 7-gamer will only lock it harder.
+- **Do not let `protect-lead` win retrieve while trailing.** Gated on `main`. Another 7-gamer without that gate would lock it harder.
+- **Do not credit Δ xG while offsides explode.** `ser-emp-8` +0.176 with g4 77 / g6 63 offsides is not better hockey.
 - **Do not raise timeouts as the fix.** Cap tokens. Skip native structured. Attach the abort signal.
 - **Do not mix lockfiles.** This machine uses npm because pnpm died on corepack. Pick one on a new clone.
 - **Do not bind `0.0.0.0` “just for a demo.”** Origin lock and loopback are the product, not a nicety.
@@ -486,15 +497,15 @@ These are not hypothetical. They showed up in design review or PR review and wou
 
 ## Where to go next
 
-`main` **is** the game. Tonight proved the write path. The next work is *which play retrieve is allowed to put on the menu* — then ice quality — not more folders and not another 7-gamer that will lock `protect-lead` again.
+Live counters live in [`docs/better-hockey.md`](better-hockey.md) (bank **0/5**, attempt **1**, flat streak **1**). Retrieve is gated. Next is ice quality on g4/g6, not another protect-lead series.
 
-1. **Gate `protect-lead` (and friends) on score state.** Trailing / tied must not retrieve a lead-protect family. This is the blocker for the next empirical series.
-2. **Then a fresh 7-game + `--no-llm` twin.** Same seed protocol as `ser-emp-7`. Pass = retrieveTop moves *and* g0→g6 xG / paired clips do not collapse. 60s periods are a later demo, not a substitute for the gate.
-3. **Captain micro budget.** Offside/icing still `Send`s captain into a 4s timeout (`structured:specialist:captain`). Same pattern as Scar 9: skip the specialist or give micro a code fallback and **do not JSON-retry**.
-4. **Offside rate on ice.** Live series is 0–2; control g6 away 15/0 shots is still ice noise. F2 tag-up / NZ pass targets.
-5. **Dump-in still stays live.** Cranky already flagged it. Wave-off is for net entry, not for the dump staying a live puck.
-6. **HITL later.** LangGraph `interrupt()` for a human coach, **off** the default compile. Do not put it on the 12s clock.
-7. Keep `AGENTS.md` honest: `src/ice/` is environment, not a graph. `gh footage --mp4` is derivative. Glimmer is local. `--aar-mode code` is not `--no-llm`.
+1. **Diagnose `ser-emp-8` g4/g6 offside storms** (away 77, home 63) before dump-in. Film those two games.
+2. **Merge leftover stack without a counting Evaluate where the plan says so:** GitHub #2 (timeout leftover — skating already clean), #3 (seed NZ/DZ). Retarget #2 onto `main`.
+3. **Next counting Evaluate:** Ds tag-up (GitHub #5) and/or dump-in (PR-4, not written yet) — pick from Diagnose, then cranky → test → merge → 7+twin.
+4. **Captain micro** stays off. Do not enable it to “fix” offsides.
+5. **HITL later.** LangGraph `interrupt()`, off the 12s clock.
+6. Restart local Glimmer on `:8080 --reasoning off` before the next live series. Do not restart 8787 unless asked. Do not raise timeouts.
+7. Keep `AGENTS.md` honest: `src/ice/` is environment. `--aar-mode code` is not `--no-llm`.
 
 ---
 
@@ -515,4 +526,4 @@ These are not hypothetical. They showed up in design review or PR review and wou
 
 ---
 
-*Generated 2026-08-25. `main` is playable. Two benches, ice in code, HC-only live staff, code AAR by default, Glimmer local away. 404 tests. Tonight: loop moved (`ser-emp-7` retrieveTop 1/6 vs control 0/6); g0→g6 quality not proven (home Δ xG −0.55, pairs 0). HITL not in v1.*
+*Generated 2026-08-26. `main` is playable. Retrieve gate shipped (`ff23dd5`). Evaluate 1 `ser-emp-8`: gate held, Δ xG +0.176, offsides failed — bank 0/5. Plan: `docs/better-hockey.md`. HITL not in v1.*
