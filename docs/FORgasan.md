@@ -2,7 +2,7 @@
 
 You wanted two LangGraphs to fight each other at hockey, then get smarter after every result. That is still the product. What we *shipped* is more specific, and this file is honest about it: **two independent benches**, **ice that is code**, **one Head Coach call per live epoch**, and **an After-Action Review that patches a playbook** so game 7 is not a rerun of game 1.
 
-We measured that loop (`ser-emp-7`), gated retrieve (`ser-emp-8`), killed the offside-storm loop (`ser-emp-9`), shipped dump-in, then taught AAR to boost 5v5 not PP. Evaluate 4 (`ser-emp-11`) did **not** credit: Δ xG **−0.376** (not strictly better), pairs 1. Bank **1/5**. Plan: [`docs/better-hockey.md`](better-hockey.md).
+We measured that loop (`ser-emp-7`), gated retrieve, killed offside storms, shipped dump-in, taught AAR to boost 5v5, then F2 dump-chase. Cycle 1 aborted after Evaluate 5. Bank **1/5**. Plan: [`docs/better-hockey.md`](better-hockey.md).
 
 This is a handbook for *you* — how the repo thinks, what is a graph and what is not, how a call travels, how the team learns *together*, and the scars we paid for on the road to LangGraph learning.
 
@@ -244,6 +244,8 @@ Seven games as a row of books. The loop is the row getting thicker. Quality is w
 | **`ser-emp-10` Evaluate 3** | Ice gates held. Δ xG **−0.711**, pairs **1**. AAR boosted **PP umbrella** (g3 share 98%). Bank stays **1**. | A 20s penalty is the series lesson. Next: boost 5v5, not PP. |
 | **AAR 5v5 (`6f01c3e`)** | `codeDraft` prefers 5v5/3v3 xG over PP/PK/EN. | Write the even-strength sheet, not the penalty. |
 | **`ser-emp-11` Evaluate 4** | Ice gates held. g6 xG **0.46→0.79**. Footage Δ **−0.376** (raw −0.3762), pairs **1**. Bank stays **1**. | Strict bar. One more flat aborts the cycle. |
+| **F2 dump-chase (`78b17cb`)** | OZ loose puck: F2 contests. NZ stays onside. pr8 Shot 2, Offside 0, Goal 1. | Second man in on dump-and-chase. |
+| **`ser-emp-12` Evaluate 5** | g0 home **3** offsides. Chance mean **5.71**. Δ xG **−0.775**, pairs 0. **Cycle abort.** | F2 leak + late DZ collapse. Away crash-net +0.655. |
 
 ### The 7-game card (`ser-emp-7`)
 
@@ -503,9 +505,9 @@ These are not hypothetical. They showed up in design review or PR review and wou
 
 ## Where to go next
 
-Live counters live in [`docs/better-hockey.md`](better-hockey.md) (bank **1/5**, attempt **4**, flat streak **2**). Evaluate 4 not credited.
+Live counters live in [`docs/better-hockey.md`](better-hockey.md) (bank **1/5**, cycle 1 aborted).
 
-1. **Evaluate 5** (`ser-emp-12`) after F2 dump-chase on `main`. Need Δ xG **> −0.376** and pairs ≥ **3**. One more flat aborts the cycle.
+1. **Cycle 2 PR-1:** F2 OZ contest only past `BLUE_LINE_X + 8`, target `alongPuck - 6`. Then Evaluate 6. Need Δ xG **> −0.376** and pairs ≥ **3**.
 2. **Captain micro** stays off.
 3. **HITL later.** LangGraph `interrupt()`, off the 12s clock.
 4. Glimmer is up on `:8080`. Do not restart 8787 unless asked. Do not raise timeouts.
@@ -530,4 +532,4 @@ Live counters live in [`docs/better-hockey.md`](better-hockey.md) (bank **1/5**,
 
 ---
 
-*Generated 2026-08-26. `main` is playable. Evaluate 4 `ser-emp-11` not credited (Δ xG −0.376, pairs 1). Bank 1/5. Flat 2/3. Next: F2 dump-in contest. Plan: `docs/better-hockey.md`. HITL not in v1.*
+*Generated 2026-08-26. `main` is playable. Cycle 1 aborted after Evaluate 5. Bank 1/5. Next: tighten F2 OZ contest. Plan: `docs/better-hockey.md`. HITL not in v1.*
