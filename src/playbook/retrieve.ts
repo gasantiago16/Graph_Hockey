@@ -170,6 +170,28 @@ export function isEmptyNetPlay(play: Pick<Play, "family">): boolean {
   return play.family === "pull-early" || play.family === "en-scramble";
 }
 
+/** Lead-protect templates. Family/id only — trailing-only cousins stay eligible. */
+export function isLeadProtectPlay(play: Pick<Play, "family" | "id">): boolean {
+  return play.family === "protect-113" || play.id.startsWith("protect-lead");
+}
+
+/** Uniform score.eq when every trigger group that has a score predicate agrees. */
+export function requiredScoreState(play: Pick<Play, "triggers">): ScoreState | undefined {
+  let need: ScoreState | undefined;
+  for (const g of play.triggers) {
+    const eqs: ScoreState[] = [];
+    for (const p of [...(g.all ?? []), ...(g.any ?? [])]) {
+      if (p.kind === "score") eqs.push(p.eq);
+    }
+    if (eqs.length === 0) continue;
+    const first = eqs[0];
+    if (first === undefined || eqs.some((eq) => eq !== first)) return undefined;
+    if (need !== undefined && need !== first) return undefined;
+    need = first;
+  }
+  return need;
+}
+
 /** Filter active plays by strength/zone, rank by net xG, return top 6 digests. */
 export function retrievePlays(book: Playbook, query: RetrieveQuery): PlayDigest[] {
   const strength = asPlayStrength(query.strength);
@@ -177,6 +199,7 @@ export function retrievePlays(book: Playbook, query: RetrieveQuery): PlayDigest[
   const matched = book.plays.filter((play) => {
     if (play.status === "retired") return false;
     if (isEmptyNetPlay(play) && strength !== "EN") return false;
+    if (isLeadProtectPlay(play) && query.scoreState !== "leading") return false;
     if (!play.strength.includes(strength)) return false;
     if (play.zoneBias.length === 0) return true;
     return play.zoneBias.includes("any") || play.zoneBias.includes(query.zone);

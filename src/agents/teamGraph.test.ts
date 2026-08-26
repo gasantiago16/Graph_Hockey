@@ -292,7 +292,8 @@ describe("head_coach structured intent", () => {
     })) as { directive?: { playId: string }; coachIntent?: { playId: string } };
     expect(out.coachIntent?.playId).not.toBe("not-in-retrieved");
     expect(out.directive?.playId).toBe(out.coachIntent?.playId);
-    expect(["5v5-122-forecheck", "nz-122-trap", "protect-lead-1-1-3"]).toContain(out.directive?.playId);
+    expect(out.directive?.playId).not.toBe("protect-lead-1-1-3");
+    expect(["5v5-122-forecheck", "nz-122-trap"]).toContain(out.directive?.playId);
   });
 
   it("HC playId wins when OC disagrees (specialists on)", async () => {

@@ -66,4 +66,21 @@ describe("opening + retrieve top", () => {
     expect(retrieveTopId(loadPlaybook("original-six"))).toBe("5v5-122-forecheck");
     expect(retrieveTopChanged(["a", "a", "b", "b"])).toBe(1);
   });
+
+  it("retrieveTopId stays 5v5-122-forecheck when ser-emp-7 after-g4 protect-lead has higher net xG", () => {
+    const seed = loadPlaybook("original-six");
+    const book = {
+      ...seed,
+      plays: seed.plays.map((p) => {
+        if (p.id === "5v5-122-forecheck") {
+          return { ...p, stats: { games: 5, xgFor: 1.1036971959752557, xgAgainst: 1.0855651089157887 } };
+        }
+        if (p.id === "protect-lead-1-1-3") {
+          return { ...p, stats: { games: 3, xgFor: 0.24176167635919105, xgAgainst: 0.14546602452306692 } };
+        }
+        return p;
+      }),
+    };
+    expect(retrieveTopId(book)).toBe("5v5-122-forecheck");
+  });
 });
