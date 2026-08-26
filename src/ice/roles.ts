@@ -49,6 +49,8 @@ export function zoneAlongAttack(puckX: number, dir: 1 | -1): "DZ" | "NZ" | "OZ" 
 
 /** Stay our side of the attacking blue until the puck is in. */
 const ONSIDE_ALONG = BLUE_LINE_X - 4;
+/** Puck far enough in that F2 may chase / outlet without leading the entry. */
+const ESTABLISHED_OZ_ALONG = BLUE_LINE_X + 8;
 const CREASE_KEEP_OUT = -GOAL_LINE_X + CREASE_RADIUS + 8;
 
 function alongWorld(dir: 1 | -1, along: number, y: number, radius: number): { x: number; y: number } {
@@ -57,7 +59,7 @@ function alongWorld(dir: 1 | -1, along: number, y: number, radius: number): { x:
 
 /**
  * Five-man geometry. F1 hunts or carries; F2 contests a loose puck (dump-and-chase),
- * outlets ahead on a shallow OZ carry, else support-below; F3 slot; Ds gaps; Dw weak-side high.
+ * outlets ahead on an established OZ carry (BLUE+8), else support-below; F3 slot; Ds gaps; Dw weak-side high.
  */
 export function computeIceIntent(world: WorldState, side: Side): IceIntent {
   const dir = world.attackingDir[side];
@@ -124,14 +126,14 @@ export function computeIceIntent(world: WorldState, side: Side): IceIntent {
         f2Along = holder.pos.x * dir;
         if (!ozLive) f2Along = Math.min(f2Along, ONSIDE_ALONG);
       } else {
-        // Deep live OZ: second man. Shallow OZ / NZ / tag-up: trailer, onside.
-        const dumpChase = ozLive && alongPuck > BLUE_LINE_X + 8;
+        const dumpChase = ozLive && alongPuck > ESTABLISHED_OZ_ALONG;
         f2Along = dumpChase ? alongPuck - 6 : Math.min(alongPuck - 8, ONSIDE_ALONG);
       }
       intent.targets[f2.id] = alongWorld(dir, f2Along, (holder?.pos.y ?? puck.y) + offY, f2.radius);
     } else {
-      // Shallow live OZ: outlet ahead while F1 walks to the high slot. Else support-below.
-      const carryOut = ozLive && alongPuck < OZ_ICE_SHOOT_ALONG;
+      // Don't send F2 ahead of the puck on a just-in OZ entry.
+      const carryOut =
+        ozLive && alongPuck > ESTABLISHED_OZ_ALONG && alongPuck < OZ_ICE_SHOOT_ALONG;
       let f2Along = carryOut ? alongPuck + 10 : alongPuck - 12;
       if (!ozLive) f2Along = Math.min(f2Along, ONSIDE_ALONG);
       intent.targets[f2.id] = alongWorld(dir, f2Along, puck.y + offY, f2.radius);

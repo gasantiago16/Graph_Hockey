@@ -31,10 +31,10 @@ This is the live **quality** scoreboard. Update it after every counting Evaluate
 | Cycle | **3** | Cycles 1 and 2 aborted. Bank kept. Attempts reset |
 | Attempts this cycle | **1 / 5** | Evaluate 11 counted, not credited |
 | Flat streak | **1 / 3** | Evaluate 11 |
-| On `main` | carry `--from-snapshot` `7edabe9` + play mix `dd4cd03` + **F2 OZ outlet** `be9be08` | pr7 `8ad26e09` count 106; pr8 `98ab8f59` count 282 epochs 13 Shot 1 Offside 1 |
+| On `main` | carry `--from-snapshot` `7edabe9` + play mix `dd4cd03` + F2 OZ outlet `be9be08` + **F2 established OZ** | pr7 `8ad26e09` count 106 unchanged; pr8 `d2798fd1` count 286 epochs 11 Shot 0 Offside 1 |
 | Glimmer | **up** `:8080` (this session; do not restart 8787) | Timeouts not raised (`GRAPH_HOCKEY_EPOCH_TIMEOUT_MS=8000` from `.env`). |
 | Learning proofs | write **yes** · retain survive **yes** · transfer **no** · quality **2/5** | See [`knowledge-and-learning.md`](knowledge-and-learning.md) |
-| Goldens | pr7 `8ad26e09…` count **106**; pr8 `98ab8f59…` count **282**, epochs **13** | F2 OZ outlet moved both. Shot **0/1**, Offside **0/1**. |
+| Goldens | pr7 `8ad26e09…` count **106** (unchanged); pr8 `d2798fd1…` count **286**, epochs **11** | Established-OZ F2. Shot **1→0**, Offside **1** (not exploding). |
 
 ### Evaluate 1 — `ser-emp-8` (2026-08-26)
 
@@ -103,7 +103,8 @@ Control twin (`ser-emp-9-nollm`): books v1, retrieveTop 0/6, offsides 0–2 (g6 
 | Three-proofs plan | `a89c46d` on `main` | Carry-forward `--from-snapshot`; retention ≠ quality bank | never |
 | `--from-snapshot` | `7edabe9` on `main` | Restore snapshot books before game 0. `--from-db` copies another sqlite. `--no-llm` does not mutate | Retention Evaluate |
 | Series play mix | `dd4cd03` on `main` | `playMix` + `openingMatchesRetrieve` on scorecard | never |
-| F2 OZ carry outlet | `be9be08` on `main` | Shallow OZ F2 wide ahead of F1; deep slot support-below | Evaluate 11 |
+| F2 OZ carry outlet | `be9be08` on `main` | Shallow OZ F2 wide ahead of F1; deep slot support-below | Evaluate 11 (**not credited**) |
+| F2 established OZ | this commit | F2 outlet only when `alongPuck > BLUE+8` (same gate as dump-chase); just-in OZ support-below | Evaluate 12 |
 | PR-5 Ds tag-up | [#5](https://github.com/gasantiago16/Graph_Hockey/pull/5) | closed; absorbed into `c1e7707` | — |
 | PR-6 captain | skipped | env off | — |
 | PR-7 `lpTrail` flag | [#4](https://github.com/gasantiago16/Graph_Hockey/pull/4) | draft | never |

@@ -6,8 +6,8 @@ import { DEFAULT_PLAY_ID } from "../types/play.ts";
 import { computeIceIntent } from "./roles.ts";
 
 describe("computeIceIntent five-man", () => {
-  it("names F1 as the possessor and F2 as a wide outlet on a shallow OZ carry", () => {
-    const world = createWorld({
+  it("names F1 as the possessor and F2 as support-below until the puck is established in OZ", () => {
+    const justIn = createWorld({
       puck: { pos: { x: 30, y: 8 }, possessor: "h-C" },
       bodies: {
         "h-C": { pos: { x: 30, y: 8 } },
@@ -15,16 +15,29 @@ describe("computeIceIntent five-man", () => {
         "h-RW": { pos: { x: 8, y: -10 } },
       },
     });
-    const ice = computeIceIntent(world, "home");
+    const ice = computeIceIntent(justIn, "home");
     expect(ice.f1).toBe("h-C");
     expect(ice.roles["h-C"]).toBe("F1");
     expect(ice.roles["h-LW"]).toBe("F2");
     expect(ice.roles["h-RW"]).toBe("F3");
     expect(ice.targets["h-C"]).toBeUndefined();
-    const f2 = ice.targets["h-LW"]!;
-    expect(f2.x).toBeGreaterThan(30);
-    const f3 = ice.targets["h-RW"]!;
-    expect(f3.x).toBeGreaterThan(50);
+    expect(ice.targets["h-LW"]!.x).toBeLessThan(30);
+    expect(ice.targets["h-RW"]!.x).toBeGreaterThan(50);
+  });
+
+  it("F2 is a wide outlet on an established OZ carry, not a just-in entry lead", () => {
+    const established = createWorld({
+      puck: { pos: { x: BLUE_LINE_X + 12, y: 8 }, possessor: "h-C" },
+      bodies: {
+        "h-C": { pos: { x: BLUE_LINE_X + 12, y: 8 } },
+        "h-LW": { pos: { x: 10, y: 12 } },
+        "h-RW": { pos: { x: 8, y: -10 } },
+      },
+    });
+    const ice = computeIceIntent(established, "home");
+    const along = BLUE_LINE_X + 12;
+    expect(ice.roles["h-LW"]).toBe("F2");
+    expect(ice.targets["h-LW"]!.x).toBeGreaterThan(along);
   });
 
   it("F2 stays support-below once the puck is in the high slot", () => {
