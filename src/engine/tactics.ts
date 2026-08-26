@@ -161,27 +161,32 @@ function isShotPolicy(policy: ShotPolicy): boolean {
   return policy === "shoot" || policy === "crash";
 }
 
-/** Overlay beats ice F1; ice beats seed assignment. Locked shoot/crash demote to pass. */
+function overlayYieldsToIceShoot(overlay: ShotPolicy): boolean {
+  return overlay === "pass" || overlay === "dump";
+}
+
+/** Ice F1 shoot beats overlay pass/dump. Overlay shoot/crash/hold/cycle still wins. Locked shoot/crash demote to pass. */
 function releasePolicy(
   world: WorldState,
   side: Side,
   play: Play,
 ): { policy: ShotPolicy; source: "overlay" | "ice" | "assignment" } {
   const overlay = overlayShotPolicy(world, side);
+  const ice = iceActionToPolicy(world.iceIntents?.[side]?.f1Action);
   let policy: ShotPolicy;
   let source: "overlay" | "ice" | "assignment";
-  if (overlay) {
+  if (ice === "shoot" && overlay && overlayYieldsToIceShoot(overlay)) {
+    policy = ice;
+    source = "ice";
+  } else if (overlay) {
     policy = overlay;
     source = "overlay";
+  } else if (ice) {
+    policy = ice;
+    source = "ice";
   } else {
-    const ice = iceActionToPolicy(world.iceIntents?.[side]?.f1Action);
-    if (ice) {
-      policy = ice;
-      source = "ice";
-    } else {
-      policy = play.assignments.shotPolicy;
-      source = "assignment";
-    }
+    policy = play.assignments.shotPolicy;
+    source = "assignment";
   }
   if (isShotPolicy(policy) && world.shotLock[side]) {
     return { policy: "pass", source };

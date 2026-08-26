@@ -464,6 +464,156 @@ describe("goals", () => {
     expect(world.whistle).toBe("high_stick_goal_waved_off");
     expect(world.faceoffSpot).toEqual({ x: END_ZONE_FACEOFF_X, y: HASH_OFFSET_Y });
   });
+
+  it("carry-in by a scoring-side skater emits Shot then Goal", () => {
+    const events: MatchEvent[] = [];
+    const world = createWorld({
+      phase: "live",
+      liveTick: 10,
+      onIce: { home: ["h-C"], away: ["a-C"] },
+      bodies: {
+        ...farBodies(),
+        "h-C": { pos: { x: 82, y: 0 }, vel: { x: 8, y: 0 }, heading: 0 },
+      },
+      puck: { pos: { x: 88.4, y: 0 }, vel: { x: 20, y: 0 }, possessor: "h-C" },
+      lastPuckContact: { kind: "stick-puck", playerId: "h-C", stickHeight: 3 },
+    });
+    const prev = captureSnapshot(world);
+    world.puck.pos = { x: 89.5, y: 0 };
+    applyLiveRules(world, createRng(1), prev, testEmit(events), 0.1, []);
+    expect(world.score.home).toBe(1);
+    expect(world.whistle).toBe("goal");
+    expect(events.some((e) => e.type === "Shot")).toBe(true);
+    expect(events.some((e) => e.type === "Goal")).toBe(true);
+    const shot = events.find((e) => e.type === "Shot");
+    const goal = events.find((e) => e.type === "Goal");
+    expect(shot?.actor).toBe("h-C");
+    expect(shot!.xG).toBeGreaterThanOrEqual(0.01);
+    expect(goal?.actor).toBe("h-C");
+    expect(goal?.xG).toBe(shot?.xG);
+  });
+
+  it("pass/clear release that trickles in is not a Goal", () => {
+    const events: MatchEvent[] = [];
+    const world = createWorld({
+      phase: "live",
+      liveTick: 10,
+      onIce: { home: ["h-C"], away: ["a-C"] },
+      bodies: farBodies(),
+      puck: { pos: { x: 88.4, y: 0 }, vel: { x: 20, y: 0 }, possessor: "h-C" },
+      lastPuckContact: { kind: "stick-puck", playerId: "h-C", stickHeight: 3 },
+      stickRelease: "clear",
+    });
+    const prev = captureSnapshot(world);
+    world.puck.possessor = null;
+    world.puck.pos = { x: 89.5, y: 0 };
+    applyLiveRules(world, createRng(1), prev, testEmit(events), 0.1, []);
+    expect(world.score.home).toBe(0);
+    expect(world.whistle).toBe("freeze");
+    expect(events.some((e) => e.type === "Goal")).toBe(false);
+    expect(events.some((e) => e.type === "Freeze")).toBe(true);
+  });
+
+  it("later dump-in with lastStickRelease pass/clear is not a Goal", () => {
+    const events: MatchEvent[] = [];
+    const world = createWorld({
+      phase: "live",
+      liveTick: 14,
+      onIce: { home: ["h-C"], away: ["a-C"] },
+      bodies: farBodies(),
+      puck: { pos: { x: 88.4, y: 0 }, vel: { x: 12, y: 0 }, possessor: null },
+      lastPuckContact: { kind: "stick-puck", playerId: "h-C", stickHeight: 3 },
+      lastStickRelease: { kind: "pass", playerId: "h-C" },
+    });
+    const prev = captureSnapshot(world);
+    world.puck.pos = { x: 89.5, y: 0 };
+    applyLiveRules(world, createRng(1), prev, testEmit(events), 0.1, []);
+    expect(world.score.home).toBe(0);
+    expect(world.whistle).toBe("freeze");
+    expect(events.some((e) => e.type === "Goal")).toBe(false);
+  });
+
+  it("defending G last stick is not a Goal without a recent attacking Shot", () => {
+    const events: MatchEvent[] = [];
+    const world = createWorld({
+      phase: "live",
+      liveTick: 40,
+      onIce: { home: ["h-C"], away: ["a-G"] },
+      bodies: farBodies(),
+      puck: { pos: { x: 88.4, y: 0 }, vel: { x: 20, y: 0 }, possessor: null },
+      lastPuckContact: { kind: "stick-puck", playerId: "a-G", stickHeight: 3 },
+    });
+    const prev = captureSnapshot(world);
+    world.puck.pos = { x: 89.5, y: 0 };
+    applyLiveRules(world, createRng(1), prev, testEmit(events), 0.1, []);
+    expect(world.score.home).toBe(0);
+    expect(world.whistle).toBe("freeze");
+    expect(events.some((e) => e.type === "Goal")).toBe(false);
+  });
+
+  it("dump-in that clips the G is not a rebound Goal", () => {
+    const events: MatchEvent[] = [];
+    const world = createWorld({
+      phase: "live",
+      liveTick: 12,
+      onIce: { home: ["h-C"], away: ["a-G"] },
+      bodies: farBodies(),
+      puck: { pos: { x: 88.4, y: 0 }, vel: { x: 20, y: 0 }, possessor: null },
+      lastPuckContact: { kind: "stick-puck", playerId: "a-G", stickHeight: 3 },
+      lastStickRelease: { kind: "clear", playerId: "h-C" },
+      lastEvents: [
+        {
+          id: "t:1",
+          seq: 1,
+          liveTick: 8,
+          stoppageSeq: 0,
+          period: 1,
+          type: "Shot",
+          actor: "h-C",
+          xG: 0.31,
+          payload: { side: "home" },
+        },
+      ],
+    });
+    const prev = captureSnapshot(world);
+    world.puck.pos = { x: 89.5, y: 0 };
+    applyLiveRules(world, createRng(1), prev, testEmit(events), 0.1, []);
+    expect(world.score.home).toBe(0);
+    expect(world.whistle).toBe("freeze");
+    expect(events.some((e) => e.type === "Goal")).toBe(false);
+  });
+
+  it("rebound after an attacking Shot still counts; actor is the shooter not the G", () => {
+    const events: MatchEvent[] = [];
+    const world = createWorld({
+      phase: "live",
+      liveTick: 12,
+      onIce: { home: ["h-C"], away: ["a-G"] },
+      bodies: farBodies(),
+      puck: { pos: { x: 88.4, y: 0 }, vel: { x: 20, y: 0 }, possessor: null },
+      lastPuckContact: { kind: "stick-puck", playerId: "a-G", stickHeight: 3 },
+      lastEvents: [
+        {
+          id: "t:1",
+          seq: 1,
+          liveTick: 8,
+          stoppageSeq: 0,
+          period: 1,
+          type: "Shot",
+          actor: "h-C",
+          xG: 0.31,
+          payload: { side: "home" },
+        },
+      ],
+    });
+    const prev = captureSnapshot(world);
+    world.puck.pos = { x: 89.5, y: 0 };
+    applyLiveRules(world, createRng(1), prev, testEmit(events), 0.1, []);
+    expect(world.score.home).toBe(1);
+    const goal = events.find((e) => e.type === "Goal");
+    expect(goal?.actor).toBe("h-C");
+    expect(goal?.xG).toBe(0.31);
+  });
 });
 
 describe("shots / xG on events", () => {

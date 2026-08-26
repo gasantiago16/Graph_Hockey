@@ -76,10 +76,12 @@ function parseDirective(out: unknown, fallback: TeamDirective): { directive: Tea
   return { directive: parsed.data, ok: true };
 }
 
-/** Opening last is default-structure. Timeout must not freeze that for the whole match. */
+/** Opening last is default-structure. Timeout must not freeze that, or a stale overlay, for the whole match. */
 export function timeoutDirective(last: TeamDirective, seedPlayId?: string): TeamDirective {
   if (seedPlayId && last.playId === DEFAULT_PLAY_ID) return defaultDirective(seedPlayId);
-  return last;
+  if (last.playParams === undefined) return last;
+  const { playParams: _drop, ...rest } = last;
+  return rest;
 }
 
 /**

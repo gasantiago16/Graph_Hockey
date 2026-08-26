@@ -53,6 +53,8 @@ export const POST_HIT_RADIUS = 0.8;
 export const MINOR_SECONDS = 120;
 export const PENALTY_REL_SPEED = 28;
 export const PULL_GOALIE_SECONDS = 120;
+/** Rebound window: defending G last stick only counts if an attacking Shot is this recent. */
+export const GOAL_REBOUND_TICKS = 20;
 
 export type MinorInfraction = "hook" | "trip" | "interference";
 
@@ -951,12 +953,89 @@ function awardGoal(world: WorldState, emit: RuleEmit, scoring: Side, actor: Play
   fillToRosterCap(world);
 }
 
-function lastShotXg(world: WorldState): number | undefined {
+function eventSideOf(event: MatchEvent): Side | undefined {
+  const rec = event.payload as { side?: Side } | undefined;
+  if (rec?.side === "home" || rec?.side === "away") return rec.side;
+  if (event.actor?.startsWith("h-")) return "home";
+  if (event.actor?.startsWith("a-")) return "away";
+  return undefined;
+}
+
+function lastAttackingShot(world: WorldState, scoring: Side): MatchEvent | undefined {
   for (let i = world.lastEvents.length - 1; i >= 0; i--) {
     const e = world.lastEvents[i];
-    if (e && e.type === "Shot") return e.xG;
+    if (!e || e.type !== "Shot") continue;
+    if (world.liveTick - e.liveTick > GOAL_REBOUND_TICKS) break;
+    if (eventSideOf(e) === scoring) return e;
   }
   return undefined;
+}
+
+function shotAlreadyThisTick(world: WorldState, scoring: Side): boolean {
+  for (let i = world.lastEvents.length - 1; i >= 0; i--) {
+    const e = world.lastEvents[i];
+    if (!e || e.liveTick !== world.liveTick) break;
+    if (e.type === "Shot" && eventSideOf(e) === scoring) return true;
+  }
+  return false;
+}
+
+function scoringSkaterHolder(
+  world: WorldState,
+  prev: LiveSnapshot,
+  scoring: Side,
+): Body | undefined {
+  for (const id of [world.puck.possessor, prev.possessor]) {
+    if (!id) continue;
+    const b = world.bodies[id];
+    if (b && b.side === scoring && !isGoalie(b)) return b;
+  }
+  return undefined;
+}
+
+function rememberStickRelease(
+  world: WorldState,
+  prev: LiveSnapshot,
+  stickRelease: WorldState["stickRelease"],
+): void {
+  if (stickRelease) {
+    const who = prev.possessor ?? world.lastPuckContact?.playerId;
+    if (who) world.lastStickRelease = { kind: stickRelease, playerId: who };
+  }
+  const contact = world.lastPuckContact;
+  if (!world.lastStickRelease || !contact || contact.playerId === world.lastStickRelease.playerId) return;
+  const body = world.bodies[contact.playerId];
+  if (body && isGoalie(body)) return;
+  if (contact.kind === "stick-puck" && body && !isGoalie(body)) {
+    world.lastStickRelease = null;
+  }
+}
+
+function waveOffNetEntry(world: WorldState, emit: RuleEmit, scoring: Side, actor?: PlayerId): void {
+  blowWhistle(
+    world,
+    emit,
+    "freeze",
+    "Freeze",
+    faceoffSpotFor("high_stick_goal_waved_off", world, { attacking: scoring }),
+    { actor, payload: { kind: "freeze", side: scoring } },
+  );
+}
+
+function emitChanceShot(
+  world: WorldState,
+  emit: RuleEmit,
+  shooter: Body,
+  origin: Vec2,
+): number | undefined {
+  const xG = shotXg(world, shooter, world.puck.vel, origin);
+  emit({
+    type: "Shot",
+    actor: shooter.id,
+    xG,
+    payload: { side: shooter.side },
+  });
+  return xG;
 }
 
 function updateSmother(world: WorldState, emit: RuleEmit, dt: number): boolean {
@@ -982,7 +1061,12 @@ export function crossedIntoNet(prev: Vec2, now: Vec2, netX: number): boolean {
   return !puckInNet(prev, netX) && puckInNet(now, netX);
 }
 
-function maybeGoal(world: WorldState, prev: LiveSnapshot, emit: RuleEmit): boolean {
+function maybeGoal(
+  world: WorldState,
+  prev: LiveSnapshot,
+  emit: RuleEmit,
+  stickRelease: WorldState["stickRelease"],
+): boolean {
   if (world.whistle !== null) return false;
   if (world.phase !== "live" && world.phase !== "delayed_offside" && world.phase !== "delayed_penalty") {
     return false;
@@ -1017,7 +1101,42 @@ function maybeGoal(world: WorldState, prev: LiveSnapshot, emit: RuleEmit): boole
       return true;
     }
 
-    awardGoal(world, emit, scoring, contact.playerId, lastShotXg(world));
+    const dumpRelease =
+      stickRelease === "pass" ||
+      stickRelease === "clear" ||
+      world.lastStickRelease?.kind === "pass" ||
+      world.lastStickRelease?.kind === "clear";
+    if (dumpRelease && !shotAlreadyThisTick(world, scoring)) {
+      const holder = world.puck.possessor ? world.bodies[world.puck.possessor] : undefined;
+      const stillCarrier = holder && holder.side === scoring && !isGoalie(holder);
+      if (!stillCarrier) {
+        waveOffNetEntry(world, emit, scoring, contact.playerId);
+        return true;
+      }
+    }
+
+    if (lastBody && isGoalie(lastBody) && lastBody.side === defending) {
+      const rebound = lastAttackingShot(world, scoring);
+      if (!rebound) {
+        waveOffNetEntry(world, emit, scoring, lastBody.id);
+        return true;
+      }
+      awardGoal(world, emit, scoring, rebound.actor, rebound.xG);
+      return true;
+    }
+
+    const carrier = scoringSkaterHolder(world, prev, scoring);
+    if (carrier) {
+      const recent = lastAttackingShot(world, scoring);
+      let xG = recent?.xG;
+      if (!shotAlreadyThisTick(world, scoring)) {
+        xG = emitChanceShot(world, emit, carrier, prev.puckPos);
+      }
+      awardGoal(world, emit, scoring, carrier.id, xG);
+      return true;
+    }
+
+    awardGoal(world, emit, scoring, contact.playerId, lastAttackingShot(world, scoring)?.xG);
     return true;
   }
   return false;
@@ -1249,13 +1368,14 @@ export function applyLiveRules(
 ): void {
   const stickRelease = world.stickRelease;
   world.stickRelease = null;
+  rememberStickRelease(world, prev, stickRelease);
   if (world.whistle !== null) return;
   maybePenalties(world, rng, emit, playerContacts);
   if (world.whistle !== null) return;
   if (maybeResolveDelayedTurnover(world, emit)) return;
   if (updateSmother(world, emit, dt)) return;
   maybeShot(world, prev, emit, stickRelease);
-  if (maybeGoal(world, prev, emit)) return;
+  if (maybeGoal(world, prev, emit, stickRelease)) return;
   if (maybeNetOff(world, emit)) return;
   if (maybeOffside(world, prev, emit, puckContacts)) return;
   if (maybeIcing(world, rng, prev, emit, puckContacts)) return;

@@ -39,6 +39,8 @@ export const DEFAULT_SLOTS: { [K in Position]: Vec2 } = {
   G: { x: -GOAL_LINE_X, y: 0 },
 };
 
+export type StickReleaseKind = "shot" | "pass" | "clear";
+
 export type LineTag = FwdLine | DPair | "F4" | "G1" | "G2";
 
 export type Body = {
@@ -124,7 +126,9 @@ export type WorldState = {
   /** Five-man ice roles/targets for this tick. Filled in stepLive. */
   iceIntents?: { home: IceIntent; away: IceIntent };
   /** Last stick release this tick. Pass/clear must not become Shot. */
-  stickRelease: "shot" | "pass" | "clear" | null;
+  stickRelease: StickReleaseKind | null;
+  /** Last consumed release until a different player takes a stick-puck. */
+  lastStickRelease: { kind: StickReleaseKind; playerId: PlayerId } | null;
   /** One shot per possession. Save/Rebound clears for a second chance. */
   shotLock: { home: boolean; away: boolean };
 };
@@ -167,7 +171,8 @@ export type CreateWorldInput = {
   lastEvents?: MatchEvent[];
   playbooks?: { home: Playbook; away: Playbook };
   iceIntents?: { home: IceIntent; away: IceIntent };
-  stickRelease?: "shot" | "pass" | "clear" | null;
+  stickRelease?: StickReleaseKind | null;
+  lastStickRelease?: { kind: StickReleaseKind; playerId: PlayerId } | null;
   shotLock?: { home: boolean; away: boolean };
 };
 
@@ -404,6 +409,7 @@ export function createWorld(input: CreateWorldInput = {}): WorldState {
     playbooks: input.playbooks,
     iceIntents: input.iceIntents,
     stickRelease: input.stickRelease ?? null,
+    lastStickRelease: input.lastStickRelease ? { ...input.lastStickRelease } : null,
     shotLock: input.shotLock
       ? { home: input.shotLock.home, away: input.shotLock.away }
       : { home: false, away: false },

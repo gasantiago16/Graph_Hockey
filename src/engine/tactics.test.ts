@@ -420,13 +420,13 @@ describe("pass / shoot release", () => {
     expect(world.shotLock.home).toBe(false);
   });
 
-  it("coach dump overlay does not release even when ice would shoot", () => {
+  it("ice F1 shoot beats overlay pass/dump and releases a shot", () => {
     const book = loadPlaybook("original-six");
     const world = createWorld({
       playId: { home: "5v5-122-forecheck", away: DEFAULT_PLAY_ID },
       playbooks: { home: book, away: book },
       directives: {
-        home: { playId: "5v5-122-forecheck", pressure: "neutral", playParams: { shotPolicy: "dump" } },
+        home: { playId: "5v5-122-forecheck", pressure: "neutral", playParams: { shotPolicy: "pass" } },
         away: defaultDirective(),
       },
       puck: { pos: { x: 50, y: 0 }, possessor: "h-C" },
@@ -437,8 +437,29 @@ describe("pass / shoot release", () => {
       away: computeIceIntent(world, "away"),
     };
     expect(world.iceIntents.home.f1Action).toBe("shoot");
-    expect(maybeReleasePuck(world)).toBe(false);
-    expect(world.puck.possessor).toBe("h-C");
+    expect(maybeReleasePuck(world)).toBe(true);
+    expect(world.stickRelease).toBe("shot");
+    expect(world.puck.possessor).toBeNull();
+  });
+
+  it("overlay shoot/crash still wins over ice pass", () => {
+    const book = loadPlaybook("expansion");
+    const world = createWorld({
+      playId: { home: "5v5-212-forecheck", away: DEFAULT_PLAY_ID },
+      playbooks: { home: book, away: book },
+      directives: {
+        home: { playId: "5v5-212-forecheck", pressure: "aggressive", playParams: { shotPolicy: "shoot" } },
+        away: defaultDirective(),
+      },
+      puck: { pos: { x: 50, y: 0 }, possessor: "h-C" },
+      bodies: { "h-C": { pos: { x: 50, y: 0 }, heading: 0 } },
+    });
+    world.iceIntents = {
+      home: { ...computeIceIntent(world, "home"), f1Action: "pass" },
+      away: computeIceIntent(world, "away"),
+    };
+    expect(maybeReleasePuck(world)).toBe(true);
+    expect(world.stickRelease).toBe("shot");
   });
 });
 

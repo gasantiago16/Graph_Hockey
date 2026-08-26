@@ -110,6 +110,18 @@ describe("invokeTeam", () => {
     expect(timeoutDirective(last, "5v5-212-forecheck").playId).toBe("5v5-212-forecheck");
   });
 
+  it("timeout strips overlay playParams so ice F1 can shoot", () => {
+    const sticky = {
+      playId: "5v5-122-forecheck",
+      pressure: "neutral" as const,
+      playParams: { shotPolicy: "pass" as const },
+    };
+    const stripped = timeoutDirective(sticky);
+    expect(stripped.playId).toBe("5v5-122-forecheck");
+    expect(stripped.playParams).toBeUndefined();
+    expect(timeoutDirective(last).playParams).toBeUndefined();
+  });
+
   it("returns circuit for a tripped team without invoking", async () => {
     const budget = createBudget();
     recordLlmUsage(budget, "home", {
