@@ -2,7 +2,9 @@
 
 You wanted two LangGraphs to fight each other at hockey, then get smarter after every result. That is still the product. What we *shipped* is more specific, and this file is honest about it: **two independent benches**, **ice that is code**, **one Head Coach call per live epoch**, and **an After-Action Review that patches a playbook** so game 7 is not a rerun of game 1.
 
-We measured that loop (`ser-emp-7`), gated retrieve, killed offside storms, shipped dump-in, taught AAR to boost 5v5, F2 dump-chase, DZ leftover, film chance-pair, high-slot shots, then DZ outlet. Evaluate 8 credited bank **2/5**. Cycle 2 aborted after Evaluate 10 (Δ xG +0.097, chance mean 5.29). Plan: [`docs/better-hockey.md`](better-hockey.md).
+We measured that loop (`ser-emp-7`), gated retrieve, killed offside storms, shipped dump-in, taught AAR to boost 5v5, F2 dump-chase, DZ leftover, film chance-pair, high-slot shots, then DZ outlet. Evaluate 8 credited bank **2/5**. Cycle 2 aborted after Evaluate 10.
+
+Three proofs, not one slogan: **write path proven**, **retention across series not proven** (fresh sqlite every Evaluate), **hockey bank 2/5**. Plan: [`knowledge-and-learning.md`](knowledge-and-learning.md). Scoreboard: [`better-hockey.md`](better-hockey.md).
 
 This is a handbook for *you* — how the repo thinks, what is a graph and what is not, how a call travels, how the team learns *together*, and the scars we paid for on the road to LangGraph learning.
 
@@ -503,7 +505,7 @@ These are not hypothetical. They showed up in design review or PR review and wou
 2. **Cite or discard.** If an agent is allowed to change long-term memory, every mutation needs a pointer into a log you already trust.
 3. **Visit tests for graphs.** Assert node names in a stream, not “the prompt looks right.”
 4. **Mirror observations.** Fairness bugs love coordinate frames. Home + away `puck.x ≈ 0` is a one-liner that caught leaks.
-5. **Product of learning is two diffs.** (a) Did the menu change vs a no-write control? (b) Did the hockey get better? Shipping (a) without (b) is still progress — as long as you say so.
+5. **Product of learning is three diffs.** (a) Did the menu write vs a no-write control? (b) Did the next series *start from* that menu? (c) Did the hockey get better? We have (a). We have not run (b). (c) is bank 2/5. Ice edits are not (a) or (b).
 6. **Windows native addons fail in CI.** Plan a WASM/JS adapter before you promise sqlite3.
 7. **Local models are adapters.** Reasoning channels, empty `content`, token budgets, and server flags are part of the contract. Ping JSON-in-timeout before a series.
 8. **Short experiments lie about time predicates.** If a trigger is “last three minutes,” a 20s period is always the last three minutes.
@@ -513,13 +515,13 @@ These are not hypothetical. They showed up in design review or PR review and wou
 
 ## Where to go next
 
-Live counters live in [`docs/better-hockey.md`](better-hockey.md) (bank **2/5**, cycle 3 after abort).
+Live counters: [`better-hockey.md`](better-hockey.md) (bank **2/5**). Learning plan: [`knowledge-and-learning.md`](knowledge-and-learning.md). Bibliography: [`ANNOTATED_BIBLIOGRAPHY.md`](ANNOTATED_BIBLIOGRAPHY.md).
 
-1. **F2 support on the OZ carry**, then Evaluate 11. Cycle 2 aborted: Δ xG **+0.097** twice, chance mean stayed under 6. Need Δ **> −0.071**, pairs ≥ **4**, chance mean ≥ 6.
-2. **Captain micro** stays off.
-3. **HITL later.** LangGraph `interrupt()`, off the 12s clock.
-4. Glimmer is up on `:8080`. Do not restart 8787 unless asked. Do not raise timeouts.
-5. Keep `AGENTS.md` honest: `src/ice/` is environment. `--aar-mode code` is not `--no-llm`.
+1. **Carry-forward (`--from-snapshot`).** Every Evaluate has been a fresh seed book. That cannot prove the staff *kept* the lesson. Series B must open from series A’s after-game-6 JSON. Retention Evaluate does not steal a quality-bank slot.
+2. **F2 support on the OZ carry** (hockey volume). Chance mean stayed under 6. Ice is environment.
+3. **Captain micro** stays off. **HITL later.**
+4. Glimmer was **killed**. Do not restart `:8080` or 8787 unless asked. Do not raise timeouts.
+5. Keep `AGENTS.md` honest: `src/ice/` is environment. Playbooks are agent memory. `--aar-mode code` is not `--no-llm`. We do **not** compile LangGraph `store` today.
 
 ---
 
@@ -540,4 +542,4 @@ Live counters live in [`docs/better-hockey.md`](better-hockey.md) (bank **2/5**,
 
 ---
 
-*Generated 2026-08-26. `main` is playable. Cycle 2 aborted after Evaluate 10. Bank 2/5. Plan: `docs/better-hockey.md`. HITL not in v1.*
+*Generated 2026-08-26. `main` is playable. Write path proven. Retention across series not proven. Quality bank 2/5. Glimmer down. HITL not in v1.*

@@ -4,7 +4,7 @@
 | --- | --- |
 | **Author** | Graph_Hockey staff (design) |
 | **Date** | 2026-08-26 |
-| **Status** | **Cycle 2 aborted after Evaluate 10 (bank 2/5).** Δ xG **+0.097** would credit; chance mean **5.29** and pairs **3** failed. |
+| **Status** | **Cycle 2 aborted (bank 2/5).** Write path proven. Retention across series **not** proven. Quality last-two Δ xG +0.097 uncashed (chance mean). Plan: [`knowledge-and-learning.md`](knowledge-and-learning.md). |
 | **Repo** | `C:\Users\gasan\Graph_Hockey` (private, `main` playable) |
 | **Success criterion** | **Five empirical improvements.** Not five attempts. Not five version bumps. Not “stop when the numbered PR stack is done.” Keep cycling (including a **post-stack Diagnose menu**) until `improvements == 5` or the user stops. |
 | **PLAN_ID** | `f1d4bdeb` (resume leftover PRs with `/execute-plan --resume f1d4bdeb` after Evaluate context) |
@@ -13,7 +13,15 @@
 
 ## Experiment log (do not lose this)
 
-This is the live scoreboard. Update it after every counting Evaluate. Handbook: [`FORgasan.md`](FORgasan.md).
+This is the live **quality** scoreboard. Update it after every counting Evaluate. Handbook: [`FORgasan.md`](FORgasan.md). Three proofs (write / retain / hockey) and the carry-forward plan: [`knowledge-and-learning.md`](knowledge-and-learning.md). Bibliography: [`ANNOTATED_BIBLIOGRAPHY.md`](ANNOTATED_BIBLIOGRAPHY.md).
+
+### Three proofs (do not collapse)
+
+| Proof | Status | What we measured |
+| --- | --- | --- |
+| **Write path** | **Proven** | Live books v1→v8. `--no-llm` stays v1. AAR is background memory write. |
+| **Retain / transfer** | **Not proven across series** | Every Evaluate is a **fresh sqlite + seed books**. v8 snapshots exist on disk and are not the next g0. Home still opens `5v5-122-forecheck`. |
+| **Hockey quality** | **Bank 2 / 5** | Credited Δ xG −0.376 then −0.071. Evaluate 9–10 Δ **+0.097** missed chance mean. Ice repairs are environment, not the graph. |
 
 | Counter | Value | Notes |
 | --- | --- | --- |
@@ -24,7 +32,8 @@ This is the live scoreboard. Update it after every counting Evaluate. Handbook: 
 | Attempts this cycle | **0 / 5** | After Evaluate 10 abort |
 | Flat streak | **0 / 3** | Reset on abort |
 | On `main` | … + high-slot `70c4b3b` + **DZ outlet** `c92df85` | DZ F1 pass-to-outlet else clear |
-| Glimmer | **running** `:8080 --reasoning off` | Do not restart 8787 unless asked. |
+| Glimmer | **down** (killed; do not restart unless asked) | Live Evaluates wait. Ice + `npm test` do not. Do not restart 8787. |
+| Learning proofs | write **yes** · retain **no** · quality **2/5** | See [`knowledge-and-learning.md`](knowledge-and-learning.md) |
 | Goldens | pr7 `1378ddf6…` count **57**; pr8 `4ced9501…` count **263**, epochs **11** | DZ outlet moved pr8. Shot **0**, Offside **0** (was 2). pr7 unchanged |
 
 ### Evaluate 1 — `ser-emp-8` (2026-08-26)
@@ -91,6 +100,7 @@ Control twin (`ser-emp-9-nollm`): books v1, retrieveTop 0/6, offsides 0–2 (g6 
 | Film chance-pair | `db2a458` on `main` | Same play+zone goal/shot/save pair under Jaccard 0.3 | Evaluate 8 (**improved**) |
 | Ice high-slot shot | `70c4b3b` on `main` | Ice-source OZ shots wait for BLUE+20 (carry). Overlay shoot/crash still BLUE-8 | Evaluate 9 (**not credited**) |
 | DZ outlet pass | `c92df85` on `main` | DZ F1 passes to a mate 8 ft up-ice, else clears. Ice pass beats overlay dump in DZ only | Evaluate 10 (**not credited**, cycle abort) |
+| Three-proofs plan | docs on `main` | Carry-forward `--from-snapshot`; retention ≠ quality bank | never (this slice) |
 | PR-5 Ds tag-up | [#5](https://github.com/gasantiago16/Graph_Hockey/pull/5) | closed; absorbed into `c1e7707` | — |
 | PR-6 captain | skipped | env off | — |
 | PR-7 `lpTrail` flag | [#4](https://github.com/gasantiago16/Graph_Hockey/pull/4) | draft | never |
@@ -367,7 +377,12 @@ g0 eventHash **`85fa9942`** matches Evaluate 9 g0. g6 xG **1.015** matches Evalu
 
 Bank stays 2. Do not raise timeouts. Do not change the Δ xG bar. Do **not** revert high-slot or DZ outlet — g0/g6 quality is the best we have measured (xG 0.92 → 1.02, 4–1). The floor fail is **quiet middle games** (g1/g2/g3/g5).
 
-**Cycle 3 PR-1 (next):** F2 support on the OZ carry (weHaveIt, shallow OZ) so the high-slot walk has an outlet instead of getting stripped. Goal: chance mean ≥ 6 without giving back g6 xG. Then Evaluate 11 (`ser-emp-18`).
+**Cycle 3 — two tracks** (see [`knowledge-and-learning.md`](knowledge-and-learning.md)):
+
+1. **Learning (recommended next code):** `--from-snapshot` so series B opens from series A’s after-game-6 books. Retention Evaluate `ser-retain-1` when Glimmer is back. **Does not** increment the quality bank.
+2. **Hockey:** F2 support on the OZ carry so the high-slot walk has an outlet. Goal: chance mean ≥ 6. Counting quality Evaluate 11 when Glimmer is back.
+
+Glimmer is down. Do not restart `:8080` or 8787 unless asked. `--from-snapshot` unit tests do not need an LLM.
 
 ### Dump-in golden move (intentional)
 
