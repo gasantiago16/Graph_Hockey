@@ -147,4 +147,88 @@ describe("runSeries --no-llm", () => {
       db.close();
     }
   }, 60_000);
+
+  it("fromSnapshot opens game 0 on carried books and --no-llm does not mutate them", async () => {
+    const src = await openMemoryDb();
+    const dest = await openMemoryDb();
+    const srcDir = mkdtempSync(join(tmpdir(), "gh-carry-src-"));
+    const destDir = mkdtempSync(join(tmpdir(), "gh-carry-dst-"));
+    try {
+      ensureSeedPlaybooks(src);
+      const seed = latestPlaybook(src, "original-six")!;
+      insertPlaybook(src, {
+        teamId: "original-six",
+        version: 8,
+        body: {
+          ...seed.body,
+          version: 8,
+          plays: seed.body.plays.map((p) =>
+            p.id === "5v5-122-forecheck"
+              ? { ...p, stats: { games: 7, xgFor: 0.9, xgAgainst: 0.4 } }
+              : p,
+          ),
+        },
+        parentVersion: 1,
+        aarMatchId: "prior-g6",
+      });
+      const { snapshot } = snapshotPlaybooksToDir(src, {
+        seriesId: "ser-prior",
+        gameIndex: 6,
+        teamIds: ["original-six", "expansion"],
+        dir: srcDir,
+      });
+      expect(latestPlaybook(src, "original-six")?.version).toBe(8);
+
+      const result = await runSeries({
+        db: dest,
+        homeTeamId: "original-six",
+        awayTeamId: "expansion",
+        seed: 7,
+        games: 1,
+        seriesId: "ser-retain-test",
+        noLlm: true,
+        periodSeconds: SHORT_PERIOD,
+        otSeconds: scaledOtSeconds(SHORT_PERIOD),
+        snapshotDir: destDir,
+        timeoutMs: 2000,
+        fromSnapshot: snapshot,
+      });
+
+      expect(result.carriedFromSnapshot).toBe(true);
+      const before = readPlaybookSnapshot(result.beforeSnapshotPath);
+      expect(before.books.find((b) => b.teamId === "original-six" && b.version === 8)?.body.plays.find((p) => p.id === "5v5-122-forecheck")?.stats?.xgFor).toBe(0.9);
+      expect(result.matches[0]?.playbookVersions.home).toBe(8);
+      expect(result.matches[0]?.playbookVersions.away).toBe(1);
+      expect(latestPlaybook(dest, "original-six")?.version).toBe(8);
+    } finally {
+      src.close();
+      dest.close();
+    }
+  }, 60_000);
+
+  it("fromSnapshot throws when a side is missing from the snapshot", async () => {
+    const db = await openMemoryDb();
+    try {
+      await expect(
+        runSeries({
+          db,
+          homeTeamId: "original-six",
+          awayTeamId: "expansion",
+          seed: 1,
+          games: 1,
+          seriesId: "ser-missing-team",
+          noLlm: true,
+          periodSeconds: SHORT_PERIOD,
+          fromSnapshot: {
+            seriesId: "empty",
+            gameIndex: 6,
+            capturedAt: "2026-08-26T00:00:00.000Z",
+            books: [],
+          },
+        }),
+      ).rejects.toThrow(/missing team books/);
+    } finally {
+      db.close();
+    }
+  });
 });

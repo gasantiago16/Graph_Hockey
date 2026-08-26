@@ -9,6 +9,7 @@ import { MatchAborted, runMatch, type MatchOptions, type MatchResult } from "../
 import type { Db } from "../persist/db.ts";
 import {
   defaultSnapshotDir,
+  restorePlaybookSnapshot,
   snapshotPlaybooksToDir,
   type PlaybookSnapshot,
 } from "../persist/playbookSnapshots.ts";
@@ -103,6 +104,11 @@ export type RunSeriesOpts = {
   homeProfile?: TeamLlmProfile;
   awayProfile?: TeamLlmProfile;
   startedAt?: string;
+  /**
+   * Restore these books after seed insert, before game 0.
+   * Physics seed is independent — this is agent memory, not env.reset.
+   */
+  fromSnapshot?: PlaybookSnapshot;
   onGameStart?: (info: SeriesGameStart) => void;
   onTick?: MatchOptions["onTick"];
   onGameOver?: (info: SeriesGameOver) => void | Promise<void>;
@@ -129,6 +135,7 @@ export type SeriesResult = {
   beforeSnapshotPath: string;
   beforeSnapshot: PlaybookSnapshot;
   snapshotPaths: string[];
+  carriedFromSnapshot: boolean;
 };
 
 /**
@@ -149,6 +156,10 @@ export async function runSeries(opts: RunSeriesOpts): Promise<SeriesResult> {
   mkdirSync(snapDir, { recursive: true });
 
   ensureSeedPlaybooks(opts.db);
+  if (opts.fromSnapshot) {
+    assertSnapshotCoversTeams(opts.fromSnapshot, opts.homeTeamId, opts.awayTeamId);
+    restorePlaybookSnapshot(opts.db, opts.fromSnapshot);
+  }
   const teamIds = [opts.homeTeamId, opts.awayTeamId];
   const before = snapshotPlaybooksToDir(opts.db, {
     seriesId,
@@ -267,5 +278,15 @@ export async function runSeries(opts: RunSeriesOpts): Promise<SeriesResult> {
     beforeSnapshotPath: before.path,
     beforeSnapshot: before.snapshot,
     snapshotPaths,
+    carriedFromSnapshot: opts.fromSnapshot !== undefined,
   };
+}
+
+function assertSnapshotCoversTeams(snapshot: PlaybookSnapshot, homeTeamId: string, awayTeamId: string): void {
+  const ids = new Set(snapshot.books.map((b) => b.teamId));
+  if (!ids.has(homeTeamId) || !ids.has(awayTeamId)) {
+    throw new Error(
+      `--from-snapshot/--from-db missing team books (have ${[...ids].join(",") || "none"}; need ${homeTeamId} and ${awayTeamId})`,
+    );
+  }
 }

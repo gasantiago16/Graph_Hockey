@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { MemorySaver } from "@langchain/langgraph";
 import { parseAarMode, runPostMatchAar, sideResult } from "../aar/index.ts";
@@ -10,12 +11,16 @@ import { missingProviderKeys, resolveTeamProfile, type TeamLlmProfile } from "..
 import { defaultExportPath, exportMatchMp4 } from "../film/exportMp4.ts";
 import { retrieveTopChanged, sideScorecard } from "../film/chances.ts";
 import { formatDelta, loadSeriesImprovement } from "../film/improvement.ts";
-import type { PlaybookSnapshot } from "../persist/playbookSnapshots.ts";
+import {
+  capturePlaybookSnapshot,
+  defaultSnapshotDir,
+  readPlaybookSnapshot,
+  type PlaybookSnapshot,
+} from "../persist/playbookSnapshots.ts";
 import { pairClipsForGames } from "../film/pairClips.ts";
 import { getFootage } from "../persist/clips.ts";
 import { defaultDbPath, openDb, type Db } from "../persist/db.ts";
 import { getAarReport, getMatch, type MatchResultLabel } from "../persist/matches.ts";
-import { defaultSnapshotDir } from "../persist/playbookSnapshots.ts";
 import { ensureSeedPlaybooks, latestPlaybook, listPlaybookVersions, resetPlaybookToSeed } from "../persist/playbooks.ts";
 import { diffPlaybooks, formatPlaybookDiff } from "../playbook/diff.ts";
 import { loadPlaybook, SEED_TEAM_IDS } from "../playbook/store.ts";
@@ -34,6 +39,7 @@ Usage:
   gh aar --match ID [--side home|away] [--aar-mode auto|propose|hitl|code]
   gh playbook --team ID [--diff] [--version N] [--reset-playbook]
   gh series --games 7 [--home ID] [--away ID] [--seed N] [--no-llm] [--no-record] [--aar-mode code|auto|propose] [--db PATH] [--snapshot-dir PATH]
+            [--from-snapshot PATH] [--from-db PATH]
             [--home-provider xai|muse|openai|gemini] [--away-provider ...] [--home-model SLUG] [--away-model SLUG]
   gh footage --match ID [--mp4] [--highlight] [--full] [--clip ID] [--out PATH]
   gh footage --series ID [--compare i,j] [--json]
@@ -48,6 +54,9 @@ AAR runs after every result. Live simulate/series default --aar-mode code: code 
 --no-record skips the clip index (events still stored). CI golden hashes use --no-record.
 series default is 7 games; gameSeed = seed + gameIndex. AAR code/auto apply mutates playbooks between games (not --no-llm).
 Playbook snapshots go in data/playbook-snapshots/<seriesId>/ (before.json + after-game-N.json).
+--from-snapshot PATH restores those books into the new series db before game 0 (agent memory).
+--from-db PATH copies playbook version history from another sqlite. Do not use both.
+--seed still reseeds physics only; carried books are independent of env.reset.
 --no-llm series uses 5s periods unless GRAPH_HOCKEY_PERIOD_SECONDS or --period-seconds is set.
 footage --match lists auto-clips + open ticks. --mp4 writes a derivative H.264 file (ffmpeg required; Film Room stays the review surface).
 --series prints the improvement ledger + deltas (chances, offsides, retrieveTop).
@@ -636,6 +645,13 @@ async function cmdSeries(argv: string[], env: EnvMap): Promise<number> {
   const seriesId = opt(argv, "id") ?? makeSeriesId(seed);
   const snapshotParent = opt(argv, "snapshot-dir") ?? defaultSnapshotDir();
   const snapshotDir = join(snapshotParent, seriesId);
+  let fromSnapshot: PlaybookSnapshot | undefined;
+  try {
+    fromSnapshot = await loadCarrySnapshot(argv, homeTeamId, awayTeamId);
+  } catch (err) {
+    console.error(err instanceof Error ? err.message : err);
+    return 1;
+  }
 
   const result = await withDb(dbPath, async (db) => {
     return runSeries({
@@ -652,6 +668,7 @@ async function cmdSeries(argv: string[], env: EnvMap): Promise<number> {
       timeoutMs: cfg.epochTimeoutMs,
       record,
       snapshotDir,
+      fromSnapshot,
       models: noLlm ? { home: "none", away: "none" } : { home: homeProfile.coach, away: awayProfile.coach },
       homeProfile: noLlm ? undefined : homeProfile,
       awayProfile: noLlm ? undefined : awayProfile,
@@ -692,6 +709,7 @@ async function cmdSeries(argv: string[], env: EnvMap): Promise<number> {
     db: dbPath,
     snapshotDir: result.snapshotDir,
     snapshots: result.snapshotPaths,
+    carriedFromSnapshot: result.carriedFromSnapshot,
     matches,
     learning: {
       retrieveTopChanged: {
@@ -706,6 +724,11 @@ async function cmdSeries(argv: string[], env: EnvMap): Promise<number> {
         away:
           (matches.at(-1)?.playbookVersions.away ?? 1) >
           (latestSnapshotBook(result.beforeSnapshot, awayTeamId)?.version ?? 1),
+      },
+      openingMatchesRetrieve: {
+        home: matches.filter((g) => g.home.openingMatchesRetrieve).length,
+        away: matches.filter((g) => g.away.openingMatchesRetrieve).length,
+        steps: matches.length,
       },
     },
   };
@@ -733,6 +756,34 @@ async function cmdSeries(argv: string[], env: EnvMap): Promise<number> {
     console.log(`snapshots ${payload.snapshotDir}`);
   }
   return 0;
+}
+
+async function loadCarrySnapshot(
+  argv: string[],
+  homeTeamId: string,
+  awayTeamId: string,
+): Promise<PlaybookSnapshot | undefined> {
+  const file = opt(argv, "from-snapshot");
+  const otherDb = opt(argv, "from-db");
+  if (file && otherDb) {
+    throw new Error("use --from-snapshot or --from-db, not both");
+  }
+  if (file) {
+    if (!existsSync(file)) throw new Error(`--from-snapshot not found: ${file}`);
+    return readPlaybookSnapshot(file);
+  }
+  if (!otherDb) return undefined;
+  if (!existsSync(otherDb)) throw new Error(`--from-db not found: ${otherDb}`);
+  const src = await openDb(otherDb);
+  try {
+    return capturePlaybookSnapshot(src, {
+      seriesId: "carry",
+      gameIndex: null,
+      teamIds: [homeTeamId, awayTeamId],
+    });
+  } finally {
+    src.close();
+  }
 }
 
 function latestSnapshotBook(snapshot: PlaybookSnapshot, teamId: string) {

@@ -33,6 +33,8 @@ describe("gh CLI", () => {
       expect(printed).toContain("--reset-playbook");
       expect(printed).toContain("GRAPH_HOCKEY_PERIOD_SECONDS");
       expect(printed).toContain("playbook-snapshots");
+      expect(printed).toContain("--from-snapshot");
+      expect(printed).toContain("--from-db");
       expect(USAGE).toContain("Default LLM provider is xAI");
       expect(USAGE).toContain("--home-provider");
       expect(USAGE).toContain("--period-seconds");
@@ -133,6 +135,26 @@ describe("gh CLI", () => {
       expect(out.noLlm).toBe(true);
     } finally {
       log.mockRestore();
+    }
+  });
+
+  it("series refuses --from-snapshot together with --from-db", async () => {
+    const err = vi.spyOn(console, "error").mockImplementation(() => {});
+    try {
+      expect(
+        await main(
+          ["series", "--no-llm", "--from-snapshot", "a.json", "--from-db", "b.sqlite", "--games", "1"],
+          {},
+        ),
+      ).toBe(1);
+      expect(String(err.mock.calls[0]?.[0])).toMatch(/not both/);
+      err.mockClear();
+      expect(
+        await main(["series", "--no-llm", "--from-db", "missing-carry.sqlite", "--games", "1"], {}),
+      ).toBe(1);
+      expect(String(err.mock.calls[0]?.[0])).toMatch(/--from-db not found/);
+    } finally {
+      err.mockRestore();
     }
   });
 
