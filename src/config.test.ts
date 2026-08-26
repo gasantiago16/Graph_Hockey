@@ -5,6 +5,7 @@ import {
   DEFAULT_FAST_MODEL,
   DEFAULT_HTTP_HOST,
   DEFAULT_HTTP_PORT,
+  DEFAULT_MUSE_BASE_URL,
   DEFAULT_XAI_BASE_URL,
   LANGSMITH_PROJECT,
   loadConfig,
@@ -18,6 +19,8 @@ describe("loadConfig", () => {
     expect(cfg.museApiKey).toBeUndefined();
     expect(cfg.geminiApiKey).toBeUndefined();
     expect(cfg.xaiBaseUrl).toBe(DEFAULT_XAI_BASE_URL);
+    expect(cfg.museBaseUrl).toBe(DEFAULT_MUSE_BASE_URL);
+    expect(cfg.museBaseUrl).toContain("127.0.0.1");
     expect(cfg.coachModel).toBe(DEFAULT_COACH_MODEL);
     expect(cfg.fastModel).toBe(DEFAULT_FAST_MODEL);
     expect(cfg.aarModel).toBe(DEFAULT_AAR_MODEL);

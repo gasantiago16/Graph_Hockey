@@ -21,7 +21,7 @@ Single TypeScript package. The learning goal is to make LangGraph concepts visib
 
 ## Rules of the road
 
-- Default provider is **xAI** (`XAI_API_KEY`, `https://api.x.ai/v1`). Optional per-side benches: Muse Spark, OpenAI, Gemini. Never default `muse-spark-*-contributor`.
+- Default provider is **xAI** (`XAI_API_KEY`, `https://api.x.ai/v1`). Optional per-side benches: local Muse Glimmer, OpenAI, Gemini. Never default `muse-spark-*-contributor`.
 - Tests and CI must pass **without** vendor keys. LLM calls must stay mockable (`setCreateChatModel`).
 - Browser binds `127.0.0.1` only. Do not put keys in `src/web/` or WS payloads.
 - Never commit `.env` or keys.

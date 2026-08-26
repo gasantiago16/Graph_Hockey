@@ -73,6 +73,7 @@ describe("structured helpers", () => {
 
   it("uses jsonMode for Muse, Grok, and GPT Completions slugs", () => {
     expect(structuredMethodForModel("muse-spark-1.2")).toBe("jsonMode");
+    expect(structuredMethodForModel("muse-glimmer-30b")).toBe("jsonMode");
     expect(structuredMethodForModel("grok-4.5")).toBe("jsonMode");
     expect(structuredMethodForModel("gpt-5.6-sol")).toBe("jsonMode");
     expect(structuredMethodForModel("gemini-3.1-pro-preview")).toBeUndefined();
@@ -234,11 +235,11 @@ describe("invokeStructured", () => {
     expect(out?.params?.shotPolicy).toBe("pass");
   });
 
-  it("prepends a JSON-object hint when the model is Muse Spark", async () => {
+  it("prepends a JSON-object hint when the model is Muse Glimmer", async () => {
     vi.spyOn(console, "warn").mockImplementation(() => {});
     let seen: unknown;
     const capturing = {
-      model: "muse-spark-1.2",
+      model: "muse-glimmer-30b",
       withStructuredOutput: (_schema: unknown, config?: { method?: string }) => {
         expect(config?.method).toBe("jsonMode");
         return {

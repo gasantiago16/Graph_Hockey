@@ -211,7 +211,7 @@ describe("WS protocol denylist", () => {
       homeProvider: "xai",
       awayProvider: "muse",
       homeCoach: "grok-4.5",
-      awayCoach: "muse-spark-1.2",
+      awayCoach: "muse-glimmer-30b",
     });
     expect(lab.homeProvider).toBe("xai");
     expect(lab.awayProvider).toBe("muse");

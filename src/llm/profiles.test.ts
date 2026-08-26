@@ -26,7 +26,7 @@ describe("TeamLlmProfile", () => {
 
   it("never defaults muse-spark-1.2-contributor", () => {
     expect(JSON.stringify(DEFAULT_PROFILES)).not.toMatch(/contributor/);
-    expect(DEFAULT_PROFILES.muse.coach).toBe("muse-spark-1.2");
+    expect(DEFAULT_PROFILES.muse.coach).toBe("muse-glimmer-30b");
     expect(() => refuseContributorTier("muse-spark-1.2-contributor")).toThrow(/contributor/);
     expect(() => resolveTeamProfile({ provider: "muse", coach: "muse-spark-1.2-contributor" })).toThrow(
       /contributor/,
@@ -52,7 +52,7 @@ describe("TeamLlmProfile", () => {
 
   it("HUD labels are names only", () => {
     const line = formatBenchHud(DEFAULT_PROFILES.xai, DEFAULT_PROFILES.muse);
-    expect(line).toBe("home: xai/grok-4.5 vs away: muse/muse-spark-1.2");
+    expect(line).toBe("home: xai/grok-4.5 vs away: muse/muse-glimmer-30b");
     expect(line).not.toMatch(/API_KEY/);
   });
 

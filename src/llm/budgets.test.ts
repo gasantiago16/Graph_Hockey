@@ -168,6 +168,7 @@ describe("usage from callbacks", () => {
     expect(estimateUsd("gpt-5.6-sol", 1_000_000, 1_000_000)).toBeCloseTo(35, 10);
     expect(estimateUsd("gpt-5.6-luna", 1_000_000, 1_000_000)).toBeCloseTo(1.4, 10);
     expect(estimateUsd("muse-spark-1.2", 1_000_000, 1_000_000)).toBeCloseTo(5.5, 10);
+    expect(estimateUsd("muse-glimmer-30b", 1_000_000, 1_000_000)).toBe(0);
     expect(estimateUsd("gemini-3.1-pro-preview", 1_000_000, 1_000_000)).toBeCloseTo(14, 10);
     expect(estimateUsd("gemini-3.7-flash", 1_000_000, 1_000_000)).toBeCloseTo(4.5, 10);
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});

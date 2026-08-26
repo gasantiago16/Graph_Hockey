@@ -4,7 +4,8 @@ export type EnvMap = Record<string, string | undefined>;
 
 export const DEFAULT_XAI_BASE_URL = "https://api.x.ai/v1";
 export const DEFAULT_OPENAI_BASE_URL = "https://api.openai.com/v1";
-export const DEFAULT_MUSE_BASE_URL = "https://api.meta.ai/v1";
+/** Local llama.cpp / LM Studio / vLLM. Spark hosted API is opt-in via MUSE_BASE_URL. */
+export const DEFAULT_MUSE_BASE_URL = "http://127.0.0.1:8080/v1";
 export const DEFAULT_COACH_MODEL = "grok-4.5";
 export const DEFAULT_FAST_MODEL = "grok-4.3";
 export const DEFAULT_AAR_MODEL = "grok-4.5";

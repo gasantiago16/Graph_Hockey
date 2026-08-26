@@ -10,13 +10,13 @@ export type TeamLlmProfile = {
   aar: string;
 };
 
-export const DEFAULT_MUSE_MODEL = "muse-spark-1.2";
+export const DEFAULT_MUSE_MODEL = "muse-glimmer-30b";
 export const DEFAULT_OPENAI_COACH = "gpt-5.6-sol";
 export const DEFAULT_OPENAI_FAST = "gpt-5.6-luna";
 export const DEFAULT_GEMINI_COACH = "gemini-3.1-pro-preview";
 export const DEFAULT_GEMINI_FAST = "gemini-3.7-flash";
 
-/** Pinned 2026-08-25. Never default muse-spark-1.2-contributor (prompts used for training). */
+/** Pinned 2026-08-26. Local Muse Glimmer. Never default muse-spark-*-contributor. */
 export const DEFAULT_PROFILES: Record<ProviderId, TeamLlmProfile> = {
   xai: { provider: "xai", coach: "grok-4.5", fast: "grok-4.3", aar: "grok-4.5" },
   muse: { provider: "muse", coach: DEFAULT_MUSE_MODEL, fast: DEFAULT_MUSE_MODEL, aar: DEFAULT_MUSE_MODEL },

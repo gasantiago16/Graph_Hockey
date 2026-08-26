@@ -42,9 +42,9 @@ describe("cost HUD", () => {
       homeProvider: "xai",
       homeCoach: "grok-4.5",
       awayProvider: "muse",
-      awayCoach: "muse-spark-1.2",
+      awayCoach: "muse-glimmer-30b",
     });
-    expect(line).toBe("home: xai/grok-4.5 vs away: muse/muse-spark-1.2");
+    expect(line).toBe("home: xai/grok-4.5 vs away: muse/muse-glimmer-30b");
     expect(line).not.toMatch(/API_KEY/);
   });
 

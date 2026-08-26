@@ -1,13 +1,31 @@
 import { ChatOpenAI } from "@langchain/openai";
-import { loadConfig, type EnvMap } from "../../config.ts";
+import { DEFAULT_MUSE_BASE_URL, loadConfig, type EnvMap } from "../../config.ts";
 import type { AdapterSpec, ReasoningEffort } from "./types.ts";
 
+export { DEFAULT_MUSE_BASE_URL };
 export const DEFAULT_OPENAI_BASE_URL = "https://api.openai.com/v1";
-export const DEFAULT_MUSE_BASE_URL = "https://api.meta.ai/v1";
 
 /** Muse Spark 400s on reasoning_effort=none. Map to low so specialists still hit Completions. */
 export function museReasoningEffort(effort: ReasoningEffort): ReasoningEffort {
   return effort === "none" ? "low" : effort;
+}
+
+export function isMetaSparkHost(baseURL: string): boolean {
+  try {
+    const host = new URL(baseURL).hostname.toLowerCase();
+    return host === "api.meta.ai" || host.endsWith(".meta.ai");
+  } catch {
+    return false;
+  }
+}
+
+export function isLoopbackMuseUrl(baseURL: string): boolean {
+  try {
+    const host = new URL(baseURL).hostname.toLowerCase();
+    return host === "127.0.0.1" || host === "localhost" || host === "::1";
+  } catch {
+    return false;
+  }
 }
 
 function createCompatChatModel(
@@ -27,19 +45,24 @@ function createCompatChatModel(
   });
 }
 
-/** Meta Muse Spark: OpenAI-compatible Completions at api.meta.ai. Not Microsoft Muse WHAM. */
+/**
+ * Meta Muse Glimmer: OpenAI-compatible Completions on a local server (llama.cpp / LM Studio / vLLM).
+ * Not Microsoft Muse WHAM. Hosted Spark at api.meta.ai is opt-in via MUSE_BASE_URL.
+ */
 export function createMuseChatModel(spec: AdapterSpec, env: EnvMap): ChatOpenAI {
   const cfg = loadConfig(env);
-  if (!cfg.museApiKey) {
-    throw new Error("MODEL_API_KEY or MUSE_API_KEY is required for live Muse Spark (tests must setCreateChatModel)");
+  const spark = isMetaSparkHost(cfg.museBaseUrl);
+  if (spark && !cfg.museApiKey) {
+    throw new Error("MODEL_API_KEY or MUSE_API_KEY is required for hosted Muse Spark (tests must setCreateChatModel)");
   }
+  const effort = spark ? museReasoningEffort(spec.effort) : spec.effort;
   return createCompatChatModel(
-    { ...spec, effort: museReasoningEffort(spec.effort) },
+    { ...spec, effort },
     {
-      apiKey: cfg.museApiKey,
+      apiKey: cfg.museApiKey ?? "local",
       baseURL: cfg.museBaseUrl,
       useResponsesApi: false,
-      mapCompletionsEffort: true,
+      mapCompletionsEffort: spark,
     },
   );
 }

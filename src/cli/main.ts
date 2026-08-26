@@ -62,7 +62,7 @@ period is shortened, OT scales as 5:00/20:00.
 
 Default LLM provider is xAI both sides (XAI_API_KEY, https://api.x.ai/v1).
 Per-side benches: --home-provider / --away-provider xai|muse|openai|gemini
-  muse = Meta Muse Spark (MODEL_API_KEY or MUSE_API_KEY, never muse-spark-*-contributor)
+  muse = local Muse Glimmer (OpenAI-compat at MUSE_BASE_URL, default http://127.0.0.1:8080/v1; never muse-spark-*-contributor)
   openai = GPT-5.6 (OPENAI_API_KEY; gpt-5.6 aliases gpt-5.6-sol)
   gemini = Gemini 3 (GEMINI_API_KEY or GOOGLE_API_KEY)
 --no-llm ignores profiles. The browser never receives API keys.

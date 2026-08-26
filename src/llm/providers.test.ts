@@ -35,36 +35,41 @@ describe("provider adapters (constructor only, no network)", () => {
     expect(x.modelKwargs).toEqual({ reasoning_effort: "low" });
   });
 
-  it("muse is ChatOpenAI pointed at api.meta.ai Completions", () => {
+  it("muse is ChatOpenAI pointed at local Glimmer Completions", () => {
     const llm = createChatModel({
       kind: "coach",
       profile: DEFAULT_PROFILES.muse,
-      env: { MODEL_API_KEY: "test-not-live" },
+      env: {},
     }) as ChatOpenAI;
     expect(llm).toBeInstanceOf(ChatOpenAI);
-    expect(llm.model).toBe("muse-spark-1.2");
+    expect(llm.model).toBe("muse-glimmer-30b");
     expect(llm.maxTokens).toBe(COACH_MAX_TOKENS);
-    expect(llm.clientConfig.baseURL).toBe("https://api.meta.ai/v1");
+    expect(llm.clientConfig.baseURL).toBe("http://127.0.0.1:8080/v1");
+    expect(llm.modelKwargs?.reasoning_effort).toBeUndefined();
     const src = readFileSync(join(root, "src/llm/providers/openaiCompat.ts"), "utf8");
-    expect(src).toMatch(/https:\/\/api\.meta\.ai\/v1/);
     expect(src).toMatch(/useResponsesApi:\s*false/);
     expect(src).not.toMatch(/contributor/);
     expect(src).toMatch(/museReasoningEffort/);
+    expect(src).toMatch(/isMetaSparkHost/);
   });
 
-  it("muse never sends reasoning_effort none (Spark 400s)", () => {
+  it("muse Spark host maps reasoning_effort none→low and requires a key", () => {
     expect(museReasoningEffort("none")).toBe("low");
     expect(museReasoningEffort("low")).toBe("low");
     expect(museReasoningEffort("high")).toBe("high");
-    const env = { MODEL_API_KEY: "test-not-live" };
+    const env = { MODEL_API_KEY: "test-not-live", MUSE_BASE_URL: "https://api.meta.ai/v1" };
     const fast = createChatModel({ kind: "fast", profile: DEFAULT_PROFILES.muse, env }) as ChatOpenAI;
     expect(fast.modelKwargs).toEqual({ reasoning_effort: "low" });
-    const coach = createChatModel({ kind: "coach", profile: DEFAULT_PROFILES.muse, env }) as ChatOpenAI;
-    expect(coach.modelKwargs).toEqual({ reasoning_effort: "low" });
+    expect(fast.clientConfig.baseURL).toBe("https://api.meta.ai/v1");
     const aar = createChatModel({ kind: "aar", profile: DEFAULT_PROFILES.muse, env }) as ChatOpenAI;
     expect(aar.modelKwargs).toEqual({ reasoning_effort: "high" });
-    expect(fast.model).toBe("muse-spark-1.2");
-    expect(aar.model).toBe("muse-spark-1.2");
+    expect(() =>
+      createChatModel({
+        kind: "coach",
+        profile: DEFAULT_PROFILES.muse,
+        env: { MUSE_BASE_URL: "https://api.meta.ai/v1" },
+      }),
+    ).toThrow(/MODEL_API_KEY|MUSE_API_KEY/);
   });
 
   it("openai is ChatOpenAI at the official base with gpt-5.6-sol / luna", () => {
@@ -113,7 +118,6 @@ describe("provider adapters (constructor only, no network)", () => {
   });
 
   it("throws the matching key name when the profile has no secret", () => {
-    expect(() => createChatModel({ kind: "coach", profile: DEFAULT_PROFILES.muse, env: {} })).toThrow(/MODEL_API_KEY|MUSE_API_KEY/);
     expect(() => createChatModel({ kind: "coach", profile: DEFAULT_PROFILES.openai, env: {} })).toThrow(/OPENAI_API_KEY/);
     expect(() => createChatModel({ kind: "coach", profile: DEFAULT_PROFILES.gemini, env: {} })).toThrow(/GEMINI_API_KEY|GOOGLE_API_KEY/);
   });

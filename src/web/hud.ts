@@ -23,7 +23,7 @@ export function formatCostHud(tick: CostHudTick, noLlm = true): string {
   return noLlm ? `no-llm · ${line}` : line;
 }
 
-/** Names only — never keys. `home: xai/grok-4.5 vs away: muse/muse-spark-1.2` */
+/** Names only — never keys. `home: xai/grok-4.5 vs away: muse/muse-glimmer-30b` */
 export function formatBenchHud(start: Pick<MatchStart, "noLlm" | "homeProvider" | "awayProvider" | "homeCoach" | "awayCoach">): string {
   if (start.noLlm !== false) return "benches: no-llm";
   const home = { provider: start.homeProvider ?? "xai", coach: start.homeCoach ?? "grok-4.5" };

@@ -24,7 +24,7 @@ LLMs do **not** run every physics tick. Coaches act at decision epochs (faceoff,
 - Node.js ≥ 20.11, TypeScript (strict), **npm** (`package-lock.json`)
 - LangGraph.js (`@langchain/langgraph`)
 - Default LLM: xAI `XAI_API_KEY`, `https://api.x.ai/v1`, `grok-4.5` (coach/AAR) + `grok-4.3` (specialists)
-- Optional per-side benches: **Muse Spark** (`MODEL_API_KEY` / `MUSE_API_KEY`, `muse-spark-1.2`), **OpenAI** (`OPENAI_API_KEY`, `gpt-5.6-sol` / `gpt-5.6-luna`), **Gemini** (`GEMINI_API_KEY` / `GOOGLE_API_KEY`, `gemini-3.1-pro-preview` / `gemini-3.7-flash`)
+- Optional per-side benches: **Muse Glimmer** (local OpenAI-compat at `MUSE_BASE_URL`, default `http://127.0.0.1:8080/v1`, `muse-glimmer-30b`), **OpenAI** (`OPENAI_API_KEY`, `gpt-5.6-sol` / `gpt-5.6-luna`), **Gemini** (`GEMINI_API_KEY` / `GOOGLE_API_KEY`, `gemini-3.1-pro-preview` / `gemini-3.7-flash`)
 - Node HTTP + WebSocket + Canvas 2D on `127.0.0.1:8787` (v1 is localhost only)
 - SQLite for matches, events, playbooks (`sql.js` WASM adapter — see Persistence)
 
@@ -102,7 +102,7 @@ npm run gh -- simulate --home-provider openai --away-provider gemini \
   --home-model gpt-5.6-sol --away-model gemini-3.1-pro-preview
 ```
 
-`--no-llm` ignores provider flags. Never use `muse-spark-1.2-contributor` (prompts used for training).
+`--no-llm` ignores provider flags. Muse is local Glimmer (no Meta token bill). Never use `muse-spark-1.2-contributor` (prompts used for training).
 
 Stub graphs use the seed-book default 5v5 play (`5v5-122-forecheck` vs `5v5-212-forecheck`) and do not call any vendor.
 
@@ -126,7 +126,7 @@ $env:GRAPH_HOCKEY_PERIOD_SECONDS=5; npm test
 - `POST /api/series/stop` aborts the in-flight series (same as match stop)
 - `GET /api/series` live series/match status
 - `GET /api/health` `{ ok, llmConfigured, langsmith, providers: { xai, muse, openai, gemini } }` (booleans, never secrets)
-- HUD benches: `home: xai/grok-4.5 vs away: muse/muse-spark-1.2` (names only)
+- HUD benches: `home: xai/grok-4.5 vs away: muse/muse-glimmer-30b` (names only)
 - `WS /ws` streams 10 Hz `SpectatorFrame` snapshots plus `cost` and inspect-side `inspect`
 - Inspect toggle **none / home / away** — the play **name** is sent only for the inspected side (never the opponent `playId`)
 - After `match_over`, **AAR / playbook** opens `/aar?match=` (supposed / actual / why / ops). **Watch** on `eventIds` jumps to `/film?match=&event=`

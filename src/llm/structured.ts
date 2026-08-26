@@ -75,7 +75,8 @@ function modelName(llm: BaseChatModel): string {
  */
 export function structuredMethodForModel(model: string): "jsonMode" | undefined {
   // ChatOpenAI jsonSchema + Zod .optional() 400s on grok/muse/gpt. json_object + Zod parse.
-  if (model.startsWith("muse-") || model.startsWith("grok-") || model.startsWith("gpt-")) return "jsonMode";
+  const slug = model.toLowerCase();
+  if (slug.startsWith("muse-") || slug.startsWith("grok-") || slug.startsWith("gpt-")) return "jsonMode";
   return undefined;
 }
 

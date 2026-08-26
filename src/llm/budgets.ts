@@ -39,6 +39,8 @@ export const MODEL_PRICES = {
   "grok-4.3": { inputPerMTok: 1.25, outputPerMTok: 2.5 },
   "muse-spark-1.2": { inputPerMTok: 1.25, outputPerMTok: 4.25 },
   "muse-spark-1.1": { inputPerMTok: 1.25, outputPerMTok: 4.25 },
+  "muse-glimmer-30b": { inputPerMTok: 0, outputPerMTok: 0 },
+  "muse-glimmer": { inputPerMTok: 0, outputPerMTok: 0 },
   "gpt-5.6-sol": { inputPerMTok: 5.0, outputPerMTok: 30.0 },
   "gpt-5.6-terra": { inputPerMTok: 2.0, outputPerMTok: 12.0 },
   "gpt-5.6-luna": { inputPerMTok: 0.2, outputPerMTok: 1.2 },
