@@ -296,6 +296,30 @@ describe("pass / shoot release", () => {
     expect(released).toBe(true);
   });
 
+  it("DZ ice pass beats overlay dump when an outlet is ahead", () => {
+    const book = loadPlaybook("original-six");
+    const world = createWorld({
+      playId: { home: "5v5-122-forecheck", away: DEFAULT_PLAY_ID },
+      playbooks: { home: book, away: book },
+      iceIntents: {
+        home: { roles: {}, targets: {}, f1: "h-C", f1Action: "pass" },
+        away: { roles: {}, targets: {} },
+      },
+      directives: {
+        home: { playId: "5v5-122-forecheck", pressure: "neutral", playParams: { shotPolicy: "dump" } },
+        away: defaultDirective(),
+      },
+      puck: { pos: { x: -50, y: 0 }, possessor: "h-C" },
+      bodies: {
+        "h-C": { pos: { x: -50, y: 0 }, heading: 0, vel: { x: 0, y: 0 } },
+        "h-LW": { pos: { x: -20, y: 8 }, heading: 0, vel: { x: 0, y: 0 } },
+      },
+    });
+    expect(maybeReleasePuck(world)).toBe(true);
+    expect(world.stickRelease).toBe("pass");
+    expect(world.puck.possessor).toBeNull();
+  });
+
   it("OZ ice shoot still beats overlay dump", () => {
     const book = loadPlaybook("original-six");
     const world = createWorld({

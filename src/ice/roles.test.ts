@@ -42,9 +42,24 @@ describe("computeIceIntent five-man", () => {
 
     const dz = createWorld({
       puck: { pos: { x: -40, y: 0 }, possessor: "h-C" },
-      bodies: { "h-C": { pos: { x: -40, y: 0 } } },
+      bodies: {
+        "h-C": { pos: { x: -40, y: 0 } },
+        "h-LW": { pos: { x: -50, y: 10 } },
+        "h-RW": { pos: { x: -50, y: -10 } },
+        "h-LD": { pos: { x: -55, y: 8 } },
+        "h-RD": { pos: { x: -55, y: -8 } },
+      },
     });
     expect(computeIceIntent(dz, "home").f1Action).toBe("clear");
+
+    const dzOutlet = createWorld({
+      puck: { pos: { x: -50, y: 0 }, possessor: "h-C" },
+      bodies: {
+        "h-C": { pos: { x: -50, y: 0 } },
+        "h-LW": { pos: { x: -20, y: 10 } },
+      },
+    });
+    expect(computeIceIntent(dzOutlet, "home").f1Action).toBe("pass");
 
     const book = loadPlaybook("original-six");
     const nzDump = createWorld({

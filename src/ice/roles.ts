@@ -101,7 +101,10 @@ export function computeIceIntent(world: WorldState, side: Side): IceIntent {
     } else if (z === "OZ") {
       intent.f1Action = "shoot";
     } else if (z === "DZ") {
-      intent.f1Action = "clear";
+      const outlet = skaters.some(
+        (b) => b.id !== f1.id && !isGoalie(b) && b.pos.x * dir > alongPuck + 8,
+      );
+      intent.f1Action = outlet ? "pass" : "clear";
     } else {
       const play = playForSide(world, side);
       intent.f1Action = shotPolicyOf(world, side, play) === "dump" ? "clear" : "pass";

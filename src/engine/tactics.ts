@@ -167,7 +167,7 @@ function overlayYieldsToIceShoot(overlay: ShotPolicy): boolean {
   return overlay === "pass" || overlay === "dump";
 }
 
-/** Ice F1 shoot beats overlay pass/dump. Ice F1 clear beats overlay dump. Overlay shoot/crash/hold/cycle still wins. Locked shoot/crash demote to pass. */
+/** Ice F1 shoot beats overlay pass/dump. Ice F1 clear beats overlay dump. Ice F1 pass beats overlay dump only in the DZ (breakout outlet). Overlay shoot/crash/hold/cycle still wins. Locked shoot/crash demote to pass. */
 function releasePolicy(
   world: WorldState,
   side: Side,
@@ -181,6 +181,13 @@ function releasePolicy(
     policy = ice;
     source = "ice";
   } else if (ice === "dump" && overlay === "dump") {
+    policy = ice;
+    source = "ice";
+  } else if (
+    ice === "pass" &&
+    overlay === "dump" &&
+    world.puck.pos.x * world.attackingDir[side] < -BLUE_LINE_X
+  ) {
     policy = ice;
     source = "ice";
   } else if (overlay) {
