@@ -145,6 +145,26 @@ describe("assemble_directive merge table §10.4", () => {
     expect(miss.pressure).toBe("passive");
   });
 
+  it("micro assemble DZ trailing + last protect-lead uses retrieved breakout, not 122", () => {
+    const observation = obs({
+      epochKind: "micro",
+      epochReason: "zone_entry",
+      zone: "DZ",
+      score: { us: 0, them: 1 },
+    });
+    const directive = mergeAssembleDirective(
+      st({
+        observation,
+        epochKind: "micro",
+        lastDirective: { playId: "protect-lead-1-1-3", pressure: "passive" },
+      }),
+      book,
+    );
+    expect(directive.playId).toBe("5v5-breakout-d-to-winger");
+    expect(directive.playId).not.toBe("5v5-122-forecheck");
+    expect(directive.playId).not.toBe("protect-lead-1-1-3");
+  });
+
   it("goalie only from goalie memo; notesForCaptain from HC", () => {
     const directive = mergeAssembleDirective(
       st({

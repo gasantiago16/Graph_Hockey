@@ -175,6 +175,7 @@ export async function runMatch(opts: MatchOptions): Promise<MatchResult> {
     if (sides.length > 0) {
       const jobs = sides.map((side) => {
         const obs = observe(world, side, decision[side]!);
+        const playbook = side === "home" ? opts.homePlaybook : opts.awayPlaybook;
         return invokeTeam({
           graph: side === "home" ? opts.homeGraph : opts.awayGraph,
           side,
@@ -185,7 +186,8 @@ export async function runMatch(opts: MatchOptions): Promise<MatchResult> {
           budget,
           timeoutMs,
           signal: opts.signal,
-          seedPlayId: defaultPlayIdForBook(side === "home" ? opts.homePlaybook : opts.awayPlaybook),
+          playbook,
+          seedPlayId: defaultPlayIdForBook(playbook),
         }).then((r) => ({ side, r, reason: decision[side]!.reason, kind: decision[side]!.kind }));
       });
 
