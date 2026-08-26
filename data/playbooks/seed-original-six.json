@@ -248,7 +248,7 @@
       "status": "active",
       "family": "protect-113",
       "strength": ["5v5"],
-      "zoneBias": ["NZ", "DZ", "any"],
+      "zoneBias": ["NZ", "DZ"],
       "formation": {
         "slots": {
           "C": { "rel": { "x": 6, "y": 0 }, "landmark": "puck", "role": "puck" },

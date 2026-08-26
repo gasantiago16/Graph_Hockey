@@ -468,6 +468,11 @@ describe("retrievePlays lead-protect gate", () => {
     expect(ids("leading")).toContain("protect-lead-1-1-3");
   });
 
+  it("OZ leading retrieve does not contain protect-lead-1-1-3; DZ leading still can", () => {
+    expect(ids("leading", "OZ")).not.toContain("protect-lead-1-1-3");
+    expect(ids("leading", "DZ")).toContain("protect-lead-1-1-3");
+  });
+
   it("family/id still excludes when score lives in any or a group is score-free", () => {
     const base = play({
       id: "protect-lead-any",
@@ -552,7 +557,9 @@ describe("retrievePlays lead-protect gate", () => {
     const omitted = retrievePlays(book, { strength: "5v5", zone: "OZ" }).map((d) => d.id);
     expect(omitted[0]).toBe("5v5-122-forecheck");
     expect(omitted).not.toContain("protect-lead-1-1-3");
-    const leading = retrievePlays(book, { strength: "5v5", zone: "OZ", scoreState: "leading" }).map((d) => d.id);
-    expect(leading[0]).toBe("protect-lead-1-1-3");
+    const leadingOz = retrievePlays(book, { strength: "5v5", zone: "OZ", scoreState: "leading" }).map((d) => d.id);
+    expect(leadingOz).not.toContain("protect-lead-1-1-3");
+    const leadingDz = retrievePlays(book, { strength: "5v5", zone: "DZ", scoreState: "leading" }).map((d) => d.id);
+    expect(leadingDz[0]).toBe("protect-lead-1-1-3");
   });
 });
