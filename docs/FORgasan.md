@@ -260,6 +260,8 @@ Seven games as a row of books. The loop is the row getting thicker. Quality is w
 | **F2 OZ outlet (`be9be08`)** | Shallow OZ F2 wide ahead of F1. pr7 count 57→106; pr8 263→282, Shot 1, Offside 1. | Second man as an outlet. Goldens moved on purpose. |
 | **`ser-emp-18` Evaluate 11** | Δ xG **+0.443**. Chance mean **4.71**. g2 home **3** offs. Pairs 3. Not credited. | F2 lead the instant the puck nicks OZ. Control g0 4–2 / xG 0.70 vs live 2–6 / 0.15. |
 | **`ser-retain-1`** | Carry emp-17 after-g6. g0 v8→v9, xG 0.386 vs seed-fresh 0.152. Still 122. **Not a bank slot.** | Survive yes. Transfer no. Confirmatory leftover. |
+| **F2 established OZ (`9ddd4f4`)** | F2 outlet only after `BLUE+8`. pr8 Shot 1→0, Offside 1, epochs 11. pr7 unchanged. | Don't lead the entry. |
+| **`ser-emp-19` Evaluate 12** | Δ xG **−0.119**. Chance mean **5.14**. g5 home **4** offs. Pairs 1. g2 home offs **0**. Not credited. | F2 gate closed g2. Remaining leak is F3 racing to the slot as soon as `ozLive`. |
 
 ### The 7-game card (`ser-emp-7`)
 

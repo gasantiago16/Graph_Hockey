@@ -4,7 +4,7 @@
 | --- | --- |
 | **Author** | Graph_Hockey staff (design) |
 | **Date** | 2026-08-26 |
-| **Status** | **Cycle 3 attempt 1 not credited (bank 2/5).** Write path proven. Retention **survive** proven (`ser-retain-1`); **transfer** of a different skill failed (still `5v5-122-forecheck`). Evaluate 11 Δ xG **+0.443** uncashed (chance mean 4.71, g2 home 3 offs, pairs 3). Plan: [`knowledge-and-learning.md`](knowledge-and-learning.md). |
+| **Status** | **Cycle 3 attempt 2 not credited (bank 2/5, flat 2/3).** Evaluate 12 Δ xG **−0.119**, chance mean 5.14, g5 home **4** offs, pairs 1. g2 home offs **0** (was 3). Next: F3 established OZ. |
 | **Repo** | `C:\Users\gasan\Graph_Hockey` (private, `main` playable) |
 | **Success criterion** | **Five empirical improvements.** Not five attempts. Not five version bumps. Not “stop when the numbered PR stack is done.” Keep cycling (including a **post-stack Diagnose menu**) until `improvements == 5` or the user stops. |
 | **PLAN_ID** | `f1d4bdeb` (resume leftover PRs with `/execute-plan --resume f1d4bdeb` after Evaluate context) |
@@ -29,8 +29,8 @@ This is the live **quality** scoreboard. Update it after every counting Evaluate
 | Previous-best home Δ xG | **−0.071** | `ser-emp-15` g0→g6. Unchanged (Evaluate 11 +0.443 not credited) |
 | Previous-best pairs | **4** | Evaluate 8. Evaluates 9–11 pairs 3 |
 | Cycle | **3** | Cycles 1 and 2 aborted. Bank kept. Attempts reset |
-| Attempts this cycle | **1 / 5** | Evaluate 11 counted, not credited |
-| Flat streak | **1 / 3** | Evaluate 11 |
+| Attempts this cycle | **2 / 5** | Evaluates 11–12 counted, not credited |
+| Flat streak | **2 / 3** | One more flat aborts the cycle |
 | On `main` | carry `--from-snapshot` `7edabe9` + play mix `dd4cd03` + F2 OZ outlet `be9be08` + **F2 established OZ** | pr7 `8ad26e09` count 106 unchanged; pr8 `d2798fd1` count 286 epochs 11 Shot 0 Offside 1 |
 | Glimmer | **up** `:8080` (this session; do not restart 8787) | Timeouts not raised (`GRAPH_HOCKEY_EPOCH_TIMEOUT_MS=8000` from `.env`). |
 | Learning proofs | write **yes** · retain survive **yes** · transfer **no** · quality **2/5** | See [`knowledge-and-learning.md`](knowledge-and-learning.md) |
@@ -104,7 +104,7 @@ Control twin (`ser-emp-9-nollm`): books v1, retrieveTop 0/6, offsides 0–2 (g6 
 | `--from-snapshot` | `7edabe9` on `main` | Restore snapshot books before game 0. `--from-db` copies another sqlite. `--no-llm` does not mutate | Retention Evaluate |
 | Series play mix | `dd4cd03` on `main` | `playMix` + `openingMatchesRetrieve` on scorecard | never |
 | F2 OZ carry outlet | `be9be08` on `main` | Shallow OZ F2 wide ahead of F1; deep slot support-below | Evaluate 11 (**not credited**) |
-| F2 established OZ | this commit | F2 outlet only when `alongPuck > BLUE+8` (same gate as dump-chase); just-in OZ support-below | Evaluate 12 |
+| F2 established OZ | `9ddd4f4` on `main` | F2 outlet only when `alongPuck > BLUE+8`; just-in OZ support-below. pr8 Shot 1→0 Offside 1 | Evaluate 12 (**not credited**) |
 | PR-5 Ds tag-up | [#5](https://github.com/gasantiago16/Graph_Hockey/pull/5) | closed; absorbed into `c1e7707` | — |
 | PR-6 captain | skipped | env off | — |
 | PR-7 `lpTrail` flag | [#4](https://github.com/gasantiago16/Graph_Hockey/pull/4) | draft | never |
@@ -445,6 +445,42 @@ g3/g4 hash match is confirmatory 122 leftover (same seed + same opening sheet), 
 **Retention: survive PASS. Transfer FAIL.** Next learning PR (not this ice slice): stop loser `add_counter` on the play they just lost with, and/or rank retrieve by rate so leftover 122 net cannot lock the OZ menu forever. `COUNTER_BONUS` 0.25 cannot beat cumulative net **1.84**.
 
 **Cycle 3 next (quality):** F2 outlet only when `alongPuck > BLUE+8` (established OZ), else support-below. Counting Evaluate 12. Do not raise timeouts. Do not change the Δ xG bar.
+
+### Evaluate 12 — `ser-emp-19` (2026-08-26)
+
+F2 established OZ `9ddd4f4`. Same protocol. Twin `ser-emp-19-nollm`. Timeout 8000. Not raised. Coach HTTP leftovers used (not treated as a timeout-raise).
+
+| Gate | Result |
+| --- | --- |
+| Control honest | **pass** — v1, retrieveTop 0/6, `booksMoved` false. Offsides 0–2 (max 1) |
+| Live writes books | **pass** — v1→v8 both. Home retrieveTop 0/6. Still 122 |
+| Lead-protect skating | **pass** — 0 hits |
+| Offsides 0–2 | **fail** — g5 home **4** (ticks 43 / 21 / 150 / OT-1). g2 home **0** (was 3 on Evaluate 11) |
+| Chance mean | **5.14** (4,5,10,5,1,7,4) < 6 (**floor fail**) |
+| Pairs `--compare 0,6` | **1** < 4 (**floor fail**). One away-PP DZ goal→goal |
+| Home Δ xG g0→g6 | **−0.119** (0.324 → 0.205) not > −0.071 |
+
+**Improved: no.** Bank **2 / 5**. Cycle 3 attempt 2, flat **2 / 3**. One more flat aborts.
+
+Live card:
+
+| G | Score | Home retrieve | Away retrieve | Home ch/off | Away ch/off |
+| --- | --- | --- | --- | --- | --- |
+| 0 | 1–2 away | `5v5-122-forecheck` | `5v5-212-forecheck` | 4 / 0 | 2 / 1 |
+| 1 | 1–1 tie | `5v5-122-forecheck` | `5v5-212-forecheck` | 5 / 1 | 3 / 1 |
+| 2 | 1–1 tie | `5v5-122-forecheck` | `5v5-212-forecheck` | 10 / 0 | 2 / 0 |
+| 3 | 3–2 home | `5v5-122-forecheck` | `5v5-212-forecheck` | 5 / 1 | 4 / 0 |
+| 4 | 1–3 away | `5v5-122-forecheck` | `5v5-212-forecheck` | 1 / 0 | 5 / 0 |
+| 5 | 1–1 tie | `5v5-122-forecheck` | `5v5-212-forecheck` | 7 / **4** | 4 / 0 |
+| 6 | 2–2 tie | `5v5-122-forecheck` | `5v5-212-forecheck` | 4 / 2 | 6 / 1 |
+
+g0 OZ **17.5s** / 4 chances / 0 offs is better than Evaluate 11’s 8s / 2 chances collapse. g2 10 chances is mostly **`pp1-umbrella`** (12 directives vs 122×1) — volume is PP spray, and g2 AAR boosted umbrella. g4 OZ **4.7s** / DZ **17s**, xG 0.06. g5 tick **43** period-1 home offside is the old tick-46 entry leak on 122, not gone.
+
+Control (`ser-emp-19-nollm`): v1, 0/6, booksMoved false. g0 4–2 xG 0.70. Offs 0–2. Ice hashes moved vs Evaluate 11 twin (g2 4–1 / 10 chances vs old 1–1).
+
+**Diagnose:** F2 `BLUE+8` closed Evaluate 11’s g2 3-off. Remaining entry leak is **F3 racing to `GOAL_LINE-16` the instant `ozLive`**. Just-in OZ F3 is already in the slot while the puck is still nicking the blue. Same established gate as F2. Do **not** revert F2 `BLUE+8`. Do not raise timeouts. Do not change the Δ xG bar. Learning hole (122 retrieve, loser `add_counter`, PP boost on ties) is unchanged; offs band first.
+
+**Cycle 3 next:** F3 holds `ONSIDE_ALONG` until `alongPuck > BLUE+8`. Counting Evaluate 13. Third consecutive flat aborts the cycle.
 
 ### Dump-in golden move (intentional)
 
