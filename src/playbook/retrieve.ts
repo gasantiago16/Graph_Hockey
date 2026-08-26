@@ -170,6 +170,42 @@ export function isEmptyNetPlay(play: Pick<Play, "family">): boolean {
   return play.family === "pull-early" || play.family === "en-scramble";
 }
 
+/** Lead-protect templates. Family/id only — trailing-only cousins stay eligible. */
+export function isLeadProtectPlay(play: Pick<Play, "family" | "id">): boolean {
+  return play.family === "protect-113" || play.id.startsWith("protect-lead");
+}
+
+/**
+ * Uniform score.eq when every trigger group cannot pass playStillValid unless score is S.
+ * A group requires S if `all` has score.eq S, or `any` is all score.eq S with no non-score preds.
+ * Mixed any (score OR zone) or a score-free group ⇒ not locked.
+ */
+export function requiredScoreState(play: Pick<Play, "triggers">): ScoreState | undefined {
+  if (play.triggers.length === 0) return undefined;
+  const needs: ScoreState[] = [];
+  for (const g of play.triggers) {
+    const allScore = (g.all ?? []).filter((p) => p.kind === "score").map((p) => p.eq);
+    const anyPreds = g.any ?? [];
+    const anyScore = anyPreds.filter((p) => p.kind === "score").map((p) => p.eq);
+    const anyNonScore = anyPreds.filter((p) => p.kind !== "score");
+    let groupNeed: ScoreState | undefined;
+    if (allScore.length > 0) {
+      const s = allScore[0];
+      if (s === undefined || !allScore.every((x) => x === s)) return undefined;
+      groupNeed = s;
+    } else if (anyPreds.length > 0 && anyNonScore.length === 0 && anyScore.length > 0) {
+      const s = anyScore[0];
+      if (s === undefined || !anyScore.every((x) => x === s)) return undefined;
+      groupNeed = s;
+    } else {
+      return undefined;
+    }
+    needs.push(groupNeed);
+  }
+  const first = needs[0];
+  return first !== undefined && needs.every((s) => s === first) ? first : undefined;
+}
+
 /** Filter active plays by strength/zone, rank by net xG, return top 6 digests. */
 export function retrievePlays(book: Playbook, query: RetrieveQuery): PlayDigest[] {
   const strength = asPlayStrength(query.strength);
@@ -177,6 +213,9 @@ export function retrievePlays(book: Playbook, query: RetrieveQuery): PlayDigest[
   const matched = book.plays.filter((play) => {
     if (play.status === "retired") return false;
     if (isEmptyNetPlay(play) && strength !== "EN") return false;
+    if (isLeadProtectPlay(play) && query.scoreState !== "leading") return false;
+    const need = requiredScoreState(play);
+    if (need && query.scoreState !== need) return false;
     if (!play.strength.includes(strength)) return false;
     if (play.zoneBias.length === 0) return true;
     return play.zoneBias.includes("any") || play.zoneBias.includes(query.zone);

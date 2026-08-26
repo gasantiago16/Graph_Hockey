@@ -22,9 +22,11 @@ export {
 export {
   asPlayStrength,
   isEmptyNetPlay,
+  isLeadProtectPlay,
   observerStrength,
   playStillValid,
   playStrengthFor,
+  requiredScoreState,
   retrievePlays,
   scoreStateFor,
   toDigest,
