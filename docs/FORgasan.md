@@ -505,7 +505,7 @@ These are not hypothetical. They showed up in design review or PR review and wou
 
 Live counters live in [`docs/better-hockey.md`](better-hockey.md) (bank **1/5**, attempt **4**, flat streak **2**). Evaluate 4 not credited.
 
-1. **F2 contest of dump-ins.** Loose-puck F2 hunt so 5v5 OZ recoveries pair (need pairs ≥ **3**) and g6 xG clears **0.792**. Then counting Evaluate 5. One more flat aborts the cycle.
+1. **Evaluate 5** (`ser-emp-12`) after F2 dump-chase on `main`. Need Δ xG **> −0.376** and pairs ≥ **3**. One more flat aborts the cycle.
 2. **Captain micro** stays off.
 3. **HITL later.** LangGraph `interrupt()`, off the 12s clock.
 4. Glimmer is up on `:8080`. Do not restart 8787 unless asked. Do not raise timeouts.

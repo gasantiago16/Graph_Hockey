@@ -138,6 +138,36 @@ describe("computeIceIntent five-man", () => {
     expect(ozIce.targets[f3]!.x).toBeGreaterThan(BLUE_LINE_X);
   });
 
+  it("F2 contests a loose puck instead of trailing eight feet behind", () => {
+    const oz = createWorld({
+      puck: { pos: { x: 50, y: 6 }, possessor: null },
+      bodies: {
+        "h-C": { pos: { x: 20, y: 0 } },
+        "h-LW": { pos: { x: 28, y: 8 } },
+        "h-RW": { pos: { x: 10, y: -10 } },
+      },
+    });
+    const ice = computeIceIntent(oz, "home");
+    const f2id = ice.roles["h-C"] === "F2" ? "h-C" : ice.roles["h-LW"] === "F2" ? "h-LW" : "h-RW";
+    const t = ice.targets[f2id]!;
+    expect(ice.f1Action).toBe("hunt");
+    expect(t.x).toBeGreaterThan(BLUE_LINE_X);
+    expect(Math.hypot(t.x - 50, t.y - 6)).toBeLessThan(12);
+
+    const nz = createWorld({
+      puck: { pos: { x: 10, y: 0 }, possessor: null },
+      bodies: {
+        "h-C": { pos: { x: 0, y: 0 } },
+        "h-LW": { pos: { x: -8, y: 10 } },
+        "h-RW": { pos: { x: -8, y: -10 } },
+      },
+    });
+    const nzIce = computeIceIntent(nz, "home");
+    const nzF2 = nzIce.roles["h-LW"] === "F2" ? "h-LW" : nzIce.roles["h-RW"] === "F2" ? "h-RW" : "h-C";
+    expect(nzIce.targets[nzF2]!.x).toBeLessThan(10);
+    expect(nzIce.targets[nzF2]!.x).toBeLessThanOrEqual(BLUE_LINE_X);
+  });
+
   it("F2 stays onside in the NZ and pressures the carrier when we do not have the puck", () => {
     const nz = createWorld({
       puck: { pos: { x: 10, y: 0 }, possessor: "h-C" },

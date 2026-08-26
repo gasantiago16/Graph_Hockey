@@ -25,7 +25,7 @@ This is the live scoreboard. Update it after every counting Evaluate. Handbook: 
 | Flat streak | **2 / 3** | One more flat → cycle abort, re-Diagnose, bank kept |
 | On `main` | retrieve gate + timeout leftover + seed NZ/DZ + ice clamp + dump-in `f689802` + **AAR 5v5** `6f01c3e` | `codeDraft` prefers 5v5/3v3 xG over PP/PK/EN |
 | Glimmer | **running** `:8080 --reasoning off` | Do not restart 8787 unless asked. |
-| Goldens | pr7 `1378ddf6…` count **57**; pr8 `15795068…` count **301**, epochs **11** | Intentional dump-in physics. pr4 unchanged. Shot **1**, Offside **0** on pr8 3×5s |
+| Goldens | pr7 `1378ddf6…` count **57**; pr8 `5a91e616…` count **333**, epochs **9** | F2 OZ dump-chase. pr7 unchanged. pr8 Shot **2**, Offside **0**, Goal 1 |
 
 ### Evaluate 1 — `ser-emp-8` (2026-08-26)
 
@@ -85,6 +85,7 @@ Control twin (`ser-emp-9-nollm`): books v1, retrieveTop 0/6, offsides 0–2 (g6 
 | Ice offside storm | `c1e7707` on `main` | faceoff onside clamp + Ds tag-up + no delayed release | Evaluate 2 (**improved**) |
 | PR-4 dump-in | `f689802` on `main` | NZ ice `clear` beats overlay dump; goldens moved (explained) | Evaluate 3 (**not credited**) |
 | AAR 5v5 lesson | `6f01c3e` on `main` | `codeDraft` prefers 5v5/3v3 xG over PP/PK/EN | Evaluate 4 (**not credited**) |
+| F2 dump-chase | on `main` | OZ loose puck: F2 contests, not a trailer. NZ stays onside | counting Evaluate 5 |
 | PR-5 Ds tag-up | [#5](https://github.com/gasantiago16/Graph_Hockey/pull/5) | closed; absorbed into `c1e7707` | — |
 | PR-6 captain | skipped | env off | — |
 | PR-7 `lpTrail` flag | [#4](https://github.com/gasantiago16/Graph_Hockey/pull/4) | draft | never |
@@ -155,7 +156,7 @@ Home AAR ops: g0/g4/g6 `add_counter` on **122**; g2/g3 boost **122**; g5 boost *
 
 **Diagnose:** g0 xG is the same dump-in seed-7 PP spray (**1.168**) as Evaluate 3. g6 rose **0.457 → 0.792** — AAR 5v5 moved later games. Need g6 **> 0.792** to strictly beat −0.376 with this g0. Pairs still 1 (one away-PP DZ signature). Do not change the bar. Do not raise timeouts.
 
-**Next PR:** F2 contest of dump-ins / loose puck (`src/ice/roles.ts` F2 hunt) so 5v5 OZ recoveries create paired clips (pairs ≥ 3) and extra g6 xG. Then counting Evaluate 5. One more flat aborts the cycle.
+**Next PR (shipping):** F2 contests a live-OZ loose puck (dump-and-chase). NZ/tag-up stay a trailer + `ONSIDE_ALONG` so F2 does not jump the blue. Then counting Evaluate 5 (`ser-emp-12`). Need Δ xG **> −0.376** and pairs ≥ **3**. One more flat aborts the cycle.
 
 ### Dump-in golden move (intentional)
 
@@ -306,7 +307,7 @@ Two facts:
 
 11. **Windows, npm, sql.js WASM, vitest fakes.** Zero live vendor in `npm test`. Away bench is local `muse-glimmer-30b` at `http://127.0.0.1:8080/v1`. Never `muse-spark-*-contributor` (`refuseContributorTier` in `src/llm/profiles.ts`).
 
-12. **Ice PRs that change `advanceWorld` must treat pr7/pr8 goldens as load-bearing.** After dump-in: pr7 `1378ddf6…` count **57**; pr8 `15795068…` count **301**, epochs **11**, Shot **1**, offsides **0** on 3×5s `--no-llm`. pr4 `400c758b…` unchanged. Retrieve-only PRs must not touch them.
+12. **Ice PRs that change `advanceWorld` must treat pr7/pr8 goldens as load-bearing.** After F2 dump-chase: pr7 `1378ddf6…` count **57** (unchanged); pr8 `5a91e616…` count **333**, epochs **9**, Shot **2**, Offside **0**, Goal 1. pr4 `400c758b…` unchanged. Retrieve-only PRs must not touch them.
 
 ---
 
