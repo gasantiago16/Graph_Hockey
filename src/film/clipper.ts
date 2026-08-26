@@ -80,6 +80,17 @@ function candidateKind(ev: ClipEvent, next: ClipEvent | undefined): Exclude<Clip
   }
 }
 
+function unionClipSignatures(a?: string, b?: string): string | undefined {
+  if (!a) return b;
+  if (!b) return a;
+  const pa = a.split("|");
+  const pb = b.split("|");
+  const playId = pa[0] || pb[0];
+  const zone = pa[1] || pb[1];
+  const types = [...new Set([...(pa[2]?.split(",") ?? []), ...(pb[2]?.split(",") ?? [])].filter(Boolean))];
+  return clipSignature(playId, zone, types);
+}
+
 function mergeClips(clips: Clip[]): Clip[] {
   const sorted = [...clips].sort((a, b) => a.startLiveTick - b.startLiveTick);
   const out: Clip[] = [];
@@ -93,6 +104,7 @@ function mergeClips(clips: Clip[]): Clip[] {
       keep.relatedEventIds = [...new Set([...prev.relatedEventIds, ...clip.relatedEventIds])];
       keep.startLiveTick = Math.min(prev.startLiveTick, clip.startLiveTick);
       keep.endLiveTick = Math.max(prev.endLiveTick, clip.endLiveTick);
+      keep.signature = unionClipSignatures(prev.signature, clip.signature);
       if ((drop.xG ?? 0) > (keep.xG ?? 0)) keep.xG = drop.xG;
       out[out.length - 1] = keep;
     } else {

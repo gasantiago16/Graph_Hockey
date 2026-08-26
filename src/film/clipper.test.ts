@@ -160,6 +160,70 @@ describe("pairClips", () => {
     expect(pairClipsForGames(clips, 0, 6)).toHaveLength(1);
   });
 
+  it("pairs same play+zone chance clips when dump-chase Jaccard sits under 0.3", () => {
+    const clips: Clip[] = [
+      {
+        id: "g0:c0",
+        matchId: "g0",
+        gameIndex: 0,
+        startLiveTick: 1,
+        endLiveTick: 50,
+        anchorEventId: "g0:1",
+        relatedEventIds: ["g0:1"],
+        kind: "goal",
+        title: "HOME GOAL",
+        source: "auto",
+        signature: "5v5-122-forecheck|OZ|Contact,DirectiveApplied,PeriodEnd,PossessionChange",
+        playId: "5v5-122-forecheck",
+      },
+      {
+        id: "g0:c1",
+        matchId: "g0",
+        gameIndex: 0,
+        startLiveTick: 80,
+        endLiveTick: 100,
+        anchorEventId: "g0:2",
+        relatedEventIds: ["g0:2"],
+        kind: "shot",
+        title: "Chance",
+        source: "auto",
+        signature: "5v5-122-forecheck|OZ|",
+        playId: "5v5-122-forecheck",
+      },
+      {
+        id: "g6:c0",
+        matchId: "g6",
+        gameIndex: 6,
+        startLiveTick: 1,
+        endLiveTick: 50,
+        anchorEventId: "g6:1",
+        relatedEventIds: ["g6:1"],
+        kind: "goal",
+        title: "HOME GOAL",
+        source: "auto",
+        signature:
+          "5v5-122-forecheck|OZ|Contact,DirectiveApplied,FaceoffWin,Goal,PossessionChange,Rebound,Save,Shot,Whistle,ZoneEntry",
+        playId: "5v5-122-forecheck",
+      },
+      {
+        id: "g6:c1",
+        matchId: "g6",
+        gameIndex: 6,
+        startLiveTick: 80,
+        endLiveTick: 120,
+        anchorEventId: "g6:2",
+        relatedEventIds: ["g6:2"],
+        kind: "goal",
+        title: "HOME GOAL",
+        source: "auto",
+        signature:
+          "5v5-122-forecheck|OZ|Contact,DirectiveApplied,FaceoffWin,Freeze,Goal,PossessionChange,Rebound,Save,Shot,Whistle,ZoneEntry",
+        playId: "5v5-122-forecheck",
+      },
+    ];
+    expect(pairClipsForGames(clips, 0, 6).length).toBeGreaterThanOrEqual(2);
+  });
+
   it("does not pair same play+zone when Jaccard is below the 0.3 fallback", () => {
     const clips: Clip[] = [
       {
@@ -193,6 +257,40 @@ describe("pairClips", () => {
     ];
     expect(jaccard(["Goal", "Shot", "Block", "Hit"], ["Icing", "Offside", "Penalty"])).toBeLessThan(0.3);
     expect(pairClips(clips, 7)).toHaveLength(0);
+  });
+
+  it("does not pair a penalty with a goal when Jaccard is under 0.3", () => {
+    const clips: Clip[] = [
+      {
+        id: "g0:c0",
+        matchId: "g0",
+        gameIndex: 0,
+        startLiveTick: 1,
+        endLiveTick: 50,
+        anchorEventId: "g0:1",
+        relatedEventIds: ["g0:1"],
+        kind: "penalty",
+        title: "penalty",
+        source: "auto",
+        signature: "5v5-122-forecheck|OZ|Contact,Penalty",
+        playId: "5v5-122-forecheck",
+      },
+      {
+        id: "g6:c0",
+        matchId: "g6",
+        gameIndex: 6,
+        startLiveTick: 1,
+        endLiveTick: 50,
+        anchorEventId: "g6:1",
+        relatedEventIds: ["g6:1"],
+        kind: "goal",
+        title: "HOME GOAL",
+        source: "auto",
+        signature: "5v5-122-forecheck|OZ|Contact,Goal,Shot,ZoneEntry",
+        playId: "5v5-122-forecheck",
+      },
+    ];
+    expect(pairClipsForGames(clips, 0, 6)).toHaveLength(0);
   });
 
   it("jaccard is 1 for identical bags", () => {

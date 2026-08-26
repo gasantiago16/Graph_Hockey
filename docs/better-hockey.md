@@ -88,6 +88,7 @@ Control twin (`ser-emp-9-nollm`): books v1, retrieveTop 0/6, offsides 0–2 (g6 
 | F2 dump-chase | `78b17cb` on `main` | OZ loose puck: F2 contests. NZ stays onside | Evaluate 5 (**not credited**, cycle abort) |
 | F2 tighten | `66d96d0` on `main` | Deep OZ only (`BLUE+8`), second man `alongPuck-6` | Evaluate 6 (**not credited**) |
 | DZ leftover assemble | `b414450` on `main` | Micro drops last play that fails zone/strength (122 in DZ → breakout) | Evaluate 7 (**not credited**) |
+| Film chance-pair | on `main` | Same play+zone goal/shot/save pair under Jaccard 0.3 | counting Evaluate 8 |
 | PR-5 Ds tag-up | [#5](https://github.com/gasantiago16/Graph_Hockey/pull/5) | closed; absorbed into `c1e7707` | — |
 | PR-6 captain | skipped | env off | — |
 | PR-7 `lpTrail` flag | [#4](https://github.com/gasantiago16/Graph_Hockey/pull/4) | draft | never |
@@ -258,7 +259,7 @@ Live card:
 
 g1/g2 no longer 0-chance DZ traps. Dump-and-chase film g0 vs g6 still does not pair (one away-212 DZ signature).
 
-**Cycle 2 PR-3:** film pairing (`src/film/pairClips.ts`) so dump-chase / breakout g0–g6 clips can match (Jaccard fallback or play+zone). Then Evaluate 8. Need pairs ≥ **3** with Δ xG still **> −0.376**. One more flat aborts cycle 2.
+**Cycle 2 PR-3 (shipping):** same play+zone chance clips (goal/shot/save) pair even when dump-chase Jaccard is 0.27. Merge unions signature bags. Then Evaluate 8 (`ser-emp-15`). Need pairs ≥ **3** and Δ xG **> −0.376**. One more flat aborts cycle 2.
 
 ### Dump-in golden move (intentional)
 

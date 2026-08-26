@@ -31,6 +31,12 @@ function metricHint(early: Clip, late: Clip): string {
   return `${e} → ${l}`;
 }
 
+const CHANCE_KINDS = new Set(["goal", "shot", "save"]);
+
+function isChanceKind(kind: Clip["kind"]): boolean {
+  return CHANCE_KINDS.has(kind);
+}
+
 function pairEarlyLate(early: Clip[], late: Clip[], prefer: number, fallback: number): PairedClip[] {
   const pairs: PairedClip[] = [];
   const usedLate = new Set<string>();
@@ -49,7 +55,8 @@ function pairEarlyLate(early: Clip[], late: Clip[], prefer: number, fallback: nu
     }
     if (!best) continue;
     const bar = best.score >= prefer ? prefer : fallback;
-    if (best.score < bar) continue;
+    const chanceFilm = isChanceKind(e.kind) && isChanceKind(best.clip.kind);
+    if (best.score < bar && !chanceFilm) continue;
     usedLate.add(best.clip.id);
     pairs.push({
       signature: e.signature!,
@@ -66,7 +73,9 @@ function pairEarlyLate(early: Clip[], late: Clip[], prefer: number, fallback: nu
 /**
  * Pair an early-game clip with a late-game clip of the same play + zone.
  * Jaccard on the event-type bag picks the best late clip. Prefer ≥ 0.7;
- * fall back to ≥ 0.3 so a Goal-against vs later Save still pairs (that is the film).
+ * fall back to ≥ 0.3 so a Goal-against vs later Save still pairs.
+ * Same play+zone chance clips (goal/shot/save) still pair when dump-chase
+ * bags sit just under 0.3 (thin period-end vs ZoneEntry/Rebound).
  */
 export function pairClips(clips: Clip[], gameCount: number, prefer = 0.7, fallback = 0.3): PairedClip[] {
   const earlyMax = gameCount <= 2 ? 0 : 1;

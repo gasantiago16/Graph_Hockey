@@ -507,7 +507,7 @@ These are not hypothetical. They showed up in design review or PR review and wou
 
 Live counters live in [`docs/better-hockey.md`](better-hockey.md) (bank **1/5**, cycle 1 aborted).
 
-1. **Film pairing**, then Evaluate 8. Evaluate 7 Δ xG **−0.131** and chance mean 6.43 would credit; pairs **1** failed. Need pairs ≥ **3**. One more flat aborts cycle 2.
+1. **Evaluate 8** (`ser-emp-15`) after chance-clip pairing. Need pairs ≥ **3** and Δ xG **> −0.376**. One more flat aborts cycle 2.
 2. **Captain micro** stays off.
 3. **HITL later.** LangGraph `interrupt()`, off the 12s clock.
 4. Glimmer is up on `:8080`. Do not restart 8787 unless asked. Do not raise timeouts.
