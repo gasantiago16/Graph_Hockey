@@ -4,7 +4,7 @@
 | --- | --- |
 | **Author** | Graph_Hockey staff (design) |
 | **Date** | 2026-08-26 |
-| **Status** | **Cycle 1 aborted.** Evaluate 5 not credited. Bank **1/5** kept. Flat streak 3/3 and attempts 5/5. Re-Diagnose for cycle 2. |
+| **Status** | **Cycle 2 — F2 tighten on `main`, Evaluate 6 next.** Bank **1/5**. |
 | **Repo** | `C:\Users\gasan\Graph_Hockey` (private, `main` playable) |
 | **Success criterion** | **Five empirical improvements.** Not five attempts. Not five version bumps. Not “stop when the numbered PR stack is done.” Keep cycling (including a **post-stack Diagnose menu**) until `improvements == 5` or the user stops. |
 | **PLAN_ID** | `f1d4bdeb` (resume leftover PRs with `/execute-plan --resume f1d4bdeb` after Evaluate context) |
@@ -20,12 +20,12 @@ This is the live scoreboard. Update it after every counting Evaluate. Handbook: 
 | **Bank** (goal) | **1 / 5** | Kept on cycle abort. Next credit still `homeΔxG > −0.376` **and** pairs ≥ **3** |
 | Previous-best home Δ xG | **−0.376** | `ser-emp-9` g0→g6. Unchanged |
 | Previous-best pairs | **3** | Evaluate 2. Evaluates 3–5 all pairs 0–1 |
-| Cycle | **1 aborted → 2** | 3 consecutive flats **and** 5 attempts |
-| Attempts this cycle | **5 / 5** | Counting Evaluates only. Abort. |
-| Flat streak | **3 / 3** | Evaluate 5 worse. Re-Diagnose |
-| On `main` | dump-in `f689802` + AAR 5v5 `6f01c3e` + **F2 dump-chase** `78b17cb` | OZ F2 contests loose puck; NZ onside |
+| Cycle | **2** | Cycle 1 aborted. Attempts reset. Bank kept |
+| Attempts this cycle | **0 / 5** | Evaluate 6 is attempt 1 |
+| Flat streak | **0 / 3** | Reset on new cycle |
+| On `main` | dump-in + AAR 5v5 + F2 chase `78b17cb` + **F2 tighten** | Deep OZ second man; shallow OZ onside |
 | Glimmer | **running** `:8080 --reasoning off` | Do not restart 8787 unless asked. |
-| Goldens | pr7 `1378ddf6…` count **57**; pr8 `5a91e616…` count **333**, epochs **9** | F2 OZ dump-chase. pr7 unchanged. pr8 Shot **2**, Offside **0**, Goal 1 |
+| Goldens | pr7 `1378ddf6…` count **57**; pr8 `ea244284…` count **259**, epochs **12** | F2 tighten. pr7 unchanged. pr8 Shot **0**, Offside **2** (not a storm) |
 
 ### Evaluate 1 — `ser-emp-8` (2026-08-26)
 
@@ -86,6 +86,7 @@ Control twin (`ser-emp-9-nollm`): books v1, retrieveTop 0/6, offsides 0–2 (g6 
 | PR-4 dump-in | `f689802` on `main` | NZ ice `clear` beats overlay dump; goldens moved (explained) | Evaluate 3 (**not credited**) |
 | AAR 5v5 lesson | `6f01c3e` on `main` | `codeDraft` prefers 5v5/3v3 xG over PP/PK/EN | Evaluate 4 (**not credited**) |
 | F2 dump-chase | `78b17cb` on `main` | OZ loose puck: F2 contests. NZ stays onside | Evaluate 5 (**not credited**, cycle abort) |
+| F2 tighten | on `main` | Deep OZ only (`BLUE+8`), second man `alongPuck-6` | counting Evaluate 6 |
 | PR-5 Ds tag-up | [#5](https://github.com/gasantiago16/Graph_Hockey/pull/5) | closed; absorbed into `c1e7707` | — |
 | PR-6 captain | skipped | env off | — |
 | PR-7 `lpTrail` flag | [#4](https://github.com/gasantiago16/Graph_Hockey/pull/4) | draft | never |
@@ -192,7 +193,7 @@ g0 AAR boosted **122** (share 81%). g5/g6 home OZ time **8s / 3s** vs DZ **12s /
 
 Bank stays 1. Do not raise timeouts. Do not change the Δ xG bar. F2 dump-chase stays (control got more shots; pr8 Offside 0) but live g0 leaked 3 offsides and later games collapsed into the DZ.
 
-**Cycle 2 PR-1:** F2 OZ contest only when the puck is **already past `BLUE_LINE_X + 8`**, and target `alongPuck - 6` (second man, not stacked on F1). NZ/tag-up unchanged. Goal: g0 offsides back to 0–2 without giving up dump-and-chase. Then counting Evaluate 6 (cycle 2 attempt 1). Need Δ xG **> −0.376** and pairs ≥ **3**.
+**Cycle 2 PR-1 (shipping):** F2 OZ contest only when the puck is **already past `BLUE_LINE_X + 8`**, second man at `alongPuck - 6`. Shallow OZ / NZ / tag-up stay onside trailers. pr7 unchanged. Then counting Evaluate 6 (`ser-emp-13`). Need Δ xG **> −0.376** and pairs ≥ **3**.
 
 ### Dump-in golden move (intentional)
 

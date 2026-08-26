@@ -507,7 +507,7 @@ These are not hypothetical. They showed up in design review or PR review and wou
 
 Live counters live in [`docs/better-hockey.md`](better-hockey.md) (bank **1/5**, cycle 1 aborted).
 
-1. **Cycle 2 PR-1:** F2 OZ contest only past `BLUE_LINE_X + 8`, target `alongPuck - 6`. Then Evaluate 6. Need Δ xG **> −0.376** and pairs ≥ **3**.
+1. **Evaluate 6** (`ser-emp-13`) after F2 tighten. Need Δ xG **> −0.376** and pairs ≥ **3**.
 2. **Captain micro** stays off.
 3. **HITL later.** LangGraph `interrupt()`, off the 12s clock.
 4. Glimmer is up on `:8080`. Do not restart 8787 unless asked. Do not raise timeouts.

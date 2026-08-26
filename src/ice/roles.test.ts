@@ -152,7 +152,21 @@ describe("computeIceIntent five-man", () => {
     const t = ice.targets[f2id]!;
     expect(ice.f1Action).toBe("hunt");
     expect(t.x).toBeGreaterThan(BLUE_LINE_X);
+    expect(t.x).toBeLessThan(50);
     expect(Math.hypot(t.x - 50, t.y - 6)).toBeLessThan(12);
+
+    const shallow = createWorld({
+      puck: { pos: { x: BLUE_LINE_X + 4, y: 0 }, possessor: null },
+      bodies: {
+        "h-C": { pos: { x: 0, y: 0 } },
+        "h-LW": { pos: { x: 8, y: 6 } },
+        "h-RW": { pos: { x: -8, y: -8 } },
+      },
+    });
+    const shallowIce = computeIceIntent(shallow, "home");
+    const shF2 =
+      shallowIce.roles["h-C"] === "F2" ? "h-C" : shallowIce.roles["h-LW"] === "F2" ? "h-LW" : "h-RW";
+    expect(shallowIce.targets[shF2]!.x).toBeLessThanOrEqual(BLUE_LINE_X);
 
     const nz = createWorld({
       puck: { pos: { x: 10, y: 0 }, possessor: null },

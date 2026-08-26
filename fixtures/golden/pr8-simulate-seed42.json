@@ -1,12 +1,12 @@
 {
   "seed": 42,
   "periodSeconds": 5,
-  "hash": "5a91e616aabc6395536967106e802df397bd6b3ec9bcd83878e4db18829988b8",
-  "count": 333,
+  "hash": "ea2442845c30819f01f9a84d94a5c68355b1bf11601d3a1c9ff00c7c8cf71957",
+  "count": 259,
   "score": {
     "home": 0,
-    "away": 1
+    "away": 0
   },
-  "result": "away",
-  "epochs": 9
+  "result": "tie",
+  "epochs": 12
 }

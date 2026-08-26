@@ -115,9 +115,15 @@ export function computeIceIntent(world: WorldState, side: Side): IceIntent {
     const offY = puck.y >= 0 ? -8 : 8;
     if (!weHaveIt) {
       const holder = possessor && possessor.side !== side ? possessor : undefined;
-      // Loose puck in live OZ: dump-and-chase. NZ/tag-up stay a trailer so F2 does not jump the blue.
-      let f2Along = holder ? holder.pos.x * dir : ozLive ? alongPuck : alongPuck - 8;
-      if (!ozLive) f2Along = Math.min(f2Along, ONSIDE_ALONG);
+      let f2Along: number;
+      if (holder) {
+        f2Along = holder.pos.x * dir;
+        if (!ozLive) f2Along = Math.min(f2Along, ONSIDE_ALONG);
+      } else {
+        // Deep live OZ: second man. Shallow OZ / NZ / tag-up: trailer, onside.
+        const dumpChase = ozLive && alongPuck > BLUE_LINE_X + 8;
+        f2Along = dumpChase ? alongPuck - 6 : Math.min(alongPuck - 8, ONSIDE_ALONG);
+      }
       intent.targets[f2.id] = alongWorld(dir, f2Along, (holder?.pos.y ?? puck.y) + offY, f2.radius);
     } else {
       let f2Along = alongPuck - 12;
