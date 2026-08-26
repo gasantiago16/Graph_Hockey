@@ -142,8 +142,12 @@ export function computeIceIntent(world: WorldState, side: Side): IceIntent {
   if (f3) {
     intent.roles[f3.id] = "F3";
     const slotY = (puck.y >= 0 ? -1 : 1) * 10;
-    const f3Along =
-      ozLive && alongPuck > ESTABLISHED_OZ_ALONG ? GOAL_LINE_X - 16 : ONSIDE_ALONG;
+    let f3Along = ONSIDE_ALONG;
+    if (ozLive && alongPuck > ESTABLISHED_OZ_ALONG) {
+      f3Along = GOAL_LINE_X - 16;
+    } else if (ozLive) {
+      f3Along = alongPuck + 4;
+    }
     intent.targets[f3.id] = alongWorld(dir, f3Along, slotY, f3.radius);
   }
 

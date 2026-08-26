@@ -22,7 +22,8 @@ describe("computeIceIntent five-man", () => {
     expect(ice.roles["h-RW"]).toBe("F3");
     expect(ice.targets["h-C"]).toBeUndefined();
     expect(ice.targets["h-LW"]!.x).toBeLessThan(30);
-    expect(ice.targets["h-RW"]!.x).toBeLessThanOrEqual(BLUE_LINE_X);
+    expect(ice.targets["h-RW"]!.x).toBeGreaterThan(BLUE_LINE_X);
+    expect(ice.targets["h-RW"]!.x).toBeLessThan(50);
   });
 
   it("F2 is a wide outlet on an established OZ carry, not a just-in entry lead", () => {
@@ -189,7 +190,8 @@ describe("computeIceIntent five-man", () => {
     });
     const justIce = computeIceIntent(justIn, "home");
     const justF3 = justIce.roles["h-RW"] === "F3" ? "h-RW" : "h-LW";
-    expect(justIce.targets[justF3]!.x).toBeLessThanOrEqual(BLUE_LINE_X);
+    expect(justIce.targets[justF3]!.x).toBeGreaterThan(BLUE_LINE_X);
+    expect(justIce.targets[justF3]!.x).toBeLessThan(GOAL_LINE_X - 20);
   });
 
   it("F2 contests a loose puck instead of trailing eight feet behind", () => {

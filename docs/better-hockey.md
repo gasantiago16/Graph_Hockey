@@ -4,7 +4,7 @@
 | --- | --- |
 | **Author** | Graph_Hockey staff (design) |
 | **Date** | 2026-08-26 |
-| **Status** | **Cycle 3 attempt 2 not credited (bank 2/5, flat 2/3).** Evaluate 12 Δ xG **−0.119**, chance mean 5.14, g5 home **4** offs, pairs 1. g2 home offs **0** (was 3). Next: F3 established OZ. |
+| **Status** | **Cycle 3 aborted (bank 2/5).** Evaluate 13 offs band **pass** (max 1). Chance mean **2.71**, Δ xG **−0.304**, pairs 1, g3/g6 **0** chances. F3 onside-until-established closed offs and starved OZ. |
 | **Repo** | `C:\Users\gasan\Graph_Hockey` (private, `main` playable) |
 | **Success criterion** | **Five empirical improvements.** Not five attempts. Not five version bumps. Not “stop when the numbered PR stack is done.” Keep cycling (including a **post-stack Diagnose menu**) until `improvements == 5` or the user stops. |
 | **PLAN_ID** | `f1d4bdeb` (resume leftover PRs with `/execute-plan --resume f1d4bdeb` after Evaluate context) |
@@ -28,13 +28,13 @@ This is the live **quality** scoreboard. Update it after every counting Evaluate
 | **Bank** (goal) | **2 / 5** | Kept on cycle abort. Next credit `homeΔxG > −0.071` **and** pairs ≥ **4** **and** chance mean ≥ 6 |
 | Previous-best home Δ xG | **−0.071** | `ser-emp-15` g0→g6. Unchanged (Evaluate 11 +0.443 not credited) |
 | Previous-best pairs | **4** | Evaluate 8. Evaluates 9–11 pairs 3 |
-| Cycle | **3** | Cycles 1 and 2 aborted. Bank kept. Attempts reset |
-| Attempts this cycle | **2 / 5** | Evaluates 11–12 counted, not credited |
-| Flat streak | **2 / 3** | One more flat aborts the cycle |
-| On `main` | F2 established `9ddd4f4` + **F3 established OZ** | pr7 `8ad26e09` count 106 unchanged; pr8 `ebbe0e96` count 378 epochs 11 Shot 0 Offside **0** |
+| Cycle | **4** | Cycles 1–3 aborted. Bank kept. Attempts reset |
+| Attempts this cycle | **0 / 5** | After Evaluate 13 abort |
+| Flat streak | **0 / 3** | Reset on abort |
+| On `main` | F3 established `6a3e6d1` + **F3 just-in occupy** | pr7 `1d80eee2` count 107 Shot 0 Offside 0; pr8 `be48bb68` count 315 epochs 11 Shot 0 Offside 0 |
 | Glimmer | **up** `:8080` (this session; do not restart 8787) | Timeouts not raised (`GRAPH_HOCKEY_EPOCH_TIMEOUT_MS=8000` from `.env`). |
 | Learning proofs | write **yes** · retain survive **yes** · transfer **no** · quality **2/5** | See [`knowledge-and-learning.md`](knowledge-and-learning.md) |
-| Goldens | pr7 `8ad26e09…` count **106** (unchanged); pr8 `ebbe0e96…` count **378**, epochs **11** | F3 established OZ. Shot **0**, Offside **1→0**. Count up is NZ Contact, not a Shot storm. |
+| Goldens | pr7 `1d80eee2…` count **107**; pr8 `be48bb68…` count **315**, epochs **11** | F3 just-in occupy. Shot **0**, Offside **0**. pr7 106→107 is one extra event, not a Shot storm. |
 
 ### Evaluate 1 — `ser-emp-8` (2026-08-26)
 
@@ -105,7 +105,8 @@ Control twin (`ser-emp-9-nollm`): books v1, retrieveTop 0/6, offsides 0–2 (g6 
 | Series play mix | `dd4cd03` on `main` | `playMix` + `openingMatchesRetrieve` on scorecard | never |
 | F2 OZ carry outlet | `be9be08` on `main` | Shallow OZ F2 wide ahead of F1; deep slot support-below | Evaluate 11 (**not credited**) |
 | F2 established OZ | `9ddd4f4` on `main` | F2 outlet only when `alongPuck > BLUE+8`; just-in OZ support-below. pr8 Shot 1→0 Offside 1 | Evaluate 12 (**not credited**) |
-| F3 established OZ | this commit | F3 holds `ONSIDE_ALONG` until `alongPuck > BLUE+8`, then slot. pr8 Offside **1→0**, Shot 0, count 286→378 | Evaluate 13 |
+| F3 established OZ | `6a3e6d1` on `main` | F3 holds `ONSIDE_ALONG` until `alongPuck > BLUE+8`, then slot. pr8 Offside 1→0 | Evaluate 13 (**not credited**, cycle abort) |
+| F3 just-in occupy | this commit | Just-in OZ F3 at `alongPuck+4` (in zone, can tag up). Slot after `BLUE+8`. NZ/tag-up still onside | Evaluate 14 |
 | PR-5 Ds tag-up | [#5](https://github.com/gasantiago16/Graph_Hockey/pull/5) | closed; absorbed into `c1e7707` | — |
 | PR-6 captain | skipped | env off | — |
 | PR-7 `lpTrail` flag | [#4](https://github.com/gasantiago16/Graph_Hockey/pull/4) | draft | never |
@@ -482,6 +483,44 @@ Control (`ser-emp-19-nollm`): v1, 0/6, booksMoved false. g0 4–2 xG 0.70. Offs 
 **Diagnose:** F2 `BLUE+8` closed Evaluate 11’s g2 3-off. Remaining entry leak is **F3 racing to `GOAL_LINE-16` the instant `ozLive`**. Just-in OZ F3 is already in the slot while the puck is still nicking the blue. Same established gate as F2. Do **not** revert F2 `BLUE+8`. Do not raise timeouts. Do not change the Δ xG bar. Learning hole (122 retrieve, loser `add_counter`, PP boost on ties) is unchanged; offs band first.
 
 **Cycle 3 next:** F3 holds `ONSIDE_ALONG` until `alongPuck > BLUE+8`. Counting Evaluate 13. Third consecutive flat aborts the cycle.
+
+### Evaluate 13 — `ser-emp-20` (2026-08-26)
+
+F3 established OZ `6a3e6d1`. Same protocol. Twin `ser-emp-20-nollm`. Timeout 8000. Not raised.
+
+| Gate | Result |
+| --- | --- |
+| Control honest | **pass** — v1, retrieveTop 0/6, `booksMoved` false. Offsides 0–2 (max 2 on g3 away) |
+| Live writes books | **pass** — v1→v8 both. Home retrieveTop 0/6. Still 122 |
+| Lead-protect skating | **pass** — 0 hits |
+| Offsides 0–2 | **pass** — max 1 live (g1/g3/g5/g6 home 1). Evaluate 12’s g5-4 is gone |
+| Chance mean | **2.71** (5,3,4,0,5,2,0) < 6 (**floor fail**) |
+| Pairs `--compare 0,6` | **1** < 4 (**floor fail**) |
+| Home Δ xG g0→g6 | **−0.304** (0.304 → 0.000) not > −0.071 |
+
+**Improved: no.** Bank **2 / 5**. **Cycle abort** (flat 3/3). Attempts 3/5.
+
+Live card:
+
+| G | Score | Home retrieve | Home ch/off | Home OZ/DZ |
+| --- | --- | --- | ---: | ---: |
+| 0 | 4–2 home | `5v5-122-forecheck` | 5 / 0 | 8s / 13s |
+| 1 | 1–1 tie | `5v5-122-forecheck` | 3 / 1 | 5s / 8s |
+| 2 | 1–2 away | `5v5-122-forecheck` | 4 / 0 | 21s / 8s |
+| 3 | 0–2 away | `5v5-122-forecheck` | **0** / 1 | **2s** / 10s |
+| 4 | 1–2 away | `5v5-122-forecheck` | 5 / 0 | 17s / 23s |
+| 5 | 2–3 away | `5v5-122-forecheck` | 2 / 1 | 7s / **29s** |
+| 6 | 0–3 away | `5v5-122-forecheck` | **0** / 1 | 4s / **31s** |
+
+Away g6 10 chances. Home sat in the DZ. g3/g6 AAR `add_counter` on 122.
+
+Control (`ser-emp-20-nollm`): v1 honest. g0 4–1 xG 0.39. Offs 0–2. g3 home 0 chances too — ice volume is down on both arms.
+
+### Cycle 4 Diagnose
+
+Bank stays 2. Do **not** revert F2 `BLUE+8` (g2 3-off is gone) and do **not** revert “F3 waits for established” as a *slot* gate. The fail is **just-in F3 parked at `ONSIDE_ALONG` (NZ side of the blue)**. Dump-and-chase has no third man in the OZ, so they never occupy. Offsides passed; volume died.
+
+**Cycle 4 PR-1:** just-in live OZ F3 targets `alongPuck+4` (in the OZ, close enough to tag up). Slot (`GOAL_LINE-16`) only after `BLUE+8`. NZ / tag-up still `ONSIDE_ALONG`. Counting Evaluate 14. Do not raise timeouts. Do not change the Δ xG bar.
 
 ### Dump-in golden move (intentional)
 

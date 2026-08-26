@@ -1,8 +1,8 @@
 {
   "seed": 42,
   "matchId": "golden-pr7",
-  "hash": "8ad26e09bd0aab096a7e069dc3347d17398541a9fad9a33a15b38de97ddfc100",
-  "count": 106,
+  "hash": "1d80eee2f7536ec57fdedebb897da0fa5bf7cc515f17319ca9ddcd4103dd090c",
+  "count": 107,
   "types": [
     "FaceoffWin",
     "PossessionChange",
@@ -108,6 +108,7 @@
     "Contact",
     "Contact",
     "PossessionChange",
+    "Contact",
     "Contact",
     "Contact"
   ]
