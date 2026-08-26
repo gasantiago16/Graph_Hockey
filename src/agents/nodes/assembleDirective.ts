@@ -1,10 +1,10 @@
 import type { PlayParams, SpecialistMemo, SpecialistParams, TeamDirective } from "../../types/directive.ts";
 import { DEFAULT_PLAY_ID, type Playbook } from "../../types/play.ts";
 import { defaultDirective } from "../../engine/world.ts";
-import { asPlayStrength } from "../../playbook/retrieve.ts";
-import { defaultPlayIdForBook } from "../../playbook/store.ts";
+import { asPlayStrength, isLeadProtectPlay } from "../../playbook/retrieve.ts";
+import { defaultPlayIdForBook, resolvePlay } from "../../playbook/store.ts";
 import type { TeamGraphNode, TeamGraphStateType } from "../state.ts";
-import type { SpecialistId } from "./situation.ts";
+import { scoreStateFromObservation, type SpecialistId } from "./situation.ts";
 
 function lastMemo(memos: readonly SpecialistMemo[], id: SpecialistId): SpecialistMemo | undefined {
   for (let i = memos.length - 1; i >= 0; i--) {
@@ -30,8 +30,9 @@ function stUnit(playStr: string, last: TeamDirective): "PP1" | "PP2" | "PK1" | "
 }
 
 /**
- * §10.4 merge table. HC owns playId/pressure/bench on macro. Micro: captain playId
- * if retrieved, else lastDirective. Specialist playIdSuggestion is advisory.
+ * §10.4 merge table. HC owns playId/pressure/bench on macro. Micro: drop leftover
+ * lead-protect when not leading; else captain playId if retrieved, else lastDirective.
+ * Specialist playIdSuggestion is advisory.
  */
 export function mergeAssembleDirective(state: TeamGraphStateType, playbook: Playbook): TeamDirective {
   const last = state.lastDirective ?? defaultDirective(DEFAULT_PLAY_ID);
@@ -53,8 +54,13 @@ export function mergeAssembleDirective(state: TeamGraphStateType, playbook: Play
 
   let playId: string;
   if (isMicro) {
-    const sug = captain?.playIdSuggestion;
-    playId = sug && (retrievedIds.has(sug) || sug === DEFAULT_PLAY_ID) ? sug : last.playId;
+    const lastPlay = resolvePlay(last.playId, playbook);
+    if (isLeadProtectPlay(lastPlay) && scoreStateFromObservation(state.observation) !== "leading") {
+      playId = retrieved.find((p) => !isLeadProtectPlay(p))?.id ?? defaultPlayIdForBook(playbook);
+    } else {
+      const sug = captain?.playIdSuggestion;
+      playId = sug && (retrievedIds.has(sug) || sug === DEFAULT_PLAY_ID) ? sug : last.playId;
+    }
   } else {
     playId = intent?.playId ?? defaultPlayIdForBook(playbook);
   }

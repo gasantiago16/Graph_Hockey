@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import { defaultDirective } from "../engine/world.ts";
 import { createBudget } from "../llm/budgets.ts";
 import { MAX_CALLS_PER_TEAM, recordLlmUsage } from "../llm/budgets.ts";
+import { defaultPlayIdForBook, loadPlaybook } from "../playbook/store.ts";
+import type { TeamDirective } from "../types/directive.ts";
 import type { TeamObservation } from "../types/observation.ts";
 import { epochThreadId, invokeTeam, timeoutDirective, type InvokableTeamGraph } from "./invokeTeam.ts";
 
@@ -235,5 +237,109 @@ describe("invokeTeam", () => {
     });
     expect(r.ok).toBe(true);
     expect(seen).toEqual(["match:abc:team:home:epoch:7"]);
+  });
+});
+
+describe("invokeTeam drops lead-protect last when not leading", () => {
+  const book = loadPlaybook("original-six");
+  const protectLast: TeamDirective = { playId: "protect-lead-1-1-3", pressure: "passive" };
+  const trailingObs: TeamObservation = { ...obs, score: { us: 0, them: 1 } };
+  const leadingObs: TeamObservation = { ...obs, score: { us: 2, them: 1 } };
+  const timeoutOpts = { obs: trailingObs, playbook: book };
+
+  function abortingGraph(): InvokableTeamGraph {
+    return {
+      invoke: async (_input, config) =>
+        new Promise((_resolve, reject) => {
+          config?.signal?.addEventListener("abort", () => {
+            const err = new Error("aborted");
+            err.name = "AbortError";
+            reject(err);
+          });
+        }),
+    };
+  }
+
+  it("trailing obs + last protect-lead-1-1-3 + seed 5v5-122-forecheck → 122", () => {
+    expect(
+      timeoutDirective(protectLast, "5v5-122-forecheck", timeoutOpts).playId,
+    ).toBe("5v5-122-forecheck");
+  });
+
+  it("minted id with family protect-113 also drops", () => {
+    const seedProtect = book.plays.find((p) => p.id === "protect-lead-1-1-3");
+    expect(seedProtect).toBeDefined();
+    const mintedBook = {
+      ...book,
+      plays: [...book.plays, { ...seedProtect!, id: "sit-on-a-lead", origin: "minted" as const }],
+    };
+    const mintedLast: TeamDirective = { playId: "sit-on-a-lead", pressure: "passive" };
+    expect(
+      timeoutDirective(mintedLast, "5v5-122-forecheck", { obs: trailingObs, playbook: mintedBook }).playId,
+    ).toBe("5v5-122-forecheck");
+  });
+
+  it("leading obs keeps last", () => {
+    expect(timeoutDirective(protectLast, "5v5-122-forecheck", { obs: leadingObs, playbook: book })).toEqual(
+      protectLast,
+    );
+  });
+
+  it("missing seed → defaultPlayIdForBook (no throw)", () => {
+    expect(() => timeoutDirective(protectLast, undefined, timeoutOpts)).not.toThrow();
+    expect(timeoutDirective(protectLast, undefined, timeoutOpts).playId).toBe(defaultPlayIdForBook(book));
+    expect(defaultPlayIdForBook(book)).toBe("5v5-122-forecheck");
+  });
+
+  it("timeout path drops protect-lead when trailing", async () => {
+    const r = await invokeTeam({
+      graph: abortingGraph(),
+      side: "home",
+      obs: trailingObs,
+      last: protectLast,
+      epochIndex: 0,
+      matchId: "m",
+      budget: createBudget(),
+      timeoutMs: 20,
+      seedPlayId: "5v5-122-forecheck",
+      playbook: book,
+    });
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.reason).toBe("timeout");
+    expect(r.directive.playId).toBe("5v5-122-forecheck");
+  });
+
+  it("circuit path drops protect-lead when trailing", async () => {
+    const budget = createBudget();
+    recordLlmUsage(budget, "home", {
+      promptTokens: 0,
+      completionTokens: 0,
+      reasoningTokens: 0,
+      usd: 0,
+      calls: MAX_CALLS_PER_TEAM,
+    });
+    let called = 0;
+    const graph: InvokableTeamGraph = {
+      invoke: async () => {
+        called += 1;
+        return { directive: protectLast };
+      },
+    };
+    const r = await invokeTeam({
+      graph,
+      side: "home",
+      obs: trailingObs,
+      last: protectLast,
+      epochIndex: 1,
+      matchId: "m",
+      budget,
+      timeoutMs: 50,
+      seedPlayId: "5v5-122-forecheck",
+      playbook: book,
+    });
+    expect(called).toBe(0);
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.reason).toBe("circuit");
+    expect(r.directive.playId).toBe("5v5-122-forecheck");
   });
 });

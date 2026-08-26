@@ -1,5 +1,6 @@
+import { scoreStateFromObservation } from "../agents/nodes/situation.ts";
 import { TeamDirectiveSchema, type TeamDirective } from "../types/directive.ts";
-import { DEFAULT_PLAY_ID } from "../types/play.ts";
+import { DEFAULT_PLAY_ID, type Playbook } from "../types/play.ts";
 import { defaultDirective } from "../engine/world.ts";
 import type { TeamObservation } from "../types/observation.ts";
 import type { Side } from "../types/hockey.ts";
@@ -14,6 +15,8 @@ import {
   type MatchBudget,
   type TokenUsage,
 } from "../llm/budgets.ts";
+import { isLeadProtectPlay } from "../playbook/retrieve.ts";
+import { defaultPlayIdForBook, resolvePlay } from "../playbook/store.ts";
 
 export type InvokableTeamGraph = {
   invoke: (
@@ -76,8 +79,30 @@ function parseDirective(out: unknown, fallback: TeamDirective): { directive: Tea
   return { directive: parsed.data, ok: true };
 }
 
-/** Opening last is default-structure. Timeout must not freeze that, or a stale overlay, for the whole match. */
-export function timeoutDirective(last: TeamDirective, seedPlayId?: string): TeamDirective {
+function dropLeadProtectLast(
+  last: TeamDirective,
+  seedPlayId: string | undefined,
+  obs: TeamObservation,
+  playbook: Playbook | undefined,
+): TeamDirective | undefined {
+  if (!playbook) return undefined;
+  const play = resolvePlay(last.playId, playbook);
+  if (isLeadProtectPlay(play) && scoreStateFromObservation(obs) !== "leading") {
+    return defaultDirective(seedPlayId ?? defaultPlayIdForBook(playbook));
+  }
+  return undefined;
+}
+
+/** Opening last is default-structure. Timeout must not freeze that, a stale overlay, or leftover 1-1-3 while not leading. */
+export function timeoutDirective(
+  last: TeamDirective,
+  seedPlayId?: string,
+  opts?: { obs: TeamObservation; playbook: Playbook },
+): TeamDirective {
+  if (opts) {
+    const dropped = dropLeadProtectLast(last, seedPlayId, opts.obs, opts.playbook);
+    if (dropped) return dropped;
+  }
   if (seedPlayId && last.playId === DEFAULT_PLAY_ID) return defaultDirective(seedPlayId);
   if (last.playParams === undefined) return last;
   const { playParams: _drop, ...rest } = last;
@@ -99,13 +124,16 @@ export async function invokeTeam(args: {
   signal?: AbortSignal;
   /** Seed 5v5 play if the graph aborts before assemble (not default-structure). */
   seedPlayId?: string;
+  playbook?: Playbook;
 }): Promise<TeamInvokeResult> {
   const threadId = epochThreadId(args.matchId, args.side, args.epochIndex);
+  const timeoutOpts = args.playbook ? { obs: args.obs, playbook: args.playbook } : undefined;
+  const circuitLast = dropLeadProtectLast(args.last, args.seedPlayId, args.obs, args.playbook) ?? args.last;
 
   if (teamTripped(args.budget, args.side) || gameTripped(args.budget)) {
     return {
       ok: false,
-      directive: args.last,
+      directive: circuitLast,
       reason: "circuit",
       billed: false,
       usage: emptyUsage(),
@@ -143,7 +171,7 @@ export async function invokeTeam(args: {
     );
     const usage = copyUsage(tap.usage);
     const coachIntent = parseCoachIntentText(out);
-    const stuck = timeoutDirective(args.last, args.seedPlayId);
+    const stuck = timeoutDirective(args.last, args.seedPlayId, timeoutOpts);
     const parsed = parseDirective(out, stuck);
     if (!parsed.ok) {
       return {
@@ -162,7 +190,7 @@ export async function invokeTeam(args: {
     const reason = ac.signal.aborted || isAbortError(err) ? "timeout" : "error";
     return {
       ok: false,
-      directive: timeoutDirective(args.last, args.seedPlayId),
+      directive: timeoutDirective(args.last, args.seedPlayId, timeoutOpts),
       reason,
       billed: usage.calls > 0,
       usage,
