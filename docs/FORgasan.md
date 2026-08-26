@@ -2,7 +2,7 @@
 
 You wanted two LangGraphs to fight each other at hockey, then get smarter after every result. That is still the product. What we *shipped* is more specific, and this file is honest about it: **two independent benches**, **ice that is code**, **one Head Coach call per live epoch**, and **an After-Action Review that patches a playbook** so game 7 is not a rerun of game 1.
 
-We measured that loop (`ser-emp-7`), gated retrieve, killed offside storms, shipped dump-in, taught AAR to boost 5v5, F2 dump-chase, DZ leftover assemble, film chance-pair, then ice high-slot shots. Evaluate 8 credited bank **2/5**. Evaluate 9 Δ xG **+0.097** would beat the bar; chance mean 5.57 and pairs 3 failed. Plan: [`docs/better-hockey.md`](better-hockey.md).
+We measured that loop (`ser-emp-7`), gated retrieve, killed offside storms, shipped dump-in, taught AAR to boost 5v5, F2 dump-chase, DZ leftover, film chance-pair, high-slot shots, then DZ outlet. Evaluate 8 credited bank **2/5**. Cycle 2 aborted after Evaluate 10 (Δ xG +0.097, chance mean 5.29). Plan: [`docs/better-hockey.md`](better-hockey.md).
 
 This is a handbook for *you* — how the repo thinks, what is a graph and what is not, how a call travels, how the team learns *together*, and the scars we paid for on the road to LangGraph learning.
 
@@ -252,6 +252,8 @@ Seven games as a row of books. The loop is the row getting thicker. Quality is w
 | **`ser-emp-15` Evaluate 8** | Ice gates held. Pairs **4**. Δ xG **−0.071**. g6 **4–2** home. Bank **2/5**. | Second coded improvement. Next bar Δ **> −0.071**, pairs ≥ 4. |
 | **Ice high-slot (`70c4b3b`)** | Ice-source OZ shots wait for BLUE+20. Overlay shoot/crash still BLUE-8. Goldens unchanged. | Dump recoveries carry to the high slot. |
 | **`ser-emp-16` Evaluate 9** | Δ xG **+0.097**. Chance mean **5.57**. Pairs **3**. g6 4–1, xG 1.02. Not credited. | g2/g3 sat in the DZ. Do not revert the high slot. |
+| **DZ outlet (`c92df85`)** | DZ F1 pass-to-outlet else clear. Ice pass beats overlay dump in DZ only. pr8 Offside 2→0. | Breakout with possession. |
+| **`ser-emp-17` Evaluate 10** | Same g0 hash and g6 xG as Evaluate 9. Chance mean **5.29**. Pairs 3. **Cycle 2 abort.** | Outlet did not unstick g2. Bank kept 2/5. |
 
 ### The 7-game card (`ser-emp-7`)
 
@@ -511,9 +513,9 @@ These are not hypothetical. They showed up in design review or PR review and wou
 
 ## Where to go next
 
-Live counters live in [`docs/better-hockey.md`](better-hockey.md) (bank **2/5**, cycle 2, flat 1/3, attempts 4/5).
+Live counters live in [`docs/better-hockey.md`](better-hockey.md) (bank **2/5**, cycle 3 after abort).
 
-1. **DZ F1 outlet pass**, then Evaluate 10. Evaluate 9 Δ xG **+0.097** would credit; chance mean 5.57 and pairs 3 failed (g2/g3 hemmed). Need Δ **> −0.071**, pairs ≥ **4**, chance mean ≥ 6.
+1. **F2 support on the OZ carry**, then Evaluate 11. Cycle 2 aborted: Δ xG **+0.097** twice, chance mean stayed under 6. Need Δ **> −0.071**, pairs ≥ **4**, chance mean ≥ 6.
 2. **Captain micro** stays off.
 3. **HITL later.** LangGraph `interrupt()`, off the 12s clock.
 4. Glimmer is up on `:8080`. Do not restart 8787 unless asked. Do not raise timeouts.
@@ -538,4 +540,4 @@ Live counters live in [`docs/better-hockey.md`](better-hockey.md) (bank **2/5**,
 
 ---
 
-*Generated 2026-08-26. `main` is playable. Evaluate 9 not credited (Δ xG +0.097, chance mean 5.57, pairs 3). Bank 2/5. Cycle 2 attempts 4/5, flat 1/3. Plan: `docs/better-hockey.md`. HITL not in v1.*
+*Generated 2026-08-26. `main` is playable. Cycle 2 aborted after Evaluate 10. Bank 2/5. Plan: `docs/better-hockey.md`. HITL not in v1.*

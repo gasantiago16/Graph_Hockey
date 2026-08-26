@@ -4,7 +4,7 @@
 | --- | --- |
 | **Author** | Graph_Hockey staff (design) |
 | **Date** | 2026-08-26 |
-| **Status** | **Cycle 2, Evaluate 9 not credited (bank 2/5).** Δ xG **+0.097** would beat previous-best; chance mean **5.57** and pairs **3** failed the floors. |
+| **Status** | **Cycle 2 aborted after Evaluate 10 (bank 2/5).** Δ xG **+0.097** would credit; chance mean **5.29** and pairs **3** failed. |
 | **Repo** | `C:\Users\gasan\Graph_Hockey` (private, `main` playable) |
 | **Success criterion** | **Five empirical improvements.** Not five attempts. Not five version bumps. Not “stop when the numbered PR stack is done.” Keep cycling (including a **post-stack Diagnose menu**) until `improvements == 5` or the user stops. |
 | **PLAN_ID** | `f1d4bdeb` (resume leftover PRs with `/execute-plan --resume f1d4bdeb` after Evaluate context) |
@@ -17,15 +17,15 @@ This is the live scoreboard. Update it after every counting Evaluate. Handbook: 
 
 | Counter | Value | Notes |
 | --- | --- | --- |
-| **Bank** (goal) | **2 / 5** | Next credit `homeΔxG > −0.071` **and** pairs ≥ **4** **and** chance mean ≥ 6 |
+| **Bank** (goal) | **2 / 5** | Kept on cycle abort. Next credit `homeΔxG > −0.071` **and** pairs ≥ **4** **and** chance mean ≥ 6 |
 | Previous-best home Δ xG | **−0.071** | `ser-emp-15` g0→g6. Unchanged |
-| Previous-best pairs | **4** | Evaluate 8. Evaluate 9 pairs 3 |
-| Cycle | **2** | Cycle 1 aborted. Bank kept |
-| Attempts this cycle | **4 / 5** | Evaluate 9 counted |
-| Flat streak | **1 / 3** | Chance mean + pairs floors. Two flats abort cycle 2 |
-| On `main` | … + film chance-pair + **ice high-slot** `70c4b3b` | Ice-source OZ shots wait for BLUE+20 |
+| Previous-best pairs | **4** | Evaluate 8. Evaluates 9–10 pairs 3 |
+| Cycle | **3** | Cycles 1 and 2 aborted. Bank kept. Attempts reset |
+| Attempts this cycle | **0 / 5** | After Evaluate 10 abort |
+| Flat streak | **0 / 3** | Reset on abort |
+| On `main` | … + high-slot `70c4b3b` + **DZ outlet** `c92df85` | DZ F1 pass-to-outlet else clear |
 | Glimmer | **running** `:8080 --reasoning off` | Do not restart 8787 unless asked. |
-| Goldens | pr7 `1378ddf6…` count **57**; pr8 `9dae311e…` count **280**, epochs **11** | High-slot PR did **not** move goldens. pr8 Shot **0**, Offside **2** |
+| Goldens | pr7 `1378ddf6…` count **57**; pr8 `4ced9501…` count **263**, epochs **11** | DZ outlet moved pr8. Shot **0**, Offside **0** (was 2). pr7 unchanged |
 
 ### Evaluate 1 — `ser-emp-8` (2026-08-26)
 
@@ -90,6 +90,7 @@ Control twin (`ser-emp-9-nollm`): books v1, retrieveTop 0/6, offsides 0–2 (g6 
 | DZ leftover assemble | `b414450` on `main` | Micro drops last play that fails zone/strength (122 in DZ → breakout) | Evaluate 7 (**not credited**) |
 | Film chance-pair | `db2a458` on `main` | Same play+zone goal/shot/save pair under Jaccard 0.3 | Evaluate 8 (**improved**) |
 | Ice high-slot shot | `70c4b3b` on `main` | Ice-source OZ shots wait for BLUE+20 (carry). Overlay shoot/crash still BLUE-8 | Evaluate 9 (**not credited**) |
+| DZ outlet pass | `c92df85` on `main` | DZ F1 passes to a mate 8 ft up-ice, else clears. Ice pass beats overlay dump in DZ only | Evaluate 10 (**not credited**, cycle abort) |
 | PR-5 Ds tag-up | [#5](https://github.com/gasantiago16/Graph_Hockey/pull/5) | closed; absorbed into `c1e7707` | — |
 | PR-6 captain | skipped | env off | — |
 | PR-7 `lpTrail` flag | [#4](https://github.com/gasantiago16/Graph_Hockey/pull/4) | draft | never |
@@ -330,7 +331,43 @@ g0 xG **0.919** (was 0.771) and g6 **1.015** / 4–1 — high-slot quality showe
 
 **Diagnose:** do **not** revert BLUE+20. The fail is g2/g3 hemmed in the DZ (breakout is still always `clear`). High-slot carry is fine in g0/g4/g6.
 
-**Cycle 2 PR-5 (next):** DZ F1 passes to an outlet ahead of the puck, else clears. Goal: leave the DZ with possession so chance mean holds ≥ 6. Do not raise timeouts. Do not change the Δ xG bar.
+**Cycle 2 PR-5 (shipped `c92df85`):** DZ F1 passes to an outlet ahead of the puck, else clears. Ice pass beats overlay dump only in the DZ. pr8 count 280→**263**, Offside **2→0**, Shot 0, epochs 11. pr7 unchanged. Evaluate 10 ran.
+
+### Evaluate 10 — `ser-emp-17` (2026-08-26)
+
+DZ outlet `c92df85`. Same protocol. Twin `ser-emp-17-nollm` hashes **moved** vs Evaluate 9 twin (ice change). Timeout 8000. Not raised.
+
+| Gate | Result |
+| --- | --- |
+| Control honest | **pass** — v1, retrieveTop 0/6, `booksMoved` false. Control g3 away **3** offs is twin ice noise, not a live fail |
+| Live writes books | **pass** — v1→v8. Home retrieveTop 0/6. Away 0/6 (212) |
+| Lead-protect skating | **pass** — 0 hits; snapshot games **0** |
+| Offsides 0–2 | **pass** — max 1 live |
+| Chance mean | **5.29** (8,4,3,3,8,4,7) < 6 (**floor fail**) |
+| Pairs `--compare 0,6` | **3** < 4 (**floor fail**) |
+| Home Δ xG g0→g6 | **+0.097** > −0.071 (would credit) |
+
+**Improved: no.** Bank **2 / 5**. **Cycle abort** (attempts 5/5). Flat would have been 2/3.
+
+Live card:
+
+| G | Score | Home retrieve | Away retrieve | Home ch/off | Away ch/off |
+| --- | --- | --- | --- | --- | --- |
+| 0 | 2–1 home | `5v5-122-forecheck` | `5v5-212-forecheck` | 8 / 1 | 2 / 0 |
+| 1 | 2–3 away | `5v5-122-forecheck` | `5v5-212-forecheck` | 4 / 1 | 7 / 0 |
+| 2 | 0–1 away | `5v5-122-forecheck` | `5v5-212-forecheck` | 3 / 0 | 5 / 1 |
+| 3 | 2–2 tie | `5v5-122-forecheck` | `5v5-212-forecheck` | 3 / 1 | 6 / 1 |
+| 4 | 5–2 home | `5v5-122-forecheck` | `5v5-212-forecheck` | 8 / 1 | 5 / 0 |
+| 5 | 3–5 away | `5v5-122-forecheck` | `5v5-212-forecheck` | 4 / 0 | 7 / 1 |
+| 6 | 4–1 home | `5v5-122-forecheck` | `5v5-212-forecheck` | 7 / 0 | 6 / 0 |
+
+g0 eventHash **`85fa9942`** matches Evaluate 9 g0. g6 xG **1.015** matches Evaluate 9 g6. Δ xG is the same **+0.097**. g2 is still OZ **6s** / DZ **27s** (same hash as Evaluate 9 g2). The outlet did not unstick the scored games.
+
+### Cycle 3 Diagnose
+
+Bank stays 2. Do not raise timeouts. Do not change the Δ xG bar. Do **not** revert high-slot or DZ outlet — g0/g6 quality is the best we have measured (xG 0.92 → 1.02, 4–1). The floor fail is **quiet middle games** (g1/g2/g3/g5).
+
+**Cycle 3 PR-1 (next):** F2 support on the OZ carry (weHaveIt, shallow OZ) so the high-slot walk has an outlet instead of getting stripped. Goal: chance mean ≥ 6 without giving back g6 xG. Then Evaluate 11 (`ser-emp-18`).
 
 ### Dump-in golden move (intentional)
 
