@@ -2,7 +2,7 @@
 
 You wanted two LangGraphs to fight each other at hockey, then get smarter after every result. That is still the product. What we *shipped* is more specific, and this file is honest about it: **two independent benches**, **ice that is code**, **one Head Coach call per live epoch**, and **an After-Action Review that patches a playbook** so game 7 is not a rerun of game 1.
 
-We measured that loop (`ser-emp-7`), gated retrieve (`ser-emp-8`), and still have not credited better hockey: the menu bug is gone; g4/g6 offside storms failed the quality bar. Plan and live counters: [`docs/better-hockey.md`](better-hockey.md).
+We measured that loop (`ser-emp-7`), gated retrieve (`ser-emp-8`), killed the offside-storm loop (`ser-emp-9`). Bank **1/5**. Plan: [`docs/better-hockey.md`](better-hockey.md).
 
 This is a handbook for *you* — how the repo thinks, what is a graph and what is not, how a call travels, how the team learns *together*, and the scars we paid for on the road to LangGraph learning.
 
@@ -237,7 +237,9 @@ Seven games as a row of books. The loop is the row getting thicker. Quality is w
 | **`ser-glimmer-fresh`** | Fresh db, 3×20s. 5v5 openings. Offsides **1–1**. retrieveTop **home 2/2, away 1/2**. Books v4. Home xG still down. | The menu *can* move without pulling the goalie. Three games is a smoke, not a proof. |
 | **`ser-emp-7` + `--no-llm` control** | Fresh db, 7×20s, seed 7, home xAI / away Glimmer, `--aar-mode code`. Control: same seed, `--no-llm`. | Baseline. Loop yes; home locked protect-lead while losing. |
 | **PR-1 retrieve gate on `main`** | `ff23dd5` / GitHub #1. `isLeadProtectPlay` hard-exclude unless leading. | Menu bug closed. Counting Evaluate unblocked. |
-| **`ser-emp-8` Evaluate 1** | Same protocol, fresh db. Gate held. Δ xG **+0.176**. Offsides **failed** (g4 away 77, g6 home 63). Bank **0**. | Do not credit Δ xG while the ice is a storm. Diagnose g4/g6 before dump-in. |
+| **`ser-emp-8` Evaluate 1** | Same protocol, fresh db. Gate held. Δ xG **+0.176**. Offsides **failed** (g4 away 77, g6 home 63). Bank **0**. | Faceoff left Ds in OZ; 1–2 tick offside loop. |
+| **`c1e7707` ice** | NZ faceoff onside clamp, Ds tag-up, no delayed release. | Breaks the leftover-body storm. |
+| **`ser-emp-9` Evaluate 2** | Offsides all 0–2. Δ xG **−0.376** beats −0.552. Pairs 3. Bank **1**. | First coded improvement. |
 
 ### The 7-game card (`ser-emp-7`)
 
@@ -497,15 +499,13 @@ These are not hypothetical. They showed up in design review or PR review and wou
 
 ## Where to go next
 
-Live counters live in [`docs/better-hockey.md`](better-hockey.md) (bank **0/5**, attempt **1**, flat streak **1**). Retrieve is gated. Next is ice quality on g4/g6, not another protect-lead series.
+Live counters live in [`docs/better-hockey.md`](better-hockey.md) (bank **1/5**, attempt **2**, flat streak **0**). Next designed mover is dump-in.
 
-1. **Diagnose `ser-emp-8` g4/g6 offside storms** (away 77, home 63) before dump-in. Film those two games.
-2. **Merge leftover stack without a counting Evaluate where the plan says so:** GitHub #2 (timeout leftover — skating already clean), #3 (seed NZ/DZ). Retarget #2 onto `main`.
-3. **Next counting Evaluate:** Ds tag-up (GitHub #5) and/or dump-in (PR-4, not written yet) — pick from Diagnose, then cranky → test → merge → 7+twin.
-4. **Captain micro** stays off. Do not enable it to “fix” offsides.
-5. **HITL later.** LangGraph `interrupt()`, off the 12s clock.
-6. Restart local Glimmer on `:8080 --reasoning off` before the next live series. Do not restart 8787 unless asked. Do not raise timeouts.
-7. Keep `AGENTS.md` honest: `src/ice/` is environment. `--aar-mode code` is not `--no-llm`.
+1. **Dump-in (PR-4).** NZ ice `clear` beats overlay dump; live puck, not a stick-carry. Then counting Evaluate 3 (need Δ xG **> −0.376**).
+2. **Captain micro** stays off.
+3. **HITL later.** LangGraph `interrupt()`, off the 12s clock.
+4. Glimmer is up on `:8080`. Do not restart 8787 unless asked. Do not raise timeouts.
+5. Keep `AGENTS.md` honest: `src/ice/` is environment. `--aar-mode code` is not `--no-llm`.
 
 ---
 
@@ -526,4 +526,4 @@ Live counters live in [`docs/better-hockey.md`](better-hockey.md) (bank **0/5**,
 
 ---
 
-*Generated 2026-08-26. `main` is playable. Retrieve gate shipped (`ff23dd5`). Evaluate 1 `ser-emp-8`: gate held, Δ xG +0.176, offsides failed — bank 0/5. Plan: `docs/better-hockey.md`. HITL not in v1.*
+*Generated 2026-08-26. `main` is playable. Evaluate 2 `ser-emp-9` improved (offsides 0–2, Δ xG −0.376 beats −0.552). Bank 1/5. Plan: `docs/better-hockey.md`. HITL not in v1.*

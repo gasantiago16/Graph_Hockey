@@ -4,7 +4,7 @@
 | --- | --- |
 | **Author** | Graph_Hockey staff (design) |
 | **Date** | 2026-08-26 |
-| **Status** | **In experiment — cycle 1, Evaluate 1 done, not improved.** Plan rev 3 still governs the coded bar. |
+| **Status** | **In experiment — cycle 1, Evaluate 2 improved (bank 1/5).** Plan rev 3 still governs the coded bar. |
 | **Repo** | `C:\Users\gasan\Graph_Hockey` (private, `main` playable) |
 | **Success criterion** | **Five empirical improvements.** Not five attempts. Not five version bumps. Not “stop when the numbered PR stack is done.” Keep cycling (including a **post-stack Diagnose menu**) until `improvements == 5` or the user stops. |
 | **PLAN_ID** | `f1d4bdeb` (resume leftover PRs with `/execute-plan --resume f1d4bdeb` after Evaluate context) |
@@ -17,13 +17,13 @@ This is the live scoreboard. Update it after every counting Evaluate. Handbook: 
 
 | Counter | Value | Notes |
 | --- | --- | --- |
-| **Bank** (goal) | **0 / 5** | Only `homeΔxG > previousBestΔxG` credits, and only if every pass gate holds |
-| Previous-best home Δ xG | **−0.552** | `ser-emp-7` g0→g6. Not updated (Evaluate 1 failed offsides) |
+| **Bank** (goal) | **1 / 5** | Evaluate 2 credited. Next credit needs `homeΔxG > −0.376` |
+| Previous-best home Δ xG | **−0.376** | `ser-emp-9` g0→g6. Beat `ser-emp-7` −0.552 |
 | Cycle | **1** | Diagnose → implement → cranky → test → merge → Evaluate |
-| Attempts this cycle | **1 / 5** | Counting Evaluates only |
-| Flat streak | **1 / 3** | 3 consecutive no-improve → re-Diagnose (bank kept) |
-| On `main` | retrieve gate **#1** (`ff23dd5`) | `isLeadProtectPlay` hard-exclude unless `scoreState === "leading"` (omit ⇒ exclude) |
-| Glimmer | **stopped** (transport) | Restart llama-server `:8080 --reasoning off` before the next live series. Do not restart 8787 unless asked. |
+| Attempts this cycle | **2 / 5** | Counting Evaluates only |
+| Flat streak | **0 / 3** | Reset on improved Evaluate |
+| On `main` | retrieve gate `#1` (`ff23dd5`) + timeout leftover (`0bb7a0b`) + seed NZ/DZ (`1d929ce`) + ice offside storm fix (`c1e7707`) | Faceoff onside clamp, Ds tag-up, no delayed release |
+| Glimmer | **running** `:8080 --reasoning off` | Do not restart 8787 unless asked. |
 
 ### Evaluate 1 — `ser-emp-8` (2026-08-26)
 
@@ -40,6 +40,36 @@ Protocol: 7×20s, seed 7, home xAI / away local Glimmer, `--aar-mode code`. Twin
 | Offsides 0–2 / side / game | **fail** — g2 home **5**; g4 away **77** (70 shots); g5 home **3**; g6 home **63** / away **8** (home 62 shots) |
 
 **Improved: no.** The retrieve gate held. Coded quality failed on the offside band. Do not credit the bank for Δ xG while g4/g6 are ice storms.
+
+**Diagnose (g4/g6):** all 77 g4 offsides were away P2 under `pk1-diamond-press`, median gap **2 ticks**. g6: 63 home P3 under `5v5-122-forecheck`, median **1 tick**. After offside, `prepareFaceoff` only lined up C — Ds stayed over the attacking blue, so the next drop immediately delayed-offsided again. Fix on `main` as `c1e7707`.
+
+### Evaluate 2 — `ser-emp-9` (2026-08-26)
+
+Same protocol after `c1e7707`. Twin `ser-emp-9-nollm`.
+
+| Gate | Result |
+| --- | --- |
+| Control honest | **pass** — v1, retrieveTop 0/6, `booksMoved` false. Control offsides all 0–2 (g6 away **0**, was 15 on `ser-emp-8-nollm`) |
+| Live writes books | **pass** — v1→v8 both. Away retrieveTop 2/6 (diagnostic). Home retrieveTop 0/6 |
+| Lead-protect skating | **pass** — 0 hits, `protect-lead` games **0** |
+| Offsides 0–2 | **pass** — max 2 (g0 away 2, g2 away 2). No 77/63 storms |
+| Chance mean | **8.7** (10,11,9,8,9,7,7) ≥ 6 |
+| Pairs `--compare 0,6` | **3** ≥ 0 |
+| Home Δ xG g0→g6 | **−0.376** > −0.552 |
+
+**Improved: yes.** Bank **1 / 5**. Flat streak 0. Previous-best Δ xG is now **−0.376**.
+
+Live card:
+
+| G | Score | Home retrieve | Away retrieve | Home ch/off | Away ch/off |
+| --- | --- | --- | --- | --- | --- |
+| 0 | 2–3 away | `5v5-122-forecheck` | `oz-crash-net` | 10 / 0 | 3 / 2 |
+| 1 | 2–2 tie | `5v5-122-forecheck` | `oz-crash-net` | 11 / 1 | 2 / 1 |
+| 2 | 1–2 away | `5v5-122-forecheck` | `5v5-212-forecheck` | 9 / 1 | 3 / 2 |
+| 3 | 2–4 away | `5v5-122-forecheck` | `5v5-212-forecheck` | 8 / 0 | 5 / 0 |
+| 4 | 2–3 away | `5v5-122-forecheck` | `5v5-212-forecheck` | 9 / 1 | 7 / 1 |
+| 5 | 4–3 home | `5v5-122-forecheck` | `5v5-212-forecheck` | 7 / 0 | 4 / 0 |
+| 6 | 1–2 away | `5v5-122-forecheck` | `oz-crash-net` | 7 / 0 | 2 / 1 |
 
 Live card (home retrieve never `protect-lead`):
 
@@ -59,19 +89,18 @@ Control twin matched the old ice-noise pattern (g6 away 15 offsides / 0 shots, b
 
 | Plan | GitHub | State | Evaluate? |
 | --- | --- | --- | --- |
-| PR-1 retrieve gate | [#1](https://github.com/gasantiago16/Graph_Hockey/pull/1) | **merged** to `main` | Evaluate 1 done (flat) |
-| PR-2 timeout leftover | [#2](https://github.com/gasantiago16/Graph_Hockey/pull/2) | draft, stacked | **merge-without-Evaluate** (skating already clean) |
-| PR-3 seed NZ/DZ | [#3](https://github.com/gasantiago16/Graph_Hockey/pull/3) | draft | never |
-| PR-4 dump-in | *not implemented* | held | next designed Δ xG mover **after** Diagnose of g4/g6 |
-| PR-5 Ds tag-up | [#5](https://github.com/gasantiago16/Graph_Hockey/pull/5) | draft | counting candidate for offside storms |
+| PR-1 retrieve gate | [#1](https://github.com/gasantiago16/Graph_Hockey/pull/1) | **merged** `ff23dd5` | Evaluate 1 (flat) |
+| PR-2 timeout leftover | [#2](https://github.com/gasantiago16/Graph_Hockey/pull/2) | **merged** `0bb7a0b` (closed) | no Evaluate |
+| PR-3 seed NZ/DZ | [#3](https://github.com/gasantiago16/Graph_Hockey/pull/3) | **merged** `1d929ce` (closed) | never |
+| Ice offside storm | `c1e7707` on `main` | faceoff onside clamp + Ds tag-up + no delayed release | Evaluate 2 (**improved**) |
+| PR-4 dump-in | *not implemented* | next designed Δ xG mover | counting Evaluate 3 candidate |
+| PR-5 Ds tag-up | [#5](https://github.com/gasantiago16/Graph_Hockey/pull/5) | closed; absorbed into `c1e7707` | — |
 | PR-6 captain | skipped | env off | — |
 | PR-7 `lpTrail` flag | [#4](https://github.com/gasantiago16/Graph_Hockey/pull/4) | draft | never |
 
-After #1 merged, retarget #2’s base to `main` before merging the rest of the stack.
+### Next Diagnose (before Evaluate 3)
 
-### Next Diagnose (before Evaluate 2)
-
-Do **not** teach dump-and-chase into g4/g6. Look at those two games first (77 and 63 offsides). Then either merge **#5** (Ds tag-up) or implement dump-in (PR-4) if the leak is NZ stick-carry — each still: cranky → `npm test` → merge → counting 7+twin.
+Offside storms are gone. Next designed quality mover is **dump-in** (PR-4): NZ ice `clear` beats overlay dump so dump-and-chase is a live puck. Then cranky → `npm test` → merge → counting 7+twin. Bank credits only if home Δ xG **> −0.376**.
 
 ---
 
