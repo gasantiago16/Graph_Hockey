@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | **Date** | 2026-08-26 |
-| **Status** | Cycle 4 aborted (bank **2/5**). Leftover retrieve #1 skated (Evaluate 16 g1 trap). Unused expired (cycle games 1). Quality not credited. Next: do not boost PP/PK when 5v5 was on the ice. |
+| **Status** | **Closed 2026-08-26.** Cycle 4 aborted (bank **2/5**). Transfer started (Evaluate 15–16). Glimmer **down**. Next: never boost PP/PK when 5v5 was on the ice. |
 | **Scoreboard** | [`better-hockey.md`](better-hockey.md) |
 | **Bibliography** | [`ANNOTATED_BIBLIOGRAPHY.md`](ANNOTATED_BIBLIOGRAPHY.md) |
 | **Handbook** | [`FORgasan.md`](FORgasan.md) |
@@ -26,7 +26,7 @@ This document is the plan to **prove** three different things we have been sayin
 
 6. **Quality bank stays 5 Δ xG credits.** Retention gets its **own** pass/fail and does **not** steal a bank slot. Ice PRs that fix chance mean may still take a counting quality Evaluate.
 
-7. **Carry-forward before more ice, unless Glimmer is down.** R1/R2/H1 shipped. Retention Evaluate ran. Glimmer is up on `:8080` this session; do not restart 8787. Timeouts not raised.
+7. **Carry-forward before more ice, unless Glimmer is down.** R1/R2/H1/R4 and leftover retrieve #1 shipped. Retention Evaluate ran. Glimmer is **down** (killed). Do not restart `:8080` or 8787 unless asked. Timeouts not raised. Live Evaluates wait.
 
 ---
 
@@ -38,20 +38,13 @@ Inside **one** sqlite, live AAR applies. Books v1→v8. `--no-llm` twin stays v1
 
 This is CoALA “learning = write LTM” **within a series**. It is also LangGraph’s background-write pattern (AAR after the result, not on the 12s epoch).
 
-### Proof 2 — Maintain knowledge (survive proven; transfer failed)
+### Proof 2 — Maintain knowledge (survive proven; transfer started)
 
-`--from-snapshot` `7edabe9` restores snapshot books before game 0. `ser-retain-1` carried `ser-emp-17` after-game-6:
+`--from-snapshot` `7edabe9` restores snapshot books before game 0. `ser-retain-1` carried `ser-emp-17` after-game-6 (survive **pass**: g0 v8→v9, xG 0.386 vs seed-fresh 0.152). Retrieve stayed 122 on that run.
 
-| Check | Result |
-| --- | --- |
-| g0 version > 1 | **pass** v8→v9 (seed-fresh is v1→v2) |
-| g0 hockey / stats differ | **pass** xG 0.386 vs seed-fresh 0.152; 2–2 vs 2–6 |
-| `--no-llm` still v1 | **pass** (`ser-emp-18-nollm`) |
-| Later game executes a **different** retrieveTop | **fail** — still `5v5-122-forecheck` 0/6. After 14 games 122 net **+4.05**; `oz-cycle-low` net 0 |
+Rate rank + unused bonus (`5f7ca56`) and leftover retrieve #1 (`33878fc`) then moved the **live** menu: Evaluate 15 retrieveTop **`oz-cycle-low`**; Evaluate 16 g1 opened **`nz-122-trap`**, cycle `stats.games` 1, then 122 rate won again. That is one-look transfer, not a new default sheet. 122 is still most directives.
 
-Checkpointer is still `MemorySaver` per-epoch. Long-term knowledge lives in SQLite playbooks. Carry-forward **reads** that store. Retrieve ranking by **cumulative** net xG does not: OZ 122 keeps leftover xG-for; DZ beatings are billed to `5v5-breakout-d-to-winger`; loser `add_counter` on 122 adds `COUNTER_BONUS` 0.25. Confirmatory memory.
-
-Voyager / ExpeL / Hu: we ran the protocol. Survival holds. Transfer of a *new* skill does not.
+Checkpointer is still `MemorySaver` per-epoch. Long-term knowledge lives in SQLite playbooks. Carry-forward **reads** that store. We do not compile LangGraph `store`.
 
 ### Proof 3 — Get better at hockey (bank 2/5)
 
@@ -64,9 +57,7 @@ Voyager / ExpeL / Hu: we ran the protocol. Survival holds. Transfer of a *new* s
 | Pairs floor | 0 | credited **4** |
 | Bank | 0 | **2 / 5** |
 
-Evaluate 11 g0 was a **2–6** collapse (OZ 8s / DZ 26s, xG 0.152) vs `--no-llm` **4–2** / xG 0.699 / OZ 35s on the same F2-outlet ice. F2 `alongPuck+10` the instant the puck nicks OZ is the offs leak (tick 46 seq 133 on 122, live only). Do not cash Δ +0.443.
-
-Home still opens **`5v5-122-forecheck`** every live game, including the carry series. AAR boosts 122 on wins/ties. That is confirmatory memory on the default play, not a new skill (C7).
+Evaluate 16 (cycle 4 abort): leftover retrieve #1 **skated** (g1 trap). Chance mean **4.29**, pairs 0, Δ **−0.023**. Quality fail is PP/PK AAR boost (g0 umbrella×10, g4 pk-box×14), not missing F3 geometry. Do not cash uncashed Δ xG from Evaluate 11/15.
 
 ---
 
@@ -157,11 +148,11 @@ npm run gh -- series --from-snapshot data/playbook-snapshots/ser-emp-15/after-ga
 
 `gh series --json` already prints `retrieveTopId` and `openingPlayId`. Add **executed play mix**: seconds or chance share per `playId` (we have `playUsage` in AAR). Print `openingPlayId === retrieveTopId` rate. Do not replace Δ xG.
 
-### Quality track (cycle 3, existing bar)
+### Quality track (cycle 5, existing bar)
 
-H1 F2 OZ outlet shipped (`be9be08`) and **failed** Evaluate 11 (offs + chance mean). Next ice: F2 outlet only when `alongPuck > BLUE+8` (established OZ), else support-below. That is **environment**. Evaluate 12 counts for the quality bank. Transfer PR (retrieve/AAR) is the next *learning* slice after the offs band is honest.
+Offs band is honest. Unused one-look and leftover retrieve #1 shipped. Next code: **never boost PP/PK when a 5v5 play was on the ice**. That is AAR targeting, not ice. Counting Evaluate 17 when Glimmer is back.
 
-Glimmer is **up** this session. Do not restart 8787. Timeouts not raised.
+Glimmer is **down**. Do not restart `:8080` or 8787 unless asked. Timeouts not raised.
 
 ### Optional LangGraph Store adapter (later)
 
@@ -177,18 +168,19 @@ A `PlaybookStore` implementing `BaseStore`: namespace `["playbook", teamId]`, ke
 | **PR-R1** | `--from-snapshot` / `--from-db` seed series from stored books | `src/sim/series.ts`, `src/cli/main.ts`, tests | Docs | **shipped `7edabe9`.** Retention `ser-retain-1` ran (survive yes, transfer no). Does **not** increment quality bank. |
 | **PR-R2** | Series JSON: executed play mix / usage share | `src/film/chances.ts`, CLI, tests | none | **shipped `dd4cd03`.** Never an Evaluate. |
 | **PR-H1** | F2 support on OZ carry (cycle 3 ice) | `src/ice/roles.ts`, tests, pr7/pr8 goldens | none | **shipped `be9be08`.** Evaluate 11 **not credited** (g2 home 3 offs, chance mean 4.71, pairs 3). |
-| **PR-H1b** | F2 outlet only in established OZ (`BLUE+8`) | `src/ice/roles.ts`, tests, goldens | H1 | Counting quality Evaluate 12. |
+| **PR-H1b** | F2 outlet only in established OZ (`BLUE+8`) | `src/ice/roles.ts`, tests, goldens | H1 | **shipped `9ddd4f4`.** Evaluate 12 not credited (g5 home 4 offs). |
+| **PR-R4** | Retrieve unused + loser retarget | `src/playbook/retrieve.ts`, `draftRevision.ts` | R1 | **shipped `5f7ca56`.** Evaluate 15 retrieveTop cycle. |
+| **Leftover #1** | Timeout/micro skate retrieveFallbackId | `invokeTeam.ts`, `assembleDirective.ts` | R4 | **shipped `33878fc`.** Evaluate 16 g1 trap; cycle 4 abort. |
+| **PR-R5** | Never boost PP/PK when 5v5 was on the ice | `src/aar/nodes/draftRevision.ts` | R4 | Counting Evaluate 17 when Glimmer is back. |
 | **PR-R3** | Optional `BaseStore` playbook adapter | `src/playbook/`, `teamGraph.ts` | R1 | Only if retrieve path actually reads Store |
-| **PR-R4** | Retrieve/AAR: stop confirmatory 122 (rate rank and/or loser does not `add_counter` on the lost-with play) | `src/playbook/retrieve.ts`, `src/aar/nodes/draftRevision.ts` | R1 | Learning Evaluate `ser-retain-2` **and/or** quality Evaluate. Do not steal a bank slot for a JSON-only change. |
 
 Independently mergeable: R2 and H1 do not need R1. R1 is the learning proof. Cranky → `npm test` on all. Goldens move only if H1 changes `--no-llm` physics.
 
 ### Suggested sequence
 
-1. Docs + R1/R2/H1 **shipped**. Retention Evaluate **ran** (`ser-retain-1`).
-2. Carry survived (v8→v15) and g0 xG differed. Retrieve stayed 122 — confirmatory, not a new skill.
-3. **Now:** H1b (F2 established-OZ outlet) → Evaluate 12 (quality). Then R4 (retrieve/AAR targeting) → `ser-retain-2` (learning) and/or a counting quality Evaluate.
-4. Bank 5 is still the hockey program. Transfer is how we show the LangGraph **used** the lesson.
+1. Docs + R1–R4 + leftover retrieve **shipped**. Retention survive **ran**. Live transfer **started** (cycle, then trap, then 122 rate).
+2. **Next session:** PR-R5 (no PP/PK boost when 5v5 was on the ice) → Evaluate 17 when Glimmer is back.
+3. Bank 5 is still the hockey program.
 
 ---
 
@@ -200,7 +192,7 @@ Independently mergeable: R2 and H1 do not need R1. R1 is the learning proof. Cra
 | Operator thinks `env` seed 7 “resets memory” | Seed reseeds **physics**. Playbooks are separate. Document on the CLI help line. |
 | Quality bank confused with retention | Separate heading, separate series ids `ser-retain-*`. |
 | BaseStore rewrite stalls hockey | Optional. R1 first. |
-| Glimmer down | Live Evaluates need `:8080`. This session it is up. Do not restart 8787. |
+| Glimmer down | Live Evaluates need `:8080`. **Killed 2026-08-26.** Do not restart unless asked. Do not restart 8787. |
 
 ---
 

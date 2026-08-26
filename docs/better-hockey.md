@@ -31,8 +31,8 @@ This is the live **quality** scoreboard. Update it after every counting Evaluate
 | Cycle | **5** | Cycles 1–4 aborted. Bank kept. Attempts reset |
 | Attempts this cycle | **0 / 5** | After Evaluate 16 abort |
 | Flat streak | **0 / 3** | Reset on abort |
-| On `main` | F3 occupy `f9aa178` + **retrieve unused / loser retarget** | pr7/pr8 unchanged (not ice) |
-| Glimmer | **up** `:8080` (this session; do not restart 8787) | Timeouts not raised (`GRAPH_HOCKEY_EPOCH_TIMEOUT_MS=8000` from `.env`). |
+| On `main` | leftover retrieve #1 `33878fc` · docs `19d3bed` | pr7 `1d80eee2` count 107; pr8 `be48bb68` count 315. Shot 0, Offside 0 |
+| Glimmer | **down** (killed; do not restart unless asked) | Live Evaluates wait. Ice + `npm test` do not. Do not restart 8787. Timeouts not raised. |
 | Learning proofs | write **yes** · retain survive **yes** · transfer **menu yes / skate mixed** · quality **2/5** | See [`knowledge-and-learning.md`](knowledge-and-learning.md) |
 | Goldens | pr7 `1d80eee2…` count **107**; pr8 `be48bb68…` count **315**, epochs **11** | F3 just-in occupy. Shot **0**, Offside **0**. pr7 106→107 is one extra event, not a Shot storm. |
 
@@ -625,6 +625,8 @@ g1 trap opening had **4 chances** (Evaluate 15 trap was 0). Unused expired: end 
 Bank stays 2. Leftover retrieve #1 **works** (g1 opened trap). Unused one-look **works** (cycle games 1, then 122 rate wins). Do **not** raise unused bonus. Do **not** revert leftover retrieve.
 
 The floor fail is chance mean and pairs. g0/g4 mix is **PP/PK** (umbrella×10, pk-box×14). `lessonUsage` still falls back to PP/PK when even-strength xG is 0, then a tie/win boosts the penalty sheet. Next quality PR: **never boost PP/PK when a 5v5 play was on the ice**, even if even-strength xG is 0 — boost or leave the even-strength sheet. Counting Evaluate 17. Do not raise timeouts. Do not change the Δ xG bar.
+
+**Closed 2026-08-26.** `main` at leftover retrieve + Evaluate 16 docs. Glimmer killed. Do not restart `:8080` or 8787. Next session: AAR PP/PK boost gate (unit tests now; live Evaluate 17 when Glimmer is back).
 
 ### Dump-in golden move (intentional)
 

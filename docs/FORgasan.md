@@ -2,9 +2,9 @@
 
 You wanted two LangGraphs to fight each other at hockey, then get smarter after every result. That is still the product. What we *shipped* is more specific, and this file is honest about it: **two independent benches**, **ice that is code**, **one Head Coach call per live epoch**, and **an After-Action Review that patches a playbook** so game 7 is not a rerun of game 1.
 
-We measured that loop (`ser-emp-7`), gated retrieve, killed offside storms, shipped dump-in, taught AAR to boost 5v5, F2 dump-chase, DZ leftover, film chance-pair, high-slot shots, DZ outlet, then F2 OZ outlet. Evaluate 8 credited bank **2/5**. Evaluate 11 Δ xG **+0.443** was not credited (chance mean 4.71, g2 home 3 offs, pairs 3).
+We measured that loop (`ser-emp-7`), gated retrieve, killed offside storms, shipped dump-in, taught AAR to boost 5v5, F2 dump-chase, DZ leftover, film chance-pair, high-slot, DZ outlet, F2/F3 ice, then retrieve unused + leftover retrieve #1. Evaluate 8 credited bank **2/5**. Cycle 4 aborted after Evaluate 16. Evaluate 15–16 **moved the menu** (`oz-cycle-low`, g1 trap); 122 still wins on rate after the one-look.
 
-Three proofs, not one slogan: **write path proven**, **retention survive proven** (`ser-retain-1` g0 v8), **transfer of a different skill failed** (still `5v5-122-forecheck`), **hockey bank 2/5**. Plan: [`knowledge-and-learning.md`](knowledge-and-learning.md). Scoreboard: [`better-hockey.md`](better-hockey.md).
+Three proofs, not one slogan: **write path proven**, **retention survive proven** (`ser-retain-1` g0 v8), **transfer started** (menu + one leftover skate), **hockey bank 2/5**. Plan: [`knowledge-and-learning.md`](knowledge-and-learning.md). Scoreboard: [`better-hockey.md`](better-hockey.md).
 
 This is a handbook for *you* — how the repo thinks, what is a graph and what is not, how a call travels, how the team learns *together*, and the scars we paid for on the road to LangGraph learning.
 
@@ -519,7 +519,7 @@ These are not hypothetical. They showed up in design review or PR review and wou
 2. **Cite or discard.** If an agent is allowed to change long-term memory, every mutation needs a pointer into a log you already trust.
 3. **Visit tests for graphs.** Assert node names in a stream, not “the prompt looks right.”
 4. **Mirror observations.** Fairness bugs love coordinate frames. Home + away `puck.x ≈ 0` is a one-liner that caught leaks.
-5. **Product of learning is three diffs.** (a) Did the menu write vs a no-write control? (b) Did the next series *start from* that menu? (c) Did the hockey get better? We have (a). We have (b) as **survive** (`ser-retain-1` g0 v8) and **not** as transfer (still 122). (c) is bank 2/5. Ice edits are not (a) or (b).
+5. **Product of learning is three diffs.** (a) Did the menu write vs a no-write control? (b) Did the next series *start from* that menu? (c) Did the hockey get better? We have (a). We have (b) as **survive** (`ser-retain-1` g0 v8) and as **one-look transfer** (Evaluate 15–16 cycle/trap, then 122 rate). (c) is bank 2/5. Ice edits are not (a) or (b).
 6. **Windows native addons fail in CI.** Plan a WASM/JS adapter before you promise sqlite3.
 7. **Local models are adapters.** Reasoning channels, empty `content`, token budgets, and server flags are part of the contract. Ping JSON-in-timeout before a series.
 8. **Short experiments lie about time predicates.** If a trigger is “last three minutes,” a 20s period is always the last three minutes.
@@ -531,10 +531,10 @@ These are not hypothetical. They showed up in design review or PR review and wou
 
 Live counters: [`better-hockey.md`](better-hockey.md) (bank **2/5**). Learning plan: [`knowledge-and-learning.md`](knowledge-and-learning.md). Bibliography: [`ANNOTATED_BIBLIOGRAPHY.md`](ANNOTATED_BIBLIOGRAPHY.md).
 
-1. **Never boost PP/PK when a 5v5 play was on the ice.** Evaluate 16 leftover retrieve works. Chance mean dies on umbrella/pk-box lessons.
+1. **Never boost PP/PK when a 5v5 play was on the ice.** Evaluate 16 leftover retrieve works. Chance mean dies on umbrella/pk-box lessons. Unit tests can ship while Glimmer is down; Evaluate 17 waits.
 2. **Chance mean** still under 6 (Evaluate 16: 4.29). Do not raise unused bonus. Do not revert leftover retrieve.
 3. **Captain micro** stays off. **HITL later.**
-4. Glimmer is **up** on `:8080` this session. Do not restart 8787. Do not raise timeouts.
+4. Glimmer is **down** (killed). Do not restart `:8080` or 8787 unless asked. Do not raise timeouts.
 5. Keep `AGENTS.md` honest: `src/ice/` is environment. Playbooks are agent memory. `--aar-mode code` is not `--no-llm`. We do **not** compile LangGraph `store` today.
 
 ---
@@ -556,4 +556,4 @@ Live counters: [`better-hockey.md`](better-hockey.md) (bank **2/5**). Learning p
 
 ---
 
-*Generated 2026-08-26. `main` is playable. Write path proven. Retention survive proven; transfer failed (still 122). Quality bank 2/5. Cycle 4 attempt 1. Glimmer up. HITL not in v1.*
+*Closed 2026-08-26. `main` playable (`33878fc` leftover retrieve, docs after Evaluate 16). Write path proven. Retention survive proven. Transfer started (one-look). Quality bank 2/5. Cycle 4 aborted. Glimmer down. HITL not in v1.*
