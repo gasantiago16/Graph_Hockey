@@ -35,6 +35,7 @@ describe("gh CLI", () => {
       expect(printed).toContain("playbook-snapshots");
       expect(printed).toContain("--from-snapshot");
       expect(printed).toContain("--away-seed");
+      expect(printed).toContain("--null-retrieve");
       expect(printed).toContain("--from-db");
       expect(USAGE).toContain("Default LLM provider is xAI");
       expect(USAGE).toContain("--home-provider");

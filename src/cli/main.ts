@@ -42,6 +42,7 @@ Usage:
   gh playbook --team ID [--diff] [--version N] [--reset-playbook] [--audit]
   gh series --games 7 [--home ID] [--away ID] [--seed N] [--no-llm] [--no-record] [--aar-mode code|auto|propose] [--db PATH] [--snapshot-dir PATH]
             [--from-snapshot PATH] [--from-db PATH] [--home-from-snapshot] [--away-from-snapshot] [--home-seed] [--away-seed]
+            [--null-retrieve] [--retrieve-seed]
             [--home-provider xai|muse|openai|gemini] [--away-provider ...] [--home-model SLUG] [--away-model SLUG]
   gh footage --match ID [--mp4] [--highlight] [--full] [--clip ID] [--out PATH]
   gh footage --series ID [--compare i,j] [--json]
@@ -59,6 +60,7 @@ Playbook snapshots go in data/playbook-snapshots/<seriesId>/ (before.json + afte
 --from-snapshot PATH restores those books into the new series db before game 0 (agent memory).
 --home-from-snapshot / --away-from-snapshot restore one side; --home-seed / --away-seed keep that side on seed.
 --from-db PATH copies playbook version history from another sqlite. Do not use both.
+--null-retrieve / --retrieve-seed ranks retrieve and leftover from the seed JSON (causal null memory). Books still write AAR.
 --seed still reseeds physics only; carried books are independent of env.reset.
 --no-llm series uses 5s periods unless GRAPH_HOCKEY_PERIOD_SECONDS or --period-seconds is set.
 footage --match lists auto-clips + open ticks. --mp4 writes a derivative H.264 file (ffmpeg required; Film Room stays the review surface).
@@ -707,6 +709,7 @@ async function cmdSeries(argv: string[], env: EnvMap): Promise<number> {
       snapshotDir,
       fromSnapshot,
       fromSnapshotSides,
+      retrieveSeed: flag(argv, "null-retrieve") || flag(argv, "retrieve-seed"),
       models: noLlm ? { home: "none", away: "none" } : { home: homeProfile.coach, away: awayProfile.coach },
       homeProfile: noLlm ? undefined : homeProfile,
       awayProfile: noLlm ? undefined : awayProfile,
@@ -767,6 +770,7 @@ async function cmdSeries(argv: string[], env: EnvMap): Promise<number> {
     snapshots: result.snapshotPaths,
     carriedFromSnapshot: result.carriedFromSnapshot,
     carriedSides: result.carriedSides,
+    retrieveSeed: flag(argv, "null-retrieve") || flag(argv, "retrieve-seed"),
     matches,
     learning: {
       retrieveTopChanged: {

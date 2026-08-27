@@ -112,6 +112,8 @@ export type RunSeriesOpts = {
   fromSnapshot?: PlaybookSnapshot;
   /** Which sides to restore from `fromSnapshot`. Default both. Omitted sides keep seed. */
   fromSnapshotSides?: { home: boolean; away: boolean };
+  /** Rank retrieve/leftover from seed JSON. Carried books still write AAR. */
+  retrieveSeed?: boolean;
   onGameStart?: (info: SeriesGameStart) => void;
   onTick?: MatchOptions["onTick"];
   onGameOver?: (info: SeriesGameOver) => void | Promise<void>;
@@ -203,12 +205,14 @@ export async function runSeries(opts: RunSeriesOpts): Promise<SeriesResult> {
       rosters: { home: homeRoster, away: awayRoster },
     });
 
+    const retrieveSeed = opts.retrieveSeed === true;
     const homeGraph = compileTeamGraph({
       side: "home",
       playbook: home.body,
       checkpointer: new MemorySaver(),
       noLlm,
       profile: noLlm ? undefined : opts.homeProfile,
+      retrievePlaybook: retrieveSeed ? loadPlaybook(opts.homeTeamId) : undefined,
     });
     const awayGraph = compileTeamGraph({
       side: "away",
@@ -216,6 +220,7 @@ export async function runSeries(opts: RunSeriesOpts): Promise<SeriesResult> {
       checkpointer: new MemorySaver(),
       noLlm,
       profile: noLlm ? undefined : opts.awayProfile,
+      retrievePlaybook: retrieveSeed ? loadPlaybook(opts.awayTeamId) : undefined,
     });
 
     const match = await runMatch({
@@ -245,6 +250,7 @@ export async function runSeries(opts: RunSeriesOpts): Promise<SeriesResult> {
       record: opts.record,
       seriesId,
       gameIndex,
+      retrieveSeed,
     });
 
     const after = snapshotPlaybooksToDir(opts.db, {

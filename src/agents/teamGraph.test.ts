@@ -140,6 +140,41 @@ describe("compileTeamGraph", () => {
     expect(a.directive?.playId).toBe("5v5-212-forecheck");
   });
 
+  it("retrievePlaybook seed ranks 122 first even when the live book unused-ranks cycle", async () => {
+    const seed = loadPlaybook("original-six");
+    const trained = {
+      ...seed,
+      version: 8,
+      plays: seed.plays.map((p) => {
+        if (p.id === "oz-cycle-low") return { ...p, stats: { games: 0, xgFor: 0, xgAgainst: 0 } };
+        if (p.id === "5v5-122-forecheck") {
+          return { ...p, stats: { games: 6, xgFor: 0.1, xgAgainst: 1.2 } };
+        }
+        return p;
+      }),
+    };
+    async function firstRetrieved(graph: CompiledTeamGraph, threadId: string): Promise<string | undefined> {
+      const stream = await graph.stream(input(), {
+        streamMode: "updates",
+        configurable: { thread_id: threadId },
+        recursionLimit: 12,
+      });
+      for await (const chunk of stream) {
+        if (!chunk || typeof chunk !== "object") continue;
+        const rec = chunk as { retrieve_plays?: { retrievedPlays?: { id: string }[] } };
+        const id = rec.retrieve_plays?.retrievedPlays?.[0]?.id;
+        if (id) return id;
+      }
+      return undefined;
+    }
+    const live = compile({ playbook: trained, noLlm: true });
+    const nulled = compile({ playbook: trained, retrievePlaybook: seed, noLlm: true });
+    const liveTop = await firstRetrieved(live, "t-live");
+    const nullTop = await firstRetrieved(nulled, "t-null");
+    expect(liveTop).not.toBe("5v5-122-forecheck");
+    expect(nullTop).toBe("5v5-122-forecheck");
+  });
+
   it("keeps last pressure and selects the seed default play when noLlm", async () => {
     const graph = compile({ noLlm: true });
     const out = (await graph.invoke(

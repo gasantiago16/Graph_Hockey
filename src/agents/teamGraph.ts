@@ -58,6 +58,8 @@ export type CompileTeamGraphOpts = {
   specialists?: boolean;
   /** Micro epochs visit captain. Default off; GRAPH_HOCKEY_CAPTAIN=1 also enables. */
   captainMicro?: boolean;
+  /** Rank retrieve from this book. Default `playbook`. `--null-retrieve` passes the seed book. */
+  retrievePlaybook?: Playbook;
 };
 
 export type TeamGraphInvokeInput = {
@@ -117,7 +119,7 @@ export function compileTeamGraph(opts: CompileTeamGraphOpts): CompiledTeamGraph 
     .addNode("ingest", ingest)
     // Node `situation`; state channel is classifiedSituation (JS forbids same names).
     .addNode("situation", situation)
-    .addNode("retrieve_plays", makeRetrievePlays(opts.playbook))
+    .addNode("retrieve_plays", makeRetrievePlays(opts.retrievePlaybook ?? opts.playbook))
     .addNode("head_coach", makeHeadCoach({ noLlm, profile, specialists: opts.specialists === true }) as never, {
       ends: [...HEAD_COACH_ENDS],
     })

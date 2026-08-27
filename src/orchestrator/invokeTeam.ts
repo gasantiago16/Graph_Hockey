@@ -135,9 +135,12 @@ export async function invokeTeam(args: {
   /** Seed 5v5 play if the graph aborts before assemble (not default-structure). */
   seedPlayId?: string;
   playbook?: Playbook;
+  /** Leftover retrieve ranks this book. `--null-retrieve` passes the seed book. */
+  retrievePlaybook?: Playbook;
 }): Promise<TeamInvokeResult> {
   const threadId = epochThreadId(args.matchId, args.side, args.epochIndex);
-  const timeoutOpts = args.playbook ? { obs: args.obs, playbook: args.playbook } : undefined;
+  const rankBook = args.retrievePlaybook ?? args.playbook;
+  const timeoutOpts = rankBook ? { obs: args.obs, playbook: rankBook } : undefined;
   const circuitLast = timeoutDirective(args.last, args.seedPlayId, timeoutOpts);
 
   if (teamTripped(args.budget, args.side) || gameTripped(args.budget)) {

@@ -58,6 +58,8 @@ export type MatchOptions = {
   record?: boolean;
   seriesId?: string;
   gameIndex?: number;
+  /** Rank retrieve/leftover from seed books. Carried playbooks still write AAR. */
+  retrieveSeed?: boolean;
 };
 
 export class MatchAborted extends Error {
@@ -176,6 +178,8 @@ export async function runMatch(opts: MatchOptions): Promise<MatchResult> {
       const jobs = sides.map((side) => {
         const obs = observe(world, side, decision[side]!);
         const playbook = side === "home" ? opts.homePlaybook : opts.awayPlaybook;
+        const teamId = side === "home" ? opts.homeTeamId : opts.awayTeamId;
+        const retrievePlaybook = opts.retrieveSeed === true ? loadPlaybook(teamId) : playbook;
         return invokeTeam({
           graph: side === "home" ? opts.homeGraph : opts.awayGraph,
           side,
@@ -187,7 +191,8 @@ export async function runMatch(opts: MatchOptions): Promise<MatchResult> {
           timeoutMs,
           signal: opts.signal,
           playbook,
-          seedPlayId: defaultPlayIdForBook(playbook),
+          retrievePlaybook,
+          seedPlayId: defaultPlayIdForBook(retrievePlaybook),
         }).then((r) => ({ side, r, reason: decision[side]!.reason, kind: decision[side]!.kind }));
       });
 

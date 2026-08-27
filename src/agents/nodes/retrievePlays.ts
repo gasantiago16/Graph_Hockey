@@ -3,7 +3,7 @@ import { inferThemFamily, retrievePlays } from "../../playbook/retrieve.ts";
 import type { TeamGraphNode } from "../state.ts";
 import { scoreStateFromObservation } from "./situation.ts";
 
-/** Top 6 play digests for the current strength/zone (code, no LLM). */
+/** Top 6 play digests for the current strength/zone (code, no LLM). `playbook` is the retrieve source. */
 export function makeRetrievePlays(playbook: Playbook): TeamGraphNode {
   return (state) => {
     const obs = state.observation;
