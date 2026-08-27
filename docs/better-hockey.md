@@ -4,7 +4,7 @@
 | --- | --- |
 | **Author** | Graph_Hockey staff (design) |
 | **Date** | 2026-08-27 |
-| **Status** | **Cycle 5 attempt 1/5 (bank 2/5).** Evaluate 18 void (mutate re-injected pk-box). Apply-path even-on-ice shipped. Counting Evaluate 19. |
+| **Status** | **Cycle 5 attempt 2/5 (bank 2/5).** Evaluate 19: g1/g4 AAR **none** (not pk-box). Chance mean **4.43**, pairs 0, Δ xG **−0.042** (would beat −0.071; floors fail). |
 | **Repo** | `C:\Users\gasan\Graph_Hockey` (private, `main` playable) |
 | **Success criterion** | **Five empirical improvements.** Not five attempts. Not five version bumps. Not “stop when the numbered PR stack is done.” Keep cycling (including a **post-stack Diagnose menu**) until `improvements == 5` or the user stops. |
 | **PLAN_ID** | `f1d4bdeb` (resume leftover PRs with `/execute-plan --resume f1d4bdeb` after Evaluate context) |
@@ -29,9 +29,9 @@ This is the live **quality** scoreboard. Update it after every counting Evaluate
 | Previous-best home Δ xG | **−0.071** | `ser-emp-15` g0→g6. Unchanged (Evaluate 11 +0.443 not credited) |
 | Previous-best pairs | **4** | Evaluate 8. Evaluates 9–11 pairs 3 |
 | Cycle | **5** | Cycles 1–4 aborted. Bank kept. |
-| Attempts this cycle | **1 / 5** | Evaluate 17 not credited |
-| Flat streak | **1 / 3** | After Evaluate 17 |
-| On `main` | leftover retrieve `33878fc` + PR-R5 `99b4e4e` + **PR-R5b apply-path even-on-ice** | Goldens unchanged. Evaluate 18 void. Evaluate 19 waits. |
+| Attempts this cycle | **2 / 5** | Evaluate 17 not credited. Evaluate 18 void. Evaluate 19 not credited |
+| Flat streak | **2 / 3** | After Evaluate 19 |
+| On `main` | leftover retrieve `33878fc` + PR-R5 `99b4e4e` + **PR-R5b apply-path even-on-ice `4055986`** | Goldens unchanged. Evaluate 19 ran. |
 | Glimmer | **up** (`:8080`, used for Evaluate 17) | Do not kill unless asked. Do not restart 8787. Timeouts not raised. |
 | Learning proofs | write **yes** · retain survive **yes** · transfer **menu yes / skate mixed** · quality **2/5** | See [`knowledge-and-learning.md`](knowledge-and-learning.md) |
 | Goldens | pr7 `1d80eee2…` count **107**; pr8 `be48bb68…` count **315**, epochs **11** | F3 just-in occupy. Shot **0**, Offside **0**. pr7 106→107 is one extra event, not a Shot storm. |
@@ -111,7 +111,7 @@ Control twin (`ser-emp-9-nollm`): books v1, retrieveTop 0/6, offsides 0–2 (g6 
 | Leftover skates retrieve #1 | `33878fc` on `main` | Timeout/circuit/micro leftover uses retrieveFallbackId. Leading protect kept. Goldens unchanged. | Evaluate 16 (**not credited**, cycle abort) |
 | AAR no PP/PK boost if 5v5 on ice | `99b4e4e` on `main` | `lessonUsage` stays even-strength when 5v5/3v3 had seconds. Strip special-teams boosts. Pure PP still boosts PP. Goldens unchanged. | Evaluate 17 (**not credited**) |
 | Even-strength DirectiveApplied counts as on-ice | `b535c63` on `main` | Draft-only. Evaluate 18 still boosted pk-box. | Evaluate 18 **void** |
-| Apply-path even-on-ice | this commit | `mutate.ensureMandatoryBoost` uses the same even-on-ice gate. Goldens unchanged. | Evaluate 19 |
+| Apply-path even-on-ice | `4055986` on `main` | `mutate.ensureMandatoryBoost` uses the same even-on-ice gate. Goldens unchanged. | Evaluate 19 (**not credited**) |
 | PR-5 Ds tag-up | [#5](https://github.com/gasantiago16/Graph_Hockey/pull/5) | closed; absorbed into `c1e7707` | — |
 | PR-6 captain | skipped | env off | — |
 | PR-7 `lpTrail` flag | [#4](https://github.com/gasantiago16/Graph_Hockey/pull/4) | draft | never |
@@ -672,11 +672,48 @@ The floor fail is still chance mean and pairs. The remaining AAR hole: **treat e
 
 **Cycle 5 PR-2 draft-only (`b535c63`):** even-strength `DirectiveApplied` in `codeDraft`. Evaluate 18 (`ser-emp-25`) still boosted **pk1-box** on g1/g4 — `mutate.ts` re-injected a tie boost from full `playUsage` after draft stripped it. Ice g0–g2 matched Evaluate 17. **Not a counting attempt.** Bank 2/5, attempts stay 1/5.
 
-**Cycle 5 PR-2b (this commit):** `applyPlaybookRevision` uses the same even-on-ice gate. Counting Evaluate 19. Do not raise timeouts. Do not change the Δ xG bar.
+**Cycle 5 PR-2b (`4055986`):** `applyPlaybookRevision` uses the same even-on-ice gate. Counted Evaluate 19.
 
 ### Evaluate 18 — `ser-emp-25` (2026-08-27) — void
 
 Same protocol. Twin `ser-emp-25-nollm` honest (v1, retrieveTop 0/6). Live g0–g2 identical to Evaluate 17. g1/g4 AAR still `boost:pk1-box`. Chance mean **3.43**, pairs 1, Δ xG **−0.049**. **Do not increment attempts.** The PR did not land in the write path.
+
+### Evaluate 19 — `ser-emp-26` (2026-08-27)
+
+Apply-path even-on-ice `4055986`. Same protocol. Twin `ser-emp-26-nollm`. Timeout 8000. Not raised. Glimmer up.
+
+| Gate | Result |
+| --- | --- |
+| Control honest | **pass** — v1, retrieveTop 0/6, `booksMoved` false. Same g0 as emp-24/25-nollm |
+| Live writes books | **pass** — v1→v8. retrieveTopChanged home **1/6** (cycle → 122), away **1/6** |
+| Lead-protect skating | **pass** — 0 illegal. g6×2 while leading (legal) |
+| Offsides 0–2 | **pass** — max 2 |
+| Chance mean | **4.43** (6,4,4,2,2,7,6) < 6 (**floor fail**) |
+| Pairs `--compare 0,6` | **0** < 4 (**floor fail**) |
+| Home Δ xG g0→g6 | **−0.042** (0.320 → 0.278) would beat −0.071; floors fail |
+| AAR targeting | **g1/g4 home tie ops none** (Evaluate 17/18 boosted pk-box). g5 away win none (was PP) |
+
+**Improved: no.** Bank **2 / 5**. Cycle 5 attempt **2 / 5**. Flat **2 / 3**.
+
+Live card:
+
+| G | Score | Home opening | Home ch/off | Home AAR |
+| --- | --- | --- | ---: | --- |
+| 0 | 2–1 home | `5v5-122-forecheck` | 6 / 1 | boost **122** (not umbrella) |
+| 1 | 0–0 tie | **`nz-122-trap`** | 4 / 2 | **none** |
+| 2 | 1–1 tie | `5v5-122-forecheck` | 4 / 2 | boost 122 |
+| 3 | 2–0 home | `5v5-122-forecheck` | 2 / 1 | boost 122 |
+| 4 | 1–1 tie | `5v5-122-forecheck` | 2 / 0 | **none** |
+| 5 | 3–5 away | `5v5-122-forecheck` | 7 / 1 | add_counter cycle |
+| 6 | 4–2 home | `5v5-122-forecheck` | 6 / 1 | boost 122 |
+
+g1 still **skated** pk-box×11 (real PK). AAR no longer **writes** it. g5/g6 chance volume 7 and 6 (Evaluate 17 was 3 and 3).
+
+### Cycle 5 Diagnose (after Evaluate 19)
+
+Bank stays 2. PR-R5b apply-path **works**. Do **not** revert it. Do **not** add another AAR boost gate. Do **not** raise unused bonus. Do **not** revert leftover retrieve. Do **not** raise timeouts. Do **not** change the Δ xG bar.
+
+The floor is still chance mean and pairs. Special teams still eat g1/g4 wall-clock. That is skating PK, not a poisoned playbook write. Next quality work is volume (5v5 time / retrieve leaving 122), not another even-on-ice strip.
 
 ### Dump-in golden move (intentional)
 

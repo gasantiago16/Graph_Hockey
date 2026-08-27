@@ -274,7 +274,8 @@ Seven games as a row of books. The loop is the row getting thicker. Quality is w
 | **`ser-emp-24` Evaluate 17** | g0 boosted **122** not umbrella. g1/g4 still **pk1-box**. Chance mean **3.43**, pairs 1, Δ **−0.049**. Not credited. | PR-R5 partial: `evenStrengthOnIce` misses 0-second leftover 5v5. |
 | **Even-strength DirectiveApplied on-ice** | Draft-only `b535c63`. Evaluate 18 still boosted pk-box (mutate re-inject). | Void series. Apply-path is the real gate. |
 | **`ser-emp-25` Evaluate 18** | Ice matched Evaluate 17 through g2. g1/g4 still **pk1-box**. Δ **−0.049**, chance mean 3.43, pairs 1. | **Void.** Not a cycle attempt. |
-| **Apply-path even-on-ice** | `mutate.ensureMandatoryBoost` uses even-on-ice. Goldens unchanged. | Counting Evaluate 19. |
+| **Apply-path even-on-ice (`4055986`)** | `mutate.ensureMandatoryBoost` uses even-on-ice. Goldens unchanged. | Counted Evaluate 19. |
+| **`ser-emp-26` Evaluate 19** | g1/g4 AAR **none**. Chance mean **4.43**, pairs 0, Δ **−0.042**. Not credited. | Targeting works. Volume still under 6. |
 
 ### The 7-game card (`ser-emp-7`)
 
@@ -536,8 +537,8 @@ These are not hypothetical. They showed up in design review or PR review and wou
 
 Live counters: [`better-hockey.md`](better-hockey.md) (bank **2/5**). Learning plan: [`knowledge-and-learning.md`](knowledge-and-learning.md). Bibliography: [`ANNOTATED_BIBLIOGRAPHY.md`](ANNOTATED_BIBLIOGRAPHY.md).
 
-1. **Apply-path even-on-ice — shipped.** Evaluate 18 was void (mutate re-injected pk-box). Counting Evaluate 19. Do not revert `99b4e4e`. Do not alias `default-structure` to 122.
-2. **Chance mean** still under 6 (Evaluate 17: 3.43, pairs 1). Do not raise unused bonus. Do not revert leftover retrieve.
+1. **Apply-path even-on-ice works.** Evaluate 19 g1/g4 AAR none. Do not add another boost gate. Next is 5v5 volume / retrieve leaving 122.
+2. **Chance mean** still under 6 (Evaluate 19: 4.43, pairs 0). Do not raise unused bonus. Do not revert leftover retrieve.
 3. **Captain micro** stays off. **HITL later.**
 4. Glimmer is **up** (used for Evaluate 17). Do not kill `:8080` unless asked. Do not restart 8787. Do not raise timeouts.
 5. Keep `AGENTS.md` honest: `src/ice/` is environment. Playbooks are agent memory. `--aar-mode code` is not `--no-llm`. We do **not** compile LangGraph `store` today.
@@ -561,4 +562,4 @@ Live counters: [`better-hockey.md`](better-hockey.md) (bank **2/5**). Learning p
 
 ---
 
-*Closed 2026-08-27. `main` playable (`99b4e4e` AAR even-strength boost, docs after Evaluate 17). Write path proven. Retention survive proven. Transfer started (one-look). Quality bank 2/5. Cycle 5 attempt 1/5. Glimmer up. HITL not in v1.*
+*Closed 2026-08-27. `main` playable (`4055986` apply-path even-on-ice, docs after Evaluate 19). Write path proven. Retention survive proven. Transfer started (one-look). Quality bank 2/5. Cycle 5 attempt 2/5. Glimmer up. HITL not in v1.*
