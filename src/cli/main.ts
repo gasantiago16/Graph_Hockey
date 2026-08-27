@@ -41,7 +41,7 @@ Usage:
   gh aar --match ID [--side home|away] [--aar-mode auto|propose|hitl|code]
   gh playbook --team ID [--diff] [--version N] [--reset-playbook] [--audit]
   gh series --games 7 [--home ID] [--away ID] [--seed N] [--no-llm] [--no-record] [--aar-mode code|auto|propose] [--db PATH] [--snapshot-dir PATH]
-            [--from-snapshot PATH] [--from-db PATH]
+            [--from-snapshot PATH] [--from-db PATH] [--home-from-snapshot] [--away-from-snapshot] [--home-seed] [--away-seed]
             [--home-provider xai|muse|openai|gemini] [--away-provider ...] [--home-model SLUG] [--away-model SLUG]
   gh footage --match ID [--mp4] [--highlight] [--full] [--clip ID] [--out PATH]
   gh footage --series ID [--compare i,j] [--json]
@@ -57,6 +57,7 @@ AAR runs after every result. Live simulate/series default --aar-mode code: code 
 series default is 7 games; gameSeed = seed + gameIndex. AAR code/auto apply mutates playbooks between games (not --no-llm).
 Playbook snapshots go in data/playbook-snapshots/<seriesId>/ (before.json + after-game-N.json).
 --from-snapshot PATH restores those books into the new series db before game 0 (agent memory).
+--home-from-snapshot / --away-from-snapshot restore one side; --home-seed / --away-seed keep that side on seed.
 --from-db PATH copies playbook version history from another sqlite. Do not use both.
 --seed still reseeds physics only; carried books are independent of env.reset.
 --no-llm series uses 5s periods unless GRAPH_HOCKEY_PERIOD_SECONDS or --period-seconds is set.
@@ -680,8 +681,10 @@ async function cmdSeries(argv: string[], env: EnvMap): Promise<number> {
   const snapshotParent = opt(argv, "snapshot-dir") ?? defaultSnapshotDir();
   const snapshotDir = join(snapshotParent, seriesId);
   let fromSnapshot: PlaybookSnapshot | undefined;
+  let fromSnapshotSides: { home: boolean; away: boolean } | undefined;
   try {
     fromSnapshot = await loadCarrySnapshot(argv, homeTeamId, awayTeamId);
+    fromSnapshotSides = parseCarrySides(argv, fromSnapshot !== undefined);
   } catch (err) {
     console.error(err instanceof Error ? err.message : err);
     return 1;
@@ -703,6 +706,7 @@ async function cmdSeries(argv: string[], env: EnvMap): Promise<number> {
       record,
       snapshotDir,
       fromSnapshot,
+      fromSnapshotSides,
       models: noLlm ? { home: "none", away: "none" } : { home: homeProfile.coach, away: awayProfile.coach },
       homeProfile: noLlm ? undefined : homeProfile,
       awayProfile: noLlm ? undefined : awayProfile,
@@ -762,6 +766,7 @@ async function cmdSeries(argv: string[], env: EnvMap): Promise<number> {
     snapshotDir: result.snapshotDir,
     snapshots: result.snapshotPaths,
     carriedFromSnapshot: result.carriedFromSnapshot,
+    carriedSides: result.carriedSides,
     matches,
     learning: {
       retrieveTopChanged: {
@@ -810,6 +815,26 @@ async function cmdSeries(argv: string[], env: EnvMap): Promise<number> {
     console.log(`snapshots ${payload.snapshotDir}`);
   }
   return 0;
+}
+
+function parseCarrySides(argv: string[], haveSnapshot: boolean): { home: boolean; away: boolean } | undefined {
+  const homeFrom = flag(argv, "home-from-snapshot");
+  const awayFrom = flag(argv, "away-from-snapshot");
+  const homeSeed = flag(argv, "home-seed");
+  const awaySeed = flag(argv, "away-seed");
+  if (!haveSnapshot) {
+    if (homeFrom || awayFrom || homeSeed || awaySeed) {
+      throw new Error("--home-from-snapshot / --away-from-snapshot / --home-seed / --away-seed require --from-snapshot or --from-db");
+    }
+    return undefined;
+  }
+  if (homeFrom && homeSeed) throw new Error("--home-from-snapshot and --home-seed conflict");
+  if (awayFrom && awaySeed) throw new Error("--away-from-snapshot and --away-seed conflict");
+  if (homeSeed && awaySeed) throw new Error("nothing to restore (home-seed and away-seed)");
+  if (homeFrom || awayFrom) {
+    return { home: homeFrom, away: awayFrom };
+  }
+  return { home: !homeSeed, away: !awaySeed };
 }
 
 async function loadCarrySnapshot(

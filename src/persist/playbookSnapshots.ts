@@ -64,6 +64,15 @@ export function readPlaybookSnapshot(path: string): PlaybookSnapshot {
   return PlaybookSnapshotSchema.parse(JSON.parse(readFileSync(path, "utf8")));
 }
 
+/** Keep only these teams' rows. Seed books for omitted teams stay in the dest db. */
+export function filterSnapshotTeams(snapshot: PlaybookSnapshot, teamIds: readonly string[]): PlaybookSnapshot {
+  const keep = new Set(teamIds);
+  return PlaybookSnapshotSchema.parse({
+    ...snapshot,
+    books: snapshot.books.filter((row) => keep.has(row.teamId)),
+  });
+}
+
 /** Restore exact version history for teams present in the snapshot. */
 export function restorePlaybookSnapshot(db: Db, snapshot: PlaybookSnapshot): void {
   const parsed = PlaybookSnapshotSchema.parse(snapshot);

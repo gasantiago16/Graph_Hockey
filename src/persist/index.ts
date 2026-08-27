@@ -56,6 +56,7 @@ export {
   defaultSnapshotDir,
   readPlaybookSnapshot,
   restorePlaybookSnapshot,
+  filterSnapshotTeams,
   snapshotFileName,
   snapshotPlaybooksToDir,
   writePlaybookSnapshot,

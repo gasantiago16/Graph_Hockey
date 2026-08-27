@@ -34,6 +34,7 @@ describe("gh CLI", () => {
       expect(printed).toContain("GRAPH_HOCKEY_PERIOD_SECONDS");
       expect(printed).toContain("playbook-snapshots");
       expect(printed).toContain("--from-snapshot");
+      expect(printed).toContain("--away-seed");
       expect(printed).toContain("--from-db");
       expect(USAGE).toContain("Default LLM provider is xAI");
       expect(USAGE).toContain("--home-provider");
@@ -153,6 +154,11 @@ describe("gh CLI", () => {
         await main(["series", "--no-llm", "--from-db", "missing-carry.sqlite", "--games", "1"], {}),
       ).toBe(1);
       expect(String(err.mock.calls[0]?.[0])).toMatch(/--from-db not found/);
+      err.mockClear();
+      expect(
+        await main(["series", "--no-llm", "--away-seed", "--games", "1"], {}),
+      ).toBe(1);
+      expect(String(err.mock.calls[0]?.[0])).toMatch(/require --from-snapshot/);
     } finally {
       err.mockRestore();
     }

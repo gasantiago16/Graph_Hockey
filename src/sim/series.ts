@@ -9,6 +9,7 @@ import { MatchAborted, runMatch, type MatchOptions, type MatchResult } from "../
 import type { Db } from "../persist/db.ts";
 import {
   defaultSnapshotDir,
+  filterSnapshotTeams,
   restorePlaybookSnapshot,
   snapshotPlaybooksToDir,
   type PlaybookSnapshot,
@@ -109,6 +110,8 @@ export type RunSeriesOpts = {
    * Physics seed is independent — this is agent memory, not env.reset.
    */
   fromSnapshot?: PlaybookSnapshot;
+  /** Which sides to restore from `fromSnapshot`. Default both. Omitted sides keep seed. */
+  fromSnapshotSides?: { home: boolean; away: boolean };
   onGameStart?: (info: SeriesGameStart) => void;
   onTick?: MatchOptions["onTick"];
   onGameOver?: (info: SeriesGameOver) => void | Promise<void>;
@@ -136,6 +139,7 @@ export type SeriesResult = {
   beforeSnapshot: PlaybookSnapshot;
   snapshotPaths: string[];
   carriedFromSnapshot: boolean;
+  carriedSides: { home: boolean; away: boolean };
 };
 
 /**
@@ -156,9 +160,16 @@ export async function runSeries(opts: RunSeriesOpts): Promise<SeriesResult> {
   mkdirSync(snapDir, { recursive: true });
 
   ensureSeedPlaybooks(opts.db);
+  const carry = opts.fromSnapshotSides ?? { home: true, away: true };
   if (opts.fromSnapshot) {
-    assertSnapshotCoversTeams(opts.fromSnapshot, opts.homeTeamId, opts.awayTeamId);
-    restorePlaybookSnapshot(opts.db, opts.fromSnapshot);
+    if (!carry.home && !carry.away) {
+      throw new Error("--from-snapshot with no sides to restore (home-seed and away-seed)");
+    }
+    const needHome = carry.home ? opts.homeTeamId : undefined;
+    const needAway = carry.away ? opts.awayTeamId : undefined;
+    assertSnapshotCoversTeams(opts.fromSnapshot, needHome, needAway);
+    const teamIds = [needHome, needAway].filter((id): id is string => typeof id === "string");
+    restorePlaybookSnapshot(opts.db, filterSnapshotTeams(opts.fromSnapshot, teamIds));
   }
   const teamIds = [opts.homeTeamId, opts.awayTeamId];
   const before = snapshotPlaybooksToDir(opts.db, {
@@ -279,14 +290,23 @@ export async function runSeries(opts: RunSeriesOpts): Promise<SeriesResult> {
     beforeSnapshot: before.snapshot,
     snapshotPaths,
     carriedFromSnapshot: opts.fromSnapshot !== undefined,
+    carriedSides: opts.fromSnapshot
+      ? { home: carry.home, away: carry.away }
+      : { home: false, away: false },
   };
 }
 
-function assertSnapshotCoversTeams(snapshot: PlaybookSnapshot, homeTeamId: string, awayTeamId: string): void {
+function assertSnapshotCoversTeams(
+  snapshot: PlaybookSnapshot,
+  homeTeamId: string | undefined,
+  awayTeamId: string | undefined,
+): void {
   const ids = new Set(snapshot.books.map((b) => b.teamId));
-  if (!ids.has(homeTeamId) || !ids.has(awayTeamId)) {
+  const need = [homeTeamId, awayTeamId].filter((id): id is string => typeof id === "string");
+  const missing = need.filter((id) => !ids.has(id));
+  if (missing.length > 0) {
     throw new Error(
-      `--from-snapshot/--from-db missing team books (have ${[...ids].join(",") || "none"}; need ${homeTeamId} and ${awayTeamId})`,
+      `--from-snapshot/--from-db missing team books (have ${[...ids].join(",") || "none"}; need ${need.join(" and ")})`,
     );
   }
 }

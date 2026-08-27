@@ -206,6 +206,52 @@ describe("runSeries --no-llm", () => {
     }
   }, 60_000);
 
+  it("fromSnapshotSides home-only leaves away on seed v1", async () => {
+    const src = await openMemoryDb();
+    const dest = await openMemoryDb();
+    const srcDir = mkdtempSync(join(tmpdir(), "gh-cross-src-"));
+    const destDir = mkdtempSync(join(tmpdir(), "gh-cross-dest-"));
+    try {
+      ensureSeedPlaybooks(src);
+      const home = latestPlaybook(src, "original-six")!;
+      insertPlaybook(src, {
+        teamId: "original-six",
+        version: 8,
+        body: { ...home.body, version: 8 },
+        parentVersion: 1,
+        aarMatchId: "prior-g6",
+      });
+      const { snapshot } = snapshotPlaybooksToDir(src, {
+        seriesId: "ser-prior",
+        gameIndex: 6,
+        teamIds: ["original-six", "expansion"],
+        dir: srcDir,
+      });
+      const result = await runSeries({
+        db: dest,
+        homeTeamId: "original-six",
+        awayTeamId: "expansion",
+        seed: 7,
+        games: 1,
+        seriesId: "ser-cross-hs",
+        noLlm: true,
+        periodSeconds: SHORT_PERIOD,
+        otSeconds: scaledOtSeconds(SHORT_PERIOD),
+        snapshotDir: destDir,
+        timeoutMs: 2000,
+        fromSnapshot: snapshot,
+        fromSnapshotSides: { home: true, away: false },
+      });
+      expect(result.carriedSides).toEqual({ home: true, away: false });
+      expect(result.matches[0]?.playbookVersions.home).toBe(8);
+      expect(result.matches[0]?.playbookVersions.away).toBe(1);
+      expect(latestPlaybook(dest, "expansion")?.version).toBe(1);
+    } finally {
+      src.close();
+      dest.close();
+    }
+  }, 60_000);
+
   it("fromSnapshot throws when a side is missing from the snapshot", async () => {
     const db = await openMemoryDb();
     try {
