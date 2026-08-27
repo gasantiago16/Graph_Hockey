@@ -33,7 +33,7 @@ This is an epistemic review, not a merge gate. Empty “no source” is allowed;
 - “Home retrieveTop 0/6 means learning failed.” After the lead-protect gate, 0/6 can be success (they stopped picking the illegal sheet). It is a **diagnostic**, not the live-learns pass.
 - “Dump-in / high-slot / F2 chase is LangGraph learning.” Those are **environment** repairs (C4).
 - “A version integer is knowledge retention.” Storage without later retrieve-and-use is not memory-in-use (C7).
-- “Home Δ xG vs a learning away bench proves the staff got better.” Self-play EVAL is vs a **frozen** opponent (Zhang et al. 2024 survey; Search Self-play 2025). Opposing Δ xG is **`coadapt`**, not a quality fail. Cross-play HS/SH is how we claim a staff improved.
+- “Home Δ xG vs a learning away bench proves the staff got better.” Self-play EVAL is vs a **frozen** opponent (Zhang et al. 2024 survey; Search Self-play 2025). Opposing Δ xG is **`coadapt`**, not a quality fail. Cross-play HS/SH is how we claim a staff improved. **2026-08-27:** HS home μ 5.57 > SS 4.43; SH away μ 5.86 > SS 4.86. That sentence is now allowed **for chance mean vs seed books**, not for the quality bank and not for LangGraph Store.
 - “Goals in a 7×20s series are skill.” Even-strength process (xG, chances) over goals; ~70% of NHL goals are 5v5 (DataDrivenHockey 2024).
 
 ---

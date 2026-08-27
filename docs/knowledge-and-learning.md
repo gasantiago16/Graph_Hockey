@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | **Date** | 2026-08-27 |
-| **Status** | Cycle 5 attempt **2/5** (bank **2/5**). Dual quality card + `playbook --audit` shipped. Combined Evaluate 8 **11.43** vs Evaluate 19 **9.29**. Bank rule unchanged. |
+| **Status** | Cycle 5 attempt **2/5** (bank **2/5**). Cross-play HS/SH **pass** vs seed-fresh on chance mean. Not a bank slot. Next M2 null retrieve. |
 | **Scoreboard** | [`better-hockey.md`](better-hockey.md) |
 | **Bibliography** | [`ANNOTATED_BIBLIOGRAPHY.md`](ANNOTATED_BIBLIOGRAPHY.md) |
 | **Handbook** | [`FORgasan.md`](FORgasan.md) |
@@ -64,6 +64,17 @@ Evaluate 17 (cycle 5 attempt 1): PR-R5 **partial**. g0 boosted **122** not umbre
 Evaluate 18 void: draft-only PR, mutate re-injected pk-box. Not a cycle attempt.
 
 Evaluate 19 (cycle 5 attempt 2): apply-path **works** (g1/g4 AAR none). Chance mean **4.43**, pairs 0, Δ **−0.042**. Do not cash it. Do not add another AAR boost gate.
+
+Cross-play `ser-cross-*` (2026-08-27, not a bank slot). Snapshot `ser-emp-26/after-game-6`. Seed 7, 7×20s, live xAI vs Glimmer. SS = Evaluate 19 seed-fresh.
+
+| Arm | Books g0 | Home μ chances | Away μ chances | Combined | Staff vs frozen |
+| --- | --- | ---: | ---: | ---: | --- |
+| **SS** Evaluate 19 | seed v1/v1 | 4.43 | 4.86 | 9.29 | baseline |
+| **HS** `ser-cross-hs` | trained v8 / seed v1 | **5.57** | 3.14 | 8.71 | home **pass** (5.57 > 4.43) |
+| **SH** `ser-cross-sh` | seed v1 / trained v8 | 3.71 | **5.86** | 9.57 | away **pass** (5.86 > 4.86) |
+| **HH** `ser-cross-hh` | trained / trained | 4.86 | 3.71 | 8.57 | both-up Δ xG; volume down (arms race). g2 home **4** offs |
+
+We may say: **each emp-26 book beats a seed opponent on chance mean.** We may not say: LangGraph Store, version integers, or “the live-vs-live quality bank moved.” Home retrieve stayed 122; away retrieve `oz-crash-net` on SH/HH. evenNonDefault SH away **66/75**.
 
 ---
 
@@ -183,7 +194,7 @@ A `PlaybookStore` implementing `BaseStore`: namespace `["playbook", teamId]`, ke
 | **Q1** | Dual quality card (combined chances, both Δ xG, evenNonDefault, coadapt) | `src/film/qualityCard.ts`, CLI | none | **shipped.** Never an Evaluate. Bank rule unchanged. |
 | **M1** | `playbook --audit` retrieve/leftover/unused | `src/playbook/audit.ts`, CLI | none | **shipped.** Never an Evaluate. |
 | **M2** | `--retrieve-seed` null arm | series CLI | M1 | Learning Evaluate later |
-| **M3** | Per-side `--from-snapshot` + cross-play | series CLI | R1 | Learning Evaluate later |
+| **M3** | Per-side `--from-snapshot` + cross-play | series CLI | R1 | **shipped `06f47da`.** `ser-cross-hs` / `ser-cross-sh` **pass** vs seed-fresh Evaluate 19. Not a quality-bank slot. |
 | **PR-R3** | Optional `BaseStore` playbook adapter | `src/playbook/`, `teamGraph.ts` | R1 | Only if retrieve path actually reads Store |
 
 Independently mergeable: R2 and H1 do not need R1. R1 is the learning proof. Cranky → `npm test` on all. Goldens move only if H1 changes `--no-llm` physics.
@@ -191,7 +202,7 @@ Independently mergeable: R2 and H1 do not need R1. R1 is the learning proof. Cra
 ### Suggested sequence
 
 1. Docs + R1–R5 + leftover retrieve **shipped**. Retention survive **ran**. Live transfer **started** (cycle, then trap, then 122 rate).
-2. **Now:** Q1 dual card + M1 audit **shipped**. Next is M3 cross-play (staff vs frozen) then M2 null retrieve. Do not recode bank 2/5. Do not add another AAR boost gate.
+2. **Now:** M3 cross-play **ran**. Trained home vs seed away (HS home μ **5.57** > SS **4.43**). Trained away vs seed home (SH away μ **5.86** > SS **4.86**). Both staffs beat a frozen seed book on chance mean. Next is M2 null retrieve (was it retrieve, or ice?). Do not recode bank 2/5.
 3. Bank 5 is still the hockey program; combined chance mean **11.43** (Evaluate 8) is the pending combined floor.
 
 ---

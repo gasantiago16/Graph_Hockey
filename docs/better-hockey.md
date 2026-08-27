@@ -4,7 +4,7 @@
 | --- | --- |
 | **Author** | Graph_Hockey staff (design) |
 | **Date** | 2026-08-27 |
-| **Status** | **Cycle 5 attempt 2/5 (bank 2/5).** Dual quality card + `playbook --audit` shipped. Bank rule unchanged. Evaluate 8 combined chance mean **11.43**; Evaluate 19 **9.29** (coadapt). |
+| **Status** | **Cycle 5 attempt 2/5 (bank 2/5).** Cross-play HS/SH pass chance mean vs seed. Dual card shipped. Bank unchanged. |
 | **Repo** | `C:\Users\gasan\Graph_Hockey` (private, `main` playable) |
 | **Success criterion** | **Five empirical improvements.** Not five attempts. Not five version bumps. Not “stop when the numbered PR stack is done.” Keep cycling (including a **post-stack Diagnose menu**) until `improvements == 5` or the user stops. |
 | **PLAN_ID** | `f1d4bdeb` (resume leftover PRs with `/execute-plan --resume f1d4bdeb` after Evaluate context) |
@@ -737,6 +737,19 @@ Paper recompute (old live cards):
 Pending credit flip (not live): replace home chance mean ≥ 6 with combined ≥ Evaluate 8’s **11.43** (and pairs ≥ 4). Do not flip until a reporting series prints the card. Staff-skill “both improved” stays a **cross-play** learning Evaluate vs frozen books, not this live-vs-live series.
 
 `gh playbook --team ID --audit` prints retrieve OZ/NZ/DZ, leftover, unused even-strength non-default. Seed 122 with unused cycle/trap is **not** transfer. `menuDiffersFromSeed` is retrieve top ≠ seed default.
+
+### Cross-play `ser-cross-*` (2026-08-27) — not a bank slot
+
+`--away-seed` / `--home-seed` restore one side from `ser-emp-26/after-game-6`. Live 7×20s seed 7. SS = Evaluate 19.
+
+| Arm | Home μ | Away μ | Combined | vs SS |
+| --- | ---: | ---: | ---: | --- |
+| SS Evaluate 19 | 4.43 | 4.86 | 9.29 | — |
+| HS trained home / seed away | **5.57** | 3.14 | 8.71 | home **pass** |
+| SH seed home / trained away | 3.71 | **5.86** | 9.57 | away **pass** |
+| HH both trained | 4.86 | 3.71 | 8.57 | both-up Δ xG; g2 home 4 offs |
+
+Staff skill vs frozen seed: **both pass** on chance mean. Quality bank **unchanged**. Next: M2 null retrieve.
 
 ### Dump-in golden move (intentional)
 

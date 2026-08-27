@@ -537,8 +537,8 @@ These are not hypothetical. They showed up in design review or PR review and wou
 
 Live counters: [`better-hockey.md`](better-hockey.md) (bank **2/5**). Learning plan: [`knowledge-and-learning.md`](knowledge-and-learning.md). Bibliography: [`ANNOTATED_BIBLIOGRAPHY.md`](ANNOTATED_BIBLIOGRAPHY.md).
 
-1. **Dual quality card + `playbook --audit` shipped.** Combined chances Evaluate 8 **11.43** vs Evaluate 19 **9.29**. Bank 2/5 unchanged. `coadapt` is not a quality fail.
-2. **Next:** cross-play vs frozen books (M3), then null retrieve (M2). Do not say Store / version-integer / ice-as-learning.
+1. **Cross-play vs frozen seed: both staffs pass chance mean.** HS home μ **5.57** > SS **4.43**. SH away μ **5.86** > SS **4.86**. Not a quality-bank slot.
+2. **Next:** M2 null retrieve (`--retrieve-seed`). Dual card + audit already shipped. Bank 2/5 unchanged.
 3. **Captain micro** stays off. **HITL later.**
 4. Glimmer is **up** (used for Evaluate 17). Do not kill `:8080` unless asked. Do not restart 8787. Do not raise timeouts.
 5. Keep `AGENTS.md` honest: `src/ice/` is environment. Playbooks are agent memory. `--aar-mode code` is not `--no-llm`. We do **not** compile LangGraph `store` today.
