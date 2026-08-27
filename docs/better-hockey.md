@@ -4,7 +4,7 @@
 | --- | --- |
 | **Author** | Graph_Hockey staff (design) |
 | **Date** | 2026-08-27 |
-| **Status** | **Cycle 5 attempt 1/5 (bank 2/5).** Evaluate 17 PR-R5 partial: g0 boosted **122** not umbrella. g1/g4 still boosted **pk1-box** (even-strength DirectiveApplied, 0 usage seconds). Chance mean **3.43**, pairs 1, Δ xG **−0.049** (would beat −0.071; floors fail). |
+| **Status** | **Cycle 5 attempt 1/5 (bank 2/5).** Evaluate 17 PR-R5 partial. PR-R5b shipped: even-strength `DirectiveApplied` / 0-second usage counts as on-ice. Counting Evaluate 18. |
 | **Repo** | `C:\Users\gasan\Graph_Hockey` (private, `main` playable) |
 | **Success criterion** | **Five empirical improvements.** Not five attempts. Not five version bumps. Not “stop when the numbered PR stack is done.” Keep cycling (including a **post-stack Diagnose menu**) until `improvements == 5` or the user stops. |
 | **PLAN_ID** | `f1d4bdeb` (resume leftover PRs with `/execute-plan --resume f1d4bdeb` after Evaluate context) |
@@ -31,7 +31,7 @@ This is the live **quality** scoreboard. Update it after every counting Evaluate
 | Cycle | **5** | Cycles 1–4 aborted. Bank kept. |
 | Attempts this cycle | **1 / 5** | Evaluate 17 not credited |
 | Flat streak | **1 / 3** | After Evaluate 17 |
-| On `main` | leftover retrieve `33878fc` + AAR no PP/PK if 5v5 on ice `99b4e4e` | Goldens unchanged. Evaluate 17 ran. |
+| On `main` | leftover retrieve `33878fc` + PR-R5 `99b4e4e` + **PR-R5b even DirectiveApplied** | Goldens unchanged. Evaluate 18 waits. |
 | Glimmer | **up** (`:8080`, used for Evaluate 17) | Do not kill unless asked. Do not restart 8787. Timeouts not raised. |
 | Learning proofs | write **yes** · retain survive **yes** · transfer **menu yes / skate mixed** · quality **2/5** | See [`knowledge-and-learning.md`](knowledge-and-learning.md) |
 | Goldens | pr7 `1d80eee2…` count **107**; pr8 `be48bb68…` count **315**, epochs **11** | F3 just-in occupy. Shot **0**, Offside **0**. pr7 106→107 is one extra event, not a Shot storm. |
@@ -110,6 +110,7 @@ Control twin (`ser-emp-9-nollm`): books v1, retrieveTop 0/6, offsides 0–2 (g6 
 | Retrieve unused + loser retarget | `5f7ca56` on `main` | Rank retrieve by xG rate + unused-play bonus. Loser `add_counter` on a different even-strength sheet. Goldens unchanged. | Evaluate 15 (**not credited**; retrieveTop cycle) |
 | Leftover skates retrieve #1 | `33878fc` on `main` | Timeout/circuit/micro leftover uses retrieveFallbackId. Leading protect kept. Goldens unchanged. | Evaluate 16 (**not credited**, cycle abort) |
 | AAR no PP/PK boost if 5v5 on ice | `99b4e4e` on `main` | `lessonUsage` stays even-strength when 5v5/3v3 had seconds. Strip special-teams boosts. Pure PP still boosts PP. Goldens unchanged. | Evaluate 17 (**not credited**) |
+| Even-strength DirectiveApplied counts as on-ice | this commit | 0-second leftover 5v5 still even-on-ice. Do not alias `default-structure` to 122. Pure PP still boosts PP. Goldens unchanged. | Evaluate 18 |
 | PR-5 Ds tag-up | [#5](https://github.com/gasantiago16/Graph_Hockey/pull/5) | closed; absorbed into `c1e7707` | — |
 | PR-6 captain | skipped | env off | — |
 | PR-7 `lpTrail` flag | [#4](https://github.com/gasantiago16/Graph_Hockey/pull/4) | draft | never |
@@ -667,6 +668,8 @@ End menu: 122 games **6** net **+0.44**; cycle games **1** net 0; trap games **1
 Bank stays 2. PR-R5 is **partial**. Do **not** revert it. Do **not** raise unused bonus. Do **not** revert leftover retrieve. Do **not** raise timeouts. Do **not** change the Δ xG bar.
 
 The floor fail is still chance mean and pairs. The remaining AAR hole: **treat even-strength `DirectiveApplied` as on-ice** even when `playUsage` seconds and xG are 0. That is how g1/g4 (and g5 away PP boost) still wrote special-teams sheets. Winner boosting `protect-lead` on g3 is legal skating and a separate targeting question — not this Evaluate’s credit.
+
+**Cycle 5 PR-2 (shipped, no live Evaluate yet):** even-strength `DirectiveApplied` and 0-second even usage count as on-ice. `default-structure` is not aliased to 122. Pure special-teams games still boost PP/PK. Counting Evaluate 18. Do not raise timeouts. Do not change the Δ xG bar.
 
 ### Dump-in golden move (intentional)
 

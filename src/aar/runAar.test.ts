@@ -69,6 +69,32 @@ describe("codeOnlyAarReport", () => {
     });
     expect(report.revision?.ops.some((o) => o.op === "add_counter")).toBe(true);
   });
+
+  it("tie does not boost pk1-box after a same-tick even-strength leftover", () => {
+    const events: MatchEvent[] = [
+      ev(0, "DirectiveApplied", {
+        liveTick: 0,
+        zone: "NZ",
+        payload: { side: "home", directive: { playId: "nz-122-trap", pressure: "neutral" } },
+      }),
+      ev(1, "DirectiveApplied", {
+        liveTick: 0,
+        zone: "DZ",
+        payload: { side: "home", directive: { playId: "pk1-box", pressure: "passive" } },
+      }),
+      ev(2, "Shot", { liveTick: 20, xG: 0.32, payload: { side: "home" } }),
+    ];
+    const report = codeOnlyAarReport({
+      matchId: "m1",
+      side: "home",
+      result: "tie",
+      events,
+      playbook: loadPlaybook("original-six"),
+      noLlm: false,
+    });
+    expect(report.revision?.ops.some((o) => o.op === "boost" && o.playId === "pk1-box")).toBe(false);
+    expect(report.revision?.ops.some((o) => o.op === "boost")).toBe(false);
+  });
 });
 
 describe("runPostMatchAar", () => {

@@ -144,6 +144,82 @@ describe("codeDraft", () => {
     expect(rev.ops.some((o) => o.op === "boost")).toBe(false);
   });
 
+  it("tie does not boost pk1-box when 5v5 usage is 0 seconds", () => {
+    const rev = ensureMandatoryBoost(
+      state({
+        result: "tie",
+        playUsage: [
+          { playId: "nz-122-trap", xgFor: 0, xgAgainst: 0, seconds: 0, xgShare: 0 },
+          { playId: "pk1-box", xgFor: 0.32, xgAgainst: 0, seconds: 40, xgShare: 1 },
+        ],
+      }),
+      {
+        summary: "llm",
+        ops: [
+          {
+            op: "boost",
+            playId: "pk1-box",
+            reason: "penalty",
+            eventIds: [makeEventId("m", 0)],
+          },
+        ],
+      },
+    );
+    expect(rev.ops.some((o) => o.op === "boost")).toBe(false);
+  });
+
+  it("tie does not boost pk1-box when 5v5 only appears as DirectiveApplied", () => {
+    const events: MatchEvent[] = [
+      {
+        id: makeEventId("m", 0),
+        seq: 0,
+        liveTick: 0,
+        stoppageSeq: 0,
+        period: 1,
+        type: "DirectiveApplied",
+        payload: { side: "home", directive: { playId: "nz-122-trap", pressure: "neutral" } },
+      },
+    ];
+    const rev = ensureMandatoryBoost(
+      state({
+        result: "tie",
+        events,
+        playUsage: [{ playId: "pk1-box", xgFor: 0.32, xgAgainst: 0, seconds: 40, xgShare: 1 }],
+      }),
+      {
+        summary: "llm",
+        ops: [
+          {
+            op: "boost",
+            playId: "pk1-box",
+            reason: "penalty",
+            eventIds: [makeEventId("m", 0)],
+          },
+        ],
+      },
+    );
+    expect(rev.ops.some((o) => o.op === "boost")).toBe(false);
+  });
+
+  it("does not treat default-structure usage as 5v5 on the ice", () => {
+    const rev = codeDraft(
+      state({
+        result: "win",
+        playUsage: [
+          { playId: "default-structure", xgFor: 0, xgAgainst: 0, seconds: 2, xgShare: 0 },
+          { playId: "pp1-umbrella", xgFor: 0.74, xgAgainst: 0, seconds: 12, xgShare: 1 },
+        ],
+        eventLogDigest: {
+          matchId: "m",
+          events: [{ id: makeEventId("m", 1), type: "Shot", liveTick: 40, playId: "pp1-umbrella", xG: 0.74 }],
+        },
+        knownEventIds: [makeEventId("m", 1)],
+        events: [],
+      }),
+    );
+    expect(rev.ops[0]).toMatchObject({ op: "boost", playId: "pp1-umbrella" });
+  });
+
   it("loser add_counter targets 5v5 instead of PP umbrella", () => {
     const rev = codeDraft(
       state({

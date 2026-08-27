@@ -5,7 +5,7 @@ import { isEmptyNetPlay, isLeadProtectPlay } from "../../playbook/retrieve.ts";
 import { defaultPlayIdForBook } from "../../playbook/store.ts";
 import type { AarGraphNode, AarGraphStateType } from "../state.ts";
 import { invokeAarStructured, type AarLlmOpts } from "../llm.ts";
-import { playWithXgShare, themFamilyFromEvents, topPlay, type PlayUsage } from "./actual.ts";
+import { payloadRecord, playWithXgShare, themFamilyFromEvents, topPlay, type PlayUsage } from "./actual.ts";
 
 export type DraftOpts = AarLlmOpts;
 
@@ -51,21 +51,48 @@ function isEvenStrengthPlay(play: Play): boolean {
   return play.strength.includes("5v5") || play.strength.includes("3v3");
 }
 
+/** Exact seed row. Do not alias `default-structure` to the first 5v5 play. */
+function playById(state: AarGraphStateType, playId: string | undefined): Play | undefined {
+  if (!playId || playId === DEFAULT_PLAY_ID) return undefined;
+  return (state.playbook.plays ?? []).find((p) => p.id === playId);
+}
+
+function directivePlayId(event: { type: string; payload?: unknown }): string | undefined {
+  if (event.type !== "DirectiveApplied") return undefined;
+  const rec = payloadRecord(event.payload);
+  const dir = rec?.directive;
+  if (!dir || typeof dir !== "object" || !("playId" in dir)) return undefined;
+  const playId = (dir as { playId: unknown }).playId;
+  return typeof playId === "string" ? playId : undefined;
+}
+
+/** Opening leftover 5v5 with 0 usage seconds still counts — Evaluate 17 g1/g4. */
+function evenStrengthDirectiveOnIce(state: AarGraphStateType): boolean {
+  for (const event of state.events ?? []) {
+    const rec = payloadRecord(event.payload);
+    if (rec?.side !== state.side) continue;
+    const play = playById(state, directivePlayId(event));
+    if (play && isEvenStrengthPlay(play)) return true;
+  }
+  return false;
+}
+
 function evenStrengthOnIce(state: AarGraphStateType): boolean {
+  if (evenStrengthDirectiveOnIce(state)) return true;
   return (state.playUsage ?? []).some((row) => {
-    const play = targetPlay(state, row.playId);
-    return !!play && isEvenStrengthPlay(play) && (row.seconds > 0 || row.xgFor > 0 || row.xgAgainst > 0);
+    const play = playById(state, row.playId);
+    return !!play && isEvenStrengthPlay(play);
   });
 }
 
-/** Prefer 5v5/3v3 so a 20s PP is not the series lesson. Stay even if 5v5 was on the ice with 0 xG. */
+/** Prefer 5v5/3v3 so a 20s PP is not the series lesson. Stay even if 5v5 was applied, even at 0 seconds. */
 function lessonUsage(state: AarGraphStateType): PlayUsage[] {
   const usage = state.playUsage ?? [];
   const even = usage.filter((row) => {
-    const play = targetPlay(state, row.playId);
+    const play = playById(state, row.playId);
     return play ? isEvenStrengthPlay(play) : false;
   });
-  if (even.some((row) => row.xgFor > 0 || row.seconds > 0 || row.xgAgainst > 0)) return even;
+  if (evenStrengthOnIce(state)) return even;
   return [...usage];
 }
 

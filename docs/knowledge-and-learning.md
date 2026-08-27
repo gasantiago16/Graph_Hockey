@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | **Date** | 2026-08-27 |
-| **Status** | Cycle 5 attempt **1/5** (bank **2/5**). PR-R5 counted: Evaluate 17 not credited (chance mean 3.43, pairs 1, Δ **−0.049**). Glimmer **up**. |
+| **Status** | Cycle 5 attempt **1/5** (bank **2/5**). PR-R5b shipped (even-strength DirectiveApplied is on-ice). Evaluate 18 waits. Glimmer **up**. |
 | **Scoreboard** | [`better-hockey.md`](better-hockey.md) |
 | **Bibliography** | [`ANNOTATED_BIBLIOGRAPHY.md`](ANNOTATED_BIBLIOGRAPHY.md) |
 | **Handbook** | [`FORgasan.md`](FORgasan.md) |
@@ -152,7 +152,7 @@ npm run gh -- series --from-snapshot data/playbook-snapshots/ser-emp-15/after-ga
 
 ### Quality track (cycle 5, existing bar)
 
-Offs band is honest. Unused one-look and leftover retrieve #1 shipped. PR-R5 counted (Evaluate 17 not credited). Next code: **even-strength `DirectiveApplied` counts as on-ice** even at 0 `playUsage` seconds. That is AAR targeting, not ice.
+Offs band is honest. Unused one-look and leftover retrieve #1 shipped. PR-R5 counted (Evaluate 17 not credited). PR-R5b shipped: even-strength `DirectiveApplied` / 0-second usage is on-ice. Counting Evaluate 18.
 
 Glimmer is **up**. Do not kill `:8080` unless asked. Do not restart 8787. Timeouts not raised.
 
@@ -174,7 +174,7 @@ A `PlaybookStore` implementing `BaseStore`: namespace `["playbook", teamId]`, ke
 | **PR-R4** | Retrieve unused + loser retarget | `src/playbook/retrieve.ts`, `draftRevision.ts` | R1 | **shipped `5f7ca56`.** Evaluate 15 retrieveTop cycle. |
 | **Leftover #1** | Timeout/micro skate retrieveFallbackId | `invokeTeam.ts`, `assembleDirective.ts` | R4 | **shipped `33878fc`.** Evaluate 16 g1 trap; cycle 4 abort. |
 | **PR-R5** | Never boost PP/PK when 5v5 was on the ice | `src/aar/nodes/draftRevision.ts` | R4 | **shipped `99b4e4e`.** Evaluate 17 **not credited** (g0 worked; g1/g4 0-second leftover). |
-| **PR-R5b** | Even-strength DirectiveApplied counts as on-ice | `src/aar/nodes/draftRevision.ts` | R5 | Next. Close the g1/g4 pk-box hole. Goldens must not move. |
+| **PR-R5b** | Even-strength DirectiveApplied counts as on-ice | `src/aar/nodes/draftRevision.ts` | R5 | **shipped.** Close the g1/g4 pk-box hole. Goldens unchanged. Counting Evaluate 18. |
 | **PR-R3** | Optional `BaseStore` playbook adapter | `src/playbook/`, `teamGraph.ts` | R1 | Only if retrieve path actually reads Store |
 
 Independently mergeable: R2 and H1 do not need R1. R1 is the learning proof. Cranky → `npm test` on all. Goldens move only if H1 changes `--no-llm` physics.
@@ -182,7 +182,7 @@ Independently mergeable: R2 and H1 do not need R1. R1 is the learning proof. Cra
 ### Suggested sequence
 
 1. Docs + R1–R5 + leftover retrieve **shipped**. Retention survive **ran**. Live transfer **started** (cycle, then trap, then 122 rate).
-2. **Now:** PR-R5b — even-strength `DirectiveApplied` is on-ice even at 0 usage seconds. Counting Evaluate 18.
+2. **Now:** PR-R5b shipped. Counting Evaluate 18.
 3. Bank 5 is still the hockey program.
 
 ---
