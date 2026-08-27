@@ -11,7 +11,7 @@ import type { AarReport } from "../types/aar.ts";
 import type { MatchEvent } from "../types/events.ts";
 import type { Clip, ClipKind, MatchAggregates, SeriesGameRow, SeriesImprovement } from "../types/film.ts";
 import type { PlayMutation } from "../types/play.ts";
-import { chanceCounts, openingPlayId, retrieveTopId } from "./chances.ts";
+import { chanceCounts, executedPlayMix, openingPlayId, retrieveTopId } from "./chances.ts";
 import { pairClips } from "./pairClips.ts";
 
 const AGG_KEYS = [
@@ -200,6 +200,7 @@ function buildSideRow(
     chanceCounts: events.length > 0 ? chanceCounts(events, side) : undefined,
     openingPlayId: events.length > 0 ? openingPlayId(events, side) : undefined,
     retrieveTopId: retrieveTopId(book),
+    playMix: events.length > 0 ? executedPlayMix(events, side) : undefined,
   };
   return {
     seriesId: input.seriesId,

@@ -41,6 +41,15 @@ export {
 } from "./film/improvement.ts";
 export { jaccard, pairClips, pairClipsForGames } from "./film/pairClips.ts";
 export {
+  coadaptFlag,
+  combinedChanceMean,
+  evenNonDefault,
+  evenShare,
+  formatQualityCard,
+  seriesQualityCard,
+} from "./film/qualityCard.ts";
+export type { CoadaptFlag, SeriesQualityCard } from "./film/qualityCard.ts";
+export {
   UsageTap,
   createBudget,
   emptyUsage,

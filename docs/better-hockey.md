@@ -4,7 +4,7 @@
 | --- | --- |
 | **Author** | Graph_Hockey staff (design) |
 | **Date** | 2026-08-27 |
-| **Status** | **Cycle 5 attempt 2/5 (bank 2/5).** Evaluate 19: g1/g4 AAR **none** (not pk-box). Chance mean **4.43**, pairs 0, Δ xG **−0.042** (would beat −0.071; floors fail). |
+| **Status** | **Cycle 5 attempt 2/5 (bank 2/5).** Dual quality card + `playbook --audit` shipped. Bank rule unchanged. Evaluate 8 combined chance mean **11.43**; Evaluate 19 **9.29** (coadapt). |
 | **Repo** | `C:\Users\gasan\Graph_Hockey` (private, `main` playable) |
 | **Success criterion** | **Five empirical improvements.** Not five attempts. Not five version bumps. Not “stop when the numbered PR stack is done.” Keep cycling (including a **post-stack Diagnose menu**) until `improvements == 5` or the user stops. |
 | **PLAN_ID** | `f1d4bdeb` (resume leftover PRs with `/execute-plan --resume f1d4bdeb` after Evaluate context) |
@@ -31,7 +31,7 @@ This is the live **quality** scoreboard. Update it after every counting Evaluate
 | Cycle | **5** | Cycles 1–4 aborted. Bank kept. |
 | Attempts this cycle | **2 / 5** | Evaluate 17 not credited. Evaluate 18 void. Evaluate 19 not credited |
 | Flat streak | **2 / 3** | After Evaluate 19 |
-| On `main` | leftover retrieve `33878fc` + PR-R5 `99b4e4e` + **PR-R5b apply-path even-on-ice `4055986`** | Goldens unchanged. Evaluate 19 ran. |
+| On `main` | leftover retrieve `33878fc` + PR-R5b `4055986` + **dual quality card + audit** | Goldens unchanged. Bank rule unchanged. |
 | Glimmer | **up** (`:8080`, used for Evaluate 17) | Do not kill unless asked. Do not restart 8787. Timeouts not raised. |
 | Learning proofs | write **yes** · retain survive **yes** · transfer **menu yes / skate mixed** · quality **2/5** | See [`knowledge-and-learning.md`](knowledge-and-learning.md) |
 | Goldens | pr7 `1d80eee2…` count **107**; pr8 `be48bb68…` count **315**, epochs **11** | F3 just-in occupy. Shot **0**, Offside **0**. pr7 106→107 is one extra event, not a Shot storm. |
@@ -714,6 +714,29 @@ g1 still **skated** pk-box×11 (real PK). AAR no longer **writes** it. g5/g6 cha
 Bank stays 2. PR-R5b apply-path **works**. Do **not** revert it. Do **not** add another AAR boost gate. Do **not** raise unused bonus. Do **not** revert leftover retrieve. Do **not** raise timeouts. Do **not** change the Δ xG bar.
 
 The floor is still chance mean and pairs. Special teams still eat g1/g4 wall-clock. That is skating PK, not a poisoned playbook write. Next quality work is volume (5v5 time / retrieve leaving 122), not another even-on-ice strip.
+
+### Dual quality card (report-only, 2026-08-27)
+
+`gh series` and `gh footage --series` print a **both-sides** card. Bank 2/5 and home Δ xG **−0.071** are **not** recoded.
+
+| Field | Meaning |
+| --- | --- |
+| `combinedChanceMean` | Mean of (home+away distinct chances) **per game**. “Was there a game.” |
+| `evenShare` | Share of `DirectiveApplied` on 5v5/3v3 plays |
+| `evenNonDefault` | Even-strength directives that are not seed 122/212 and not protect-lead/EN (transfer skate rate) |
+| `arms` | Each side’s Δ xG vs **own g0** |
+| `flag` | `both-up` / `both-down` / `home-up` / `away-up` / **`coadapt`** (opposing signs: peer got harder, not a quality fail) |
+
+Paper recompute (old live cards):
+
+| Series | Home μ | Away μ | **combinedChanceMean** | arms | flag |
+| --- | ---: | ---: | ---: | --- | --- |
+| Evaluate 8 `ser-emp-15` (credited) | 6.57 | 4.86 | **11.43** | home −0.071 / away +0.35 | coadapt |
+| Evaluate 19 `ser-emp-26` | 4.43 | 4.86 | **9.29** | home −0.042 / away +0.288 | coadapt |
+
+Pending credit flip (not live): replace home chance mean ≥ 6 with combined ≥ Evaluate 8’s **11.43** (and pairs ≥ 4). Do not flip until a reporting series prints the card. Staff-skill “both improved” stays a **cross-play** learning Evaluate vs frozen books, not this live-vs-live series.
+
+`gh playbook --team ID --audit` prints retrieve OZ/NZ/DZ, leftover, unused even-strength non-default. Seed 122 with unused cycle/trap is **not** transfer. `menuDiffersFromSeed` is retrieve top ≠ seed default.
 
 ### Dump-in golden move (intentional)
 

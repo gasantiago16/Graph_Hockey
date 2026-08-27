@@ -409,6 +409,27 @@ describe("gh CLI", () => {
     }
   });
 
+  it("playbook --audit prints retrieve order for seed original-six", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "gh-audit-"));
+    const dbPath = join(dir, "graph-hockey.sqlite");
+    const log = vi.spyOn(console, "log").mockImplementation(() => {});
+    try {
+      expect(await main(["playbook", "--team", "original-six", "--audit", "--db", dbPath, "--json"], {})).toBe(0);
+      const out = JSON.parse(String(log.mock.calls.at(-1)?.[0])) as {
+        seedDefault: string;
+        menuDiffersFromSeed: boolean;
+        retrieve: { OZ: string[] };
+        unusedEvenNonDefault: string[];
+      };
+      expect(out.seedDefault).toBe("5v5-122-forecheck");
+      expect(out.retrieve.OZ[0]).toBe("5v5-122-forecheck");
+      expect(out.menuDiffersFromSeed).toBe(false);
+      expect(out.unusedEvenNonDefault).toContain("oz-cycle-low");
+    } finally {
+      log.mockRestore();
+    }
+  });
+
   it("footage --series prints ledger after a --no-llm series", async () => {
     const dir = mkdtempSync(join(tmpdir(), "gh-pr15b-"));
     const dbPath = join(dir, "graph-hockey.sqlite");
@@ -440,6 +461,7 @@ describe("gh CLI", () => {
       const seriesOut = JSON.parse(String(log.mock.calls.at(-1)?.[0])) as {
         learning: { booksMoved: { home: boolean; away: boolean }; retrieveTopChanged: { steps: number } };
         matches: { home: { distinctChances: number; offsides: number } }[];
+        quality: { combinedChanceMean: number; flag: string; evenShare: { home: { total: number } } };
       };
       expect(seriesOut.matches).toHaveLength(2);
       expect(seriesOut.matches[0]?.home.distinctChances).toBeGreaterThanOrEqual(0);
@@ -447,6 +469,9 @@ describe("gh CLI", () => {
       expect(seriesOut.learning.retrieveTopChanged.steps).toBe(1);
       expect(seriesOut.learning.booksMoved.home).toBe(false);
       expect(seriesOut.learning.booksMoved.away).toBe(false);
+      expect(seriesOut.quality.combinedChanceMean).toBeGreaterThanOrEqual(0);
+      expect(typeof seriesOut.quality.flag).toBe("string");
+      expect(seriesOut.quality.evenShare.home.total).toBeGreaterThanOrEqual(0);
 
       log.mockClear();
       expect(await main(["footage", "--series", "ser-cli-15b", "--db", dbPath, "--json"], env)).toBe(0);
@@ -455,11 +480,13 @@ describe("gh CLI", () => {
         games: unknown[];
         ledger: unknown[];
         deltas: { home: { xgFor?: number } };
+        quality: { combinedChanceMean: number };
       };
       expect(out.seriesId).toBe("ser-cli-15b");
       expect(out.games).toHaveLength(2);
       expect(out.ledger).toHaveLength(4);
       expect(out.deltas.home).toBeDefined();
+      expect(out.quality.combinedChanceMean).toBeGreaterThanOrEqual(0);
 
       log.mockClear();
       expect(

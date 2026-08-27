@@ -7,6 +7,8 @@ export {
   parsePlaybook,
   parseTeam,
 } from "./schema.ts";
+export { auditPlaybook, formatMemoryAudit } from "./audit.ts";
+export type { MemoryAudit } from "./audit.ts";
 export {
   SEED_TEAM_IDS,
   defaultPlayIdForBook,

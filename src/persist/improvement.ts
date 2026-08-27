@@ -8,6 +8,7 @@ export type ImprovementMetrics = {
   chanceCounts?: { shots: number; distinctChances: number; offsides: number };
   openingPlayId?: string;
   retrieveTopId?: string;
+  playMix?: { playId: string; directives: number }[];
 };
 
 export type ImprovementRow = {

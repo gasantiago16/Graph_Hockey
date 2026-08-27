@@ -11,18 +11,20 @@ import { missingProviderKeys, resolveTeamProfile, type TeamLlmProfile } from "..
 import { defaultExportPath, exportMatchMp4 } from "../film/exportMp4.ts";
 import { retrieveTopChanged, sideScorecard } from "../film/chances.ts";
 import { formatDelta, loadSeriesImprovement } from "../film/improvement.ts";
+import { formatQualityCard, seriesQualityCard, type QualityGameInput } from "../film/qualityCard.ts";
+import { pairClipsForGames } from "../film/pairClips.ts";
 import {
   capturePlaybookSnapshot,
   defaultSnapshotDir,
   readPlaybookSnapshot,
   type PlaybookSnapshot,
 } from "../persist/playbookSnapshots.ts";
-import { pairClipsForGames } from "../film/pairClips.ts";
 import { getFootage } from "../persist/clips.ts";
 import { defaultDbPath, openDb, type Db } from "../persist/db.ts";
 import { getAarReport, getMatch, type MatchResultLabel } from "../persist/matches.ts";
 import { ensureSeedPlaybooks, latestPlaybook, listPlaybookVersions, resetPlaybookToSeed } from "../persist/playbooks.ts";
 import { diffPlaybooks, formatPlaybookDiff } from "../playbook/diff.ts";
+import { auditPlaybook, formatMemoryAudit } from "../playbook/audit.ts";
 import { loadPlaybook, SEED_TEAM_IDS } from "../playbook/store.ts";
 import { runMatch } from "../orchestrator/match.ts";
 import { collectReplayEvents, eventStreamHash, replayMatch } from "../sim/replay.ts";
@@ -37,7 +39,7 @@ Usage:
               [--period-seconds N] [--home-provider xai|muse|openai|gemini] [--away-provider ...] [--home-model SLUG] [--away-model SLUG]
   gh replay --match ID [--to-tick N] [--db PATH]
   gh aar --match ID [--side home|away] [--aar-mode auto|propose|hitl|code]
-  gh playbook --team ID [--diff] [--version N] [--reset-playbook]
+  gh playbook --team ID [--diff] [--version N] [--reset-playbook] [--audit]
   gh series --games 7 [--home ID] [--away ID] [--seed N] [--no-llm] [--no-record] [--aar-mode code|auto|propose] [--db PATH] [--snapshot-dir PATH]
             [--from-snapshot PATH] [--from-db PATH]
             [--home-provider xai|muse|openai|gemini] [--away-provider ...] [--home-model SLUG] [--away-model SLUG]
@@ -59,11 +61,12 @@ Playbook snapshots go in data/playbook-snapshots/<seriesId>/ (before.json + afte
 --seed still reseeds physics only; carried books are independent of env.reset.
 --no-llm series uses 5s periods unless GRAPH_HOCKEY_PERIOD_SECONDS or --period-seconds is set.
 footage --match lists auto-clips + open ticks. --mp4 writes a derivative H.264 file (ffmpeg required; Film Room stays the review surface).
---series prints the improvement ledger + deltas (chances, offsides, retrieveTop).
+--series prints the improvement ledger + deltas (chances, offsides, retrieveTop) and a dual quality card (combined chances, both Δ xG, evenNonDefault). Bank rule is unchanged.
 --compare i,j prints paired signatures (same play + zone, Jaccard ≥ 0.3 fallback).
 replay resimulates from seed + stored DirectiveApplied events (zero LLM).
 aar dumps stored reports or re-runs the AAR graph (--no-llm for code-only).
 playbook --diff prints version N vs N-1 (latest by default). --reset-playbook restores the seed.
+playbook --audit prints retrieve order, leftover, unused even-strength non-default (memory-in-use, not a version integer).
 
 CI / tests may set GRAPH_HOCKEY_PERIOD_SECONDS=5 so a match is not 36,000 ticks
 (default regulation is 3×1200s). GRAPH_HOCKEY_OT_SECONDS is optional; when the
@@ -343,12 +346,35 @@ async function cmdFootage(argv: string[], env: EnvMap): Promise<number> {
         return 1;
       }
       const pairs = compare ? pairClipsForGames(view.clips, compare.early, compare.late) : view.pairs;
+      const qualityGames: QualityGameInput[] = view.games.map((g) => {
+        const homeRow = view.ledger.find((r) => r.teamId === view.home.id && r.gameIndex === g.gameIndex);
+        const awayRow = view.ledger.find((r) => r.teamId === view.away.id && r.gameIndex === g.gameIndex);
+        return {
+          homeChances: homeRow?.metrics.chanceCounts?.distinctChances ?? 0,
+          awayChances: awayRow?.metrics.chanceCounts?.distinctChances ?? 0,
+          homeOffsides: homeRow?.metrics.chanceCounts?.offsides ?? 0,
+          awayOffsides: awayRow?.metrics.chanceCounts?.offsides ?? 0,
+          homeXg: g.aggregates.home.xgFor,
+          awayXg: g.aggregates.away.xgFor,
+          homeMix: homeRow?.metrics.playMix ?? [],
+          awayMix: awayRow?.metrics.playMix ?? [],
+        };
+      });
+      const homeBook = latestPlaybook(db, view.home.id)?.body;
+      const awayBook = latestPlaybook(db, view.away.id)?.body;
+      const quality = seriesQualityCard(
+        qualityGames,
+        homeBook,
+        awayBook,
+        pairs.length,
+      );
       const payload = {
         seriesId: view.seriesId,
         home: view.home,
         away: view.away,
         games: view.games,
         deltas: view.deltas,
+        quality,
         pairs: pairs.map((p) => ({
           signature: p.signature,
           playId: p.playId,
@@ -378,6 +404,7 @@ async function cmdFootage(argv: string[], env: EnvMap): Promise<number> {
         console.log(`footage series ${seriesId}  games=${view.games.length}`);
         console.log(formatDelta("home", view));
         console.log(formatDelta("away", view));
+        for (const line of formatQualityCard(quality)) console.log(line);
         for (const g of view.games) {
           console.log(
             `  g${g.gameIndex}  ${g.matchId}  ${g.score.home}-${g.score.away}  home ${g.result.home}  pb v${g.playbookVersion.home}`,
@@ -556,6 +583,7 @@ async function cmdPlaybook(argv: string[], env: EnvMap): Promise<number> {
   const versionRaw = opt(argv, "version");
   const wantDiff = flag(argv, "diff");
   const wantReset = flag(argv, "reset-playbook");
+  const wantAudit = flag(argv, "audit");
   const asJson = flag(argv, "json");
 
   return withDb(dbPath, async (db) => {
@@ -581,6 +609,12 @@ async function cmdPlaybook(argv: string[], env: EnvMap): Promise<number> {
         return 1;
       }
       target = hit;
+    }
+    if (wantAudit) {
+      const audit = auditPlaybook(target.body);
+      if (asJson) console.log(JSON.stringify(audit, null, 2));
+      else for (const line of formatMemoryAudit(audit)) console.log(line);
+      return 0;
     }
     if (wantDiff) {
       const from = versions.find((r) => r.version === target.version - 1) ?? versions[0]!;
@@ -698,6 +732,24 @@ async function cmdSeries(argv: string[], env: EnvMap): Promise<number> {
   });
   const homeTops = matches.map((g) => g.home.retrieveTopId);
   const awayTops = matches.map((g) => g.away.retrieveTopId);
+  const qualityGames: QualityGameInput[] = matches.map((g) => ({
+    homeChances: g.home.distinctChances,
+    awayChances: g.away.distinctChances,
+    homeOffsides: g.home.offsides,
+    awayOffsides: g.away.offsides,
+    homeXg: g.xg.home,
+    awayXg: g.xg.away,
+    homeMix: g.home.playMix,
+    awayMix: g.away.playMix,
+  }));
+  const lastHomeBook = latestSnapshotBook(result.matches.at(-1)?.snapshot ?? result.beforeSnapshot, homeTeamId);
+  const lastAwayBook = latestSnapshotBook(result.matches.at(-1)?.snapshot ?? result.beforeSnapshot, awayTeamId);
+  const pairCount = await withDb(dbPath, async (db) => {
+    const view = loadSeriesImprovement(db, seriesId);
+    if (!view || view.games.length < 2) return 0;
+    return pairClipsForGames(view.clips, 0, view.games.length - 1).length;
+  });
+  const quality = seriesQualityCard(qualityGames, lastHomeBook, lastAwayBook, pairCount);
   const payload = {
     seriesId: result.seriesId,
     seed: result.seed,
@@ -731,6 +783,7 @@ async function cmdSeries(argv: string[], env: EnvMap): Promise<number> {
         steps: matches.length,
       },
     },
+    quality,
   };
   if (flag(argv, "json")) {
     console.log(JSON.stringify(payload, null, 2));
@@ -753,6 +806,7 @@ async function cmdSeries(argv: string[], env: EnvMap): Promise<number> {
         `  away ${L.retrieveTopChanged.away}/${L.retrieveTopChanged.steps}` +
         `  booksMoved ${L.booksMoved.home}/${L.booksMoved.away}`,
     );
+    for (const line of formatQualityCard(quality)) console.log(line);
     console.log(`snapshots ${payload.snapshotDir}`);
   }
   return 0;

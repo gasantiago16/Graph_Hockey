@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | **Date** | 2026-08-27 |
-| **Status** | Cycle 5 attempt **2/5** (bank **2/5**). Evaluate 19: AAR targeting **works** (g1/g4 none). Chance mean **4.43**, pairs 0, Δ **−0.042**. Glimmer **up**. |
+| **Status** | Cycle 5 attempt **2/5** (bank **2/5**). Dual quality card + `playbook --audit` shipped. Combined Evaluate 8 **11.43** vs Evaluate 19 **9.29**. Bank rule unchanged. |
 | **Scoreboard** | [`better-hockey.md`](better-hockey.md) |
 | **Bibliography** | [`ANNOTATED_BIBLIOGRAPHY.md`](ANNOTATED_BIBLIOGRAPHY.md) |
 | **Handbook** | [`FORgasan.md`](FORgasan.md) |
@@ -180,6 +180,10 @@ A `PlaybookStore` implementing `BaseStore`: namespace `["playbook", teamId]`, ke
 | **PR-R5** | Never boost PP/PK when 5v5 was on the ice | `src/aar/nodes/draftRevision.ts` | R4 | **shipped `99b4e4e`.** Evaluate 17 **not credited** (g0 worked; g1/g4 0-second leftover). |
 | **PR-R5b** | Even-strength DirectiveApplied counts as on-ice | `src/aar/nodes/draftRevision.ts` | R5 | **shipped `b535c63`.** Draft-only. Evaluate 18 void. |
 | **PR-R5b apply** | mutate even-on-ice (do not re-inject PP/PK) | `src/playbook/mutate.ts`, `apply.ts` | R5b | **shipped `4055986`.** Evaluate 19 **not credited** (g1/g4 none; chance mean 4.43, pairs 0). |
+| **Q1** | Dual quality card (combined chances, both Δ xG, evenNonDefault, coadapt) | `src/film/qualityCard.ts`, CLI | none | **shipped.** Never an Evaluate. Bank rule unchanged. |
+| **M1** | `playbook --audit` retrieve/leftover/unused | `src/playbook/audit.ts`, CLI | none | **shipped.** Never an Evaluate. |
+| **M2** | `--retrieve-seed` null arm | series CLI | M1 | Learning Evaluate later |
+| **M3** | Per-side `--from-snapshot` + cross-play | series CLI | R1 | Learning Evaluate later |
 | **PR-R3** | Optional `BaseStore` playbook adapter | `src/playbook/`, `teamGraph.ts` | R1 | Only if retrieve path actually reads Store |
 
 Independently mergeable: R2 and H1 do not need R1. R1 is the learning proof. Cranky → `npm test` on all. Goldens move only if H1 changes `--no-llm` physics.
@@ -187,8 +191,8 @@ Independently mergeable: R2 and H1 do not need R1. R1 is the learning proof. Cra
 ### Suggested sequence
 
 1. Docs + R1–R5 + leftover retrieve **shipped**. Retention survive **ran**. Live transfer **started** (cycle, then trap, then 122 rate).
-2. **Now:** PR-R5b apply-path **works** (Evaluate 19 g1/g4 none). Next is volume, not another AAR boost gate. Bank 2/5, attempt 2/5, flat 2/3.
-3. Bank 5 is still the hockey program.
+2. **Now:** Q1 dual card + M1 audit **shipped**. Next is M3 cross-play (staff vs frozen) then M2 null retrieve. Do not recode bank 2/5. Do not add another AAR boost gate.
+3. Bank 5 is still the hockey program; combined chance mean **11.43** (Evaluate 8) is the pending combined floor.
 
 ---
 

@@ -33,6 +33,8 @@ This is an epistemic review, not a merge gate. Empty “no source” is allowed;
 - “Home retrieveTop 0/6 means learning failed.” After the lead-protect gate, 0/6 can be success (they stopped picking the illegal sheet). It is a **diagnostic**, not the live-learns pass.
 - “Dump-in / high-slot / F2 chase is LangGraph learning.” Those are **environment** repairs (C4).
 - “A version integer is knowledge retention.” Storage without later retrieve-and-use is not memory-in-use (C7).
+- “Home Δ xG vs a learning away bench proves the staff got better.” Self-play EVAL is vs a **frozen** opponent (Zhang et al. 2024 survey; Search Self-play 2025). Opposing Δ xG is **`coadapt`**, not a quality fail. Cross-play HS/SH is how we claim a staff improved.
+- “Goals in a 7×20s series are skill.” Even-strength process (xG, chances) over goals; ~70% of NHL goals are 5v5 (DataDrivenHockey 2024).
 
 ---
 
@@ -82,6 +84,12 @@ Label C8 **fails**. Fixing C8 is optional LangGraph-native wiring. Proving C6 do
 - **Jiang 2019, agent-environment boundary.** https://arxiv.org/abs/1905.13341 — Same problem, different cuts, different “optimal” values. *Plant:* keep playbooks on the agent side or C4 becomes a tautology.
 - **Hu, Long, Wang 2026, When Continual Learning Moves to Memory.** https://arxiv.org/abs/2604.27003 — Carry memory Task A → Task B. FWT/BWT. External memory does **not** dissolve stability–plasticity; pollution/dilution still happen.
 - **Lin 1992, experience replay.** *Machine Learning* 8:293–321 — Replay feeds **gradient** updates. Do not equate AAR retrieval with DQN replay.
+
+### Self-play / hockey metrics (2026-08-27 add)
+
+- **Zhang et al. 2024, A Survey on Self-play Methods in RL.** https://arxiv.org/abs/2408.01072 — EVAL vs policy population / frozen copies. In-game score vs the live co-player is not skill.
+- **Search Self-play, 2025.** https://arxiv.org/abs/2510.18821 — Solver in-game reward can dip while frozen-benchmark scores rise (opponent got harder). *Plant:* `flag coadapt`.
+- **DataDrivenHockey 2024, rate stats and strength states.** https://www.data-driven-hockey.com/2024/02/21/hockey-analytics-primer-rate-stats-and-strength-states/ — ~70% of NHL goals even-strength; PP/PK rates are a different sport. *Plant:* evenShare / combined chances, not goals.
 
 ---
 

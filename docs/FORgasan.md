@@ -537,8 +537,8 @@ These are not hypothetical. They showed up in design review or PR review and wou
 
 Live counters: [`better-hockey.md`](better-hockey.md) (bank **2/5**). Learning plan: [`knowledge-and-learning.md`](knowledge-and-learning.md). Bibliography: [`ANNOTATED_BIBLIOGRAPHY.md`](ANNOTATED_BIBLIOGRAPHY.md).
 
-1. **Apply-path even-on-ice works.** Evaluate 19 g1/g4 AAR none. Do not add another boost gate. Next is 5v5 volume / retrieve leaving 122.
-2. **Chance mean** still under 6 (Evaluate 19: 4.43, pairs 0). Do not raise unused bonus. Do not revert leftover retrieve.
+1. **Dual quality card + `playbook --audit` shipped.** Combined chances Evaluate 8 **11.43** vs Evaluate 19 **9.29**. Bank 2/5 unchanged. `coadapt` is not a quality fail.
+2. **Next:** cross-play vs frozen books (M3), then null retrieve (M2). Do not say Store / version-integer / ice-as-learning.
 3. **Captain micro** stays off. **HITL later.**
 4. Glimmer is **up** (used for Evaluate 17). Do not kill `:8080` unless asked. Do not restart 8787. Do not raise timeouts.
 5. Keep `AGENTS.md` honest: `src/ice/` is environment. Playbooks are agent memory. `--aar-mode code` is not `--no-llm`. We do **not** compile LangGraph `store` today.
