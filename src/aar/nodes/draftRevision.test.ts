@@ -87,7 +87,7 @@ describe("codeDraft", () => {
     expect(rev.ops[0]).toMatchObject({ op: "boost", playId: "5v5-122-forecheck" });
   });
 
-  it("winner still boosts PP when no even-strength play had xG", () => {
+  it("winner still boosts PP when no even-strength play was on the ice", () => {
     const rev = codeDraft(
       state({
         result: "win",
@@ -100,6 +100,48 @@ describe("codeDraft", () => {
       }),
     );
     expect(rev.ops[0]).toMatchObject({ op: "boost", playId: "pp1-umbrella" });
+  });
+
+  it("winner does not boost PP/PK when 5v5 was on the ice with 0 xG", () => {
+    const rev = codeDraft(
+      state({
+        result: "win",
+        playUsage: [
+          { playId: "5v5-122-forecheck", xgFor: 0, xgAgainst: 0, seconds: 40, xgShare: 0 },
+          { playId: "pp1-umbrella", xgFor: 0.74, xgAgainst: 0, seconds: 12, xgShare: 1 },
+        ],
+        eventLogDigest: {
+          matchId: "m",
+          events: [{ id: makeEventId("m", 1), type: "Shot", liveTick: 40, playId: "pp1-umbrella", xG: 0.74 }],
+        },
+        knownEventIds: [makeEventId("m", 0), makeEventId("m", 1)],
+      }),
+    );
+    expect(rev.ops.some((o) => o.op === "boost")).toBe(false);
+  });
+
+  it("tie does not boost pk1-box when 5v5 was on the ice", () => {
+    const rev = ensureMandatoryBoost(
+      state({
+        result: "tie",
+        playUsage: [
+          { playId: "5v5-122-forecheck", xgFor: 0, xgAgainst: 0, seconds: 30, xgShare: 0 },
+          { playId: "pk1-box", xgFor: 0.5, xgAgainst: 0, seconds: 40, xgShare: 1 },
+        ],
+      }),
+      {
+        summary: "llm",
+        ops: [
+          {
+            op: "boost",
+            playId: "pk1-box",
+            reason: "penalty",
+            eventIds: [makeEventId("m", 0)],
+          },
+        ],
+      },
+    );
+    expect(rev.ops.some((o) => o.op === "boost")).toBe(false);
   });
 
   it("loser add_counter targets 5v5 instead of PP umbrella", () => {

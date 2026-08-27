@@ -270,6 +270,7 @@ Seven games as a row of books. The loop is the row getting thicker. Quality is w
 | **`ser-emp-22` Evaluate 15** | retrieveTop **`oz-cycle-low`**. g1 opened trap. Δ **+0.359**. Chance mean **3.86**, pairs 0. Not credited. | Menu transferred. Skating still mostly 122 (timeout leftover). Unused never expires: cycle `stats.games` stayed 0. |
 | **Leftover retrieve #1 (`33878fc`)** | Timeout/micro skate retrieveFallbackId. Goldens unchanged. | Leftover 122 is gone when retrieve moved. |
 | **`ser-emp-23` Evaluate 16** | g1 opened **trap**. Cycle games 1. retrieve back to 122. Chance mean **4.29**, pairs 0, Δ **−0.023**. **Cycle 4 abort.** | One-look unused works. Quality fail is PP/PK boost (g0 umbrella×10, g4 pk-box×14). |
+| **AAR no PP/PK boost if 5v5 on ice** | Stay even-strength when 5v5/3v3 had seconds. Strip special-teams boosts. Goldens unchanged. | Evaluate 17 waits for Glimmer. |
 
 ### The 7-game card (`ser-emp-7`)
 
@@ -531,7 +532,7 @@ These are not hypothetical. They showed up in design review or PR review and wou
 
 Live counters: [`better-hockey.md`](better-hockey.md) (bank **2/5**). Learning plan: [`knowledge-and-learning.md`](knowledge-and-learning.md). Bibliography: [`ANNOTATED_BIBLIOGRAPHY.md`](ANNOTATED_BIBLIOGRAPHY.md).
 
-1. **Never boost PP/PK when a 5v5 play was on the ice.** Evaluate 16 leftover retrieve works. Chance mean dies on umbrella/pk-box lessons. Unit tests can ship while Glimmer is down; Evaluate 17 waits.
+1. **AAR no PP/PK boost if 5v5 was on the ice — shipped.** Evaluate 17 waits for Glimmer. Pure special-teams games still boost PP/PK.
 2. **Chance mean** still under 6 (Evaluate 16: 4.29). Do not raise unused bonus. Do not revert leftover retrieve.
 3. **Captain micro** stays off. **HITL later.**
 4. Glimmer is **down** (killed). Do not restart `:8080` or 8787 unless asked. Do not raise timeouts.

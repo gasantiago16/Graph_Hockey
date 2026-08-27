@@ -51,14 +51,21 @@ function isEvenStrengthPlay(play: Play): boolean {
   return play.strength.includes("5v5") || play.strength.includes("3v3");
 }
 
-/** Prefer 5v5/3v3 xG plays so a 20s PP is not the series lesson. Fall back if none have xG. */
+function evenStrengthOnIce(state: AarGraphStateType): boolean {
+  return (state.playUsage ?? []).some((row) => {
+    const play = targetPlay(state, row.playId);
+    return !!play && isEvenStrengthPlay(play) && (row.seconds > 0 || row.xgFor > 0 || row.xgAgainst > 0);
+  });
+}
+
+/** Prefer 5v5/3v3 so a 20s PP is not the series lesson. Stay even if 5v5 was on the ice with 0 xG. */
 function lessonUsage(state: AarGraphStateType): PlayUsage[] {
   const usage = state.playUsage ?? [];
   const even = usage.filter((row) => {
     const play = targetPlay(state, row.playId);
     return play ? isEvenStrengthPlay(play) : false;
   });
-  if (even.some((row) => row.xgFor > 0)) return even;
+  if (even.some((row) => row.xgFor > 0 || row.seconds > 0 || row.xgAgainst > 0)) return even;
   return [...usage];
 }
 
@@ -81,6 +88,17 @@ function boostHasMatchXg(state: AarGraphStateType, op: PlayMutation): boolean {
 }
 
 export function ensureMandatoryBoost(state: AarGraphStateType, revision: PlaybookRevision): PlaybookRevision {
+  const evenOnIce = evenStrengthOnIce(state);
+  if (evenOnIce) {
+    revision = {
+      summary: revision.summary,
+      ops: revision.ops.filter((op) => {
+        if (op.op !== "boost") return true;
+        const play = targetPlay(state, op.playId);
+        return play ? isEvenStrengthPlay(play) : false;
+      }),
+    };
+  }
   const needWinBoost = state.result === "win";
   const pool = lessonUsage(state);
   const sharePlay = playWithXgShare(pool, TIE_BOOST_XG_SHARE);

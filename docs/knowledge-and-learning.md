@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | **Date** | 2026-08-26 |
-| **Status** | **Closed 2026-08-26.** Cycle 4 aborted (bank **2/5**). Transfer started (Evaluate 15–16). Glimmer **down**. Next: never boost PP/PK when 5v5 was on the ice. |
+| **Status** | 2026-08-27. Cycle 4 aborted (bank **2/5**). PR-R5 shipped (no PP/PK boost if 5v5 on ice). Glimmer **down**. Evaluate 17 waits. |
 | **Scoreboard** | [`better-hockey.md`](better-hockey.md) |
 | **Bibliography** | [`ANNOTATED_BIBLIOGRAPHY.md`](ANNOTATED_BIBLIOGRAPHY.md) |
 | **Handbook** | [`FORgasan.md`](FORgasan.md) |
@@ -171,7 +171,7 @@ A `PlaybookStore` implementing `BaseStore`: namespace `["playbook", teamId]`, ke
 | **PR-H1b** | F2 outlet only in established OZ (`BLUE+8`) | `src/ice/roles.ts`, tests, goldens | H1 | **shipped `9ddd4f4`.** Evaluate 12 not credited (g5 home 4 offs). |
 | **PR-R4** | Retrieve unused + loser retarget | `src/playbook/retrieve.ts`, `draftRevision.ts` | R1 | **shipped `5f7ca56`.** Evaluate 15 retrieveTop cycle. |
 | **Leftover #1** | Timeout/micro skate retrieveFallbackId | `invokeTeam.ts`, `assembleDirective.ts` | R4 | **shipped `33878fc`.** Evaluate 16 g1 trap; cycle 4 abort. |
-| **PR-R5** | Never boost PP/PK when 5v5 was on the ice | `src/aar/nodes/draftRevision.ts` | R4 | Counting Evaluate 17 when Glimmer is back. |
+| **PR-R5** | Never boost PP/PK when 5v5 was on the ice | `src/aar/nodes/draftRevision.ts` | R4 | **shipped.** Counting Evaluate 17 when Glimmer is back. |
 | **PR-R3** | Optional `BaseStore` playbook adapter | `src/playbook/`, `teamGraph.ts` | R1 | Only if retrieve path actually reads Store |
 
 Independently mergeable: R2 and H1 do not need R1. R1 is the learning proof. Cranky → `npm test` on all. Goldens move only if H1 changes `--no-llm` physics.
@@ -179,7 +179,7 @@ Independently mergeable: R2 and H1 do not need R1. R1 is the learning proof. Cra
 ### Suggested sequence
 
 1. Docs + R1–R4 + leftover retrieve **shipped**. Retention survive **ran**. Live transfer **started** (cycle, then trap, then 122 rate).
-2. **Next session:** PR-R5 (no PP/PK boost when 5v5 was on the ice) → Evaluate 17 when Glimmer is back.
+2. **Now:** PR-R5 shipped (no PP/PK boost when 5v5 was on the ice). Evaluate 17 when Glimmer is back.
 3. Bank 5 is still the hockey program.
 
 ---

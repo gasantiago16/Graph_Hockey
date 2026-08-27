@@ -31,7 +31,7 @@ This is the live **quality** scoreboard. Update it after every counting Evaluate
 | Cycle | **5** | Cycles 1–4 aborted. Bank kept. Attempts reset |
 | Attempts this cycle | **0 / 5** | After Evaluate 16 abort |
 | Flat streak | **0 / 3** | Reset on abort |
-| On `main` | leftover retrieve #1 `33878fc` · docs `19d3bed` | pr7 `1d80eee2` count 107; pr8 `be48bb68` count 315. Shot 0, Offside 0 |
+| On `main` | leftover retrieve `33878fc` + **AAR no PP/PK boost if 5v5 on ice** | Goldens unchanged. Evaluate 17 waits for Glimmer. |
 | Glimmer | **down** (killed; do not restart unless asked) | Live Evaluates wait. Ice + `npm test` do not. Do not restart 8787. Timeouts not raised. |
 | Learning proofs | write **yes** · retain survive **yes** · transfer **menu yes / skate mixed** · quality **2/5** | See [`knowledge-and-learning.md`](knowledge-and-learning.md) |
 | Goldens | pr7 `1d80eee2…` count **107**; pr8 `be48bb68…` count **315**, epochs **11** | F3 just-in occupy. Shot **0**, Offside **0**. pr7 106→107 is one extra event, not a Shot storm. |
@@ -109,6 +109,7 @@ Control twin (`ser-emp-9-nollm`): books v1, retrieveTop 0/6, offsides 0–2 (g6 
 | F3 just-in occupy | `f9aa178` on `main` | Just-in OZ F3 at `alongPuck+4`. Slot after `BLUE+8`. pr7 106→107 Shot 0 Offside 0; pr8 count 315 Offside 0 | Evaluate 14 (**not credited**) |
 | Retrieve unused + loser retarget | `5f7ca56` on `main` | Rank retrieve by xG rate + unused-play bonus. Loser `add_counter` on a different even-strength sheet. Goldens unchanged. | Evaluate 15 (**not credited**; retrieveTop cycle) |
 | Leftover skates retrieve #1 | `33878fc` on `main` | Timeout/circuit/micro leftover uses retrieveFallbackId. Leading protect kept. Goldens unchanged. | Evaluate 16 (**not credited**, cycle abort) |
+| AAR no PP/PK boost if 5v5 on ice | this commit | `lessonUsage` stays even-strength when 5v5/3v3 had seconds. Strip special-teams boosts. Pure PP still boosts PP. Goldens unchanged. | Evaluate 17 (waits for Glimmer) |
 | PR-5 Ds tag-up | [#5](https://github.com/gasantiago16/Graph_Hockey/pull/5) | closed; absorbed into `c1e7707` | — |
 | PR-6 captain | skipped | env off | — |
 | PR-7 `lpTrail` flag | [#4](https://github.com/gasantiago16/Graph_Hockey/pull/4) | draft | never |
@@ -626,7 +627,7 @@ Bank stays 2. Leftover retrieve #1 **works** (g1 opened trap). Unused one-look *
 
 The floor fail is chance mean and pairs. g0/g4 mix is **PP/PK** (umbrella×10, pk-box×14). `lessonUsage` still falls back to PP/PK when even-strength xG is 0, then a tie/win boosts the penalty sheet. Next quality PR: **never boost PP/PK when a 5v5 play was on the ice**, even if even-strength xG is 0 — boost or leave the even-strength sheet. Counting Evaluate 17. Do not raise timeouts. Do not change the Δ xG bar.
 
-**Closed 2026-08-26.** `main` at leftover retrieve + Evaluate 16 docs. Glimmer killed. Do not restart `:8080` or 8787. Next session: AAR PP/PK boost gate (unit tests now; live Evaluate 17 when Glimmer is back).
+**Cycle 5 PR-1 (shipped, no live Evaluate yet):** never boost PP/PK when a 5v5 play was on the ice. Pure special-teams games still boost PP/PK. Glimmer is down. Do not restart `:8080` or 8787. Counting Evaluate 17 when Glimmer is back. Do not raise timeouts. Do not change the Δ xG bar.
 
 ### Dump-in golden move (intentional)
 
