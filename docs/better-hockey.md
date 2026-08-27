@@ -3,8 +3,8 @@
 | Field | Value |
 | --- | --- |
 | **Author** | Graph_Hockey staff (design) |
-| **Date** | 2026-08-26 |
-| **Status** | **Cycle 4 aborted (bank 2/5).** Evaluate 16 leftover skated retrieve #1 (g1 opened **trap**). Chance mean **4.29**, pairs 0, Δ xG **−0.023**. Unused expired; retrieve back to 122. |
+| **Date** | 2026-08-27 |
+| **Status** | **Cycle 5 attempt 1/5 (bank 2/5).** Evaluate 17 PR-R5 partial: g0 boosted **122** not umbrella. g1/g4 still boosted **pk1-box** (even-strength DirectiveApplied, 0 usage seconds). Chance mean **3.43**, pairs 1, Δ xG **−0.049** (would beat −0.071; floors fail). |
 | **Repo** | `C:\Users\gasan\Graph_Hockey` (private, `main` playable) |
 | **Success criterion** | **Five empirical improvements.** Not five attempts. Not five version bumps. Not “stop when the numbered PR stack is done.” Keep cycling (including a **post-stack Diagnose menu**) until `improvements == 5` or the user stops. |
 | **PLAN_ID** | `f1d4bdeb` (resume leftover PRs with `/execute-plan --resume f1d4bdeb` after Evaluate context) |
@@ -28,11 +28,11 @@ This is the live **quality** scoreboard. Update it after every counting Evaluate
 | **Bank** (goal) | **2 / 5** | Kept on cycle abort. Next credit `homeΔxG > −0.071` **and** pairs ≥ **4** **and** chance mean ≥ 6 |
 | Previous-best home Δ xG | **−0.071** | `ser-emp-15` g0→g6. Unchanged (Evaluate 11 +0.443 not credited) |
 | Previous-best pairs | **4** | Evaluate 8. Evaluates 9–11 pairs 3 |
-| Cycle | **5** | Cycles 1–4 aborted. Bank kept. Attempts reset |
-| Attempts this cycle | **0 / 5** | After Evaluate 16 abort |
-| Flat streak | **0 / 3** | Reset on abort |
-| On `main` | leftover retrieve `33878fc` + **AAR no PP/PK boost if 5v5 on ice** | Goldens unchanged. Evaluate 17 waits for Glimmer. |
-| Glimmer | **down** (killed; do not restart unless asked) | Live Evaluates wait. Ice + `npm test` do not. Do not restart 8787. Timeouts not raised. |
+| Cycle | **5** | Cycles 1–4 aborted. Bank kept. |
+| Attempts this cycle | **1 / 5** | Evaluate 17 not credited |
+| Flat streak | **1 / 3** | After Evaluate 17 |
+| On `main` | leftover retrieve `33878fc` + AAR no PP/PK if 5v5 on ice `99b4e4e` | Goldens unchanged. Evaluate 17 ran. |
+| Glimmer | **up** (`:8080`, used for Evaluate 17) | Do not kill unless asked. Do not restart 8787. Timeouts not raised. |
 | Learning proofs | write **yes** · retain survive **yes** · transfer **menu yes / skate mixed** · quality **2/5** | See [`knowledge-and-learning.md`](knowledge-and-learning.md) |
 | Goldens | pr7 `1d80eee2…` count **107**; pr8 `be48bb68…` count **315**, epochs **11** | F3 just-in occupy. Shot **0**, Offside **0**. pr7 106→107 is one extra event, not a Shot storm. |
 
@@ -109,7 +109,7 @@ Control twin (`ser-emp-9-nollm`): books v1, retrieveTop 0/6, offsides 0–2 (g6 
 | F3 just-in occupy | `f9aa178` on `main` | Just-in OZ F3 at `alongPuck+4`. Slot after `BLUE+8`. pr7 106→107 Shot 0 Offside 0; pr8 count 315 Offside 0 | Evaluate 14 (**not credited**) |
 | Retrieve unused + loser retarget | `5f7ca56` on `main` | Rank retrieve by xG rate + unused-play bonus. Loser `add_counter` on a different even-strength sheet. Goldens unchanged. | Evaluate 15 (**not credited**; retrieveTop cycle) |
 | Leftover skates retrieve #1 | `33878fc` on `main` | Timeout/circuit/micro leftover uses retrieveFallbackId. Leading protect kept. Goldens unchanged. | Evaluate 16 (**not credited**, cycle abort) |
-| AAR no PP/PK boost if 5v5 on ice | this commit | `lessonUsage` stays even-strength when 5v5/3v3 had seconds. Strip special-teams boosts. Pure PP still boosts PP. Goldens unchanged. | Evaluate 17 (waits for Glimmer) |
+| AAR no PP/PK boost if 5v5 on ice | `99b4e4e` on `main` | `lessonUsage` stays even-strength when 5v5/3v3 had seconds. Strip special-teams boosts. Pure PP still boosts PP. Goldens unchanged. | Evaluate 17 (**not credited**) |
 | PR-5 Ds tag-up | [#5](https://github.com/gasantiago16/Graph_Hockey/pull/5) | closed; absorbed into `c1e7707` | — |
 | PR-6 captain | skipped | env off | — |
 | PR-7 `lpTrail` flag | [#4](https://github.com/gasantiago16/Graph_Hockey/pull/4) | draft | never |
@@ -627,7 +627,46 @@ Bank stays 2. Leftover retrieve #1 **works** (g1 opened trap). Unused one-look *
 
 The floor fail is chance mean and pairs. g0/g4 mix is **PP/PK** (umbrella×10, pk-box×14). `lessonUsage` still falls back to PP/PK when even-strength xG is 0, then a tie/win boosts the penalty sheet. Next quality PR: **never boost PP/PK when a 5v5 play was on the ice**, even if even-strength xG is 0 — boost or leave the even-strength sheet. Counting Evaluate 17. Do not raise timeouts. Do not change the Δ xG bar.
 
-**Cycle 5 PR-1 (shipped, no live Evaluate yet):** never boost PP/PK when a 5v5 play was on the ice. Pure special-teams games still boost PP/PK. Glimmer is down. Do not restart `:8080` or 8787. Counting Evaluate 17 when Glimmer is back. Do not raise timeouts. Do not change the Δ xG bar.
+**Cycle 5 PR-1 (shipped, counted):** never boost PP/PK when a 5v5 play was on the ice. Pure special-teams games still boost PP/PK. Evaluate 17 ran with Glimmer up.
+
+### Evaluate 17 — `ser-emp-24` (2026-08-27)
+
+AAR no PP/PK boost if 5v5 on ice `99b4e4e`. Same protocol. Twin `ser-emp-24-nollm`. Timeout 8000. Not raised. Glimmer up on `:8080`.
+
+| Gate | Result |
+| --- | --- |
+| Control honest | **pass** — v1, retrieveTop 0/6, `booksMoved` false. Offsides 0–2. g0 chances 4–5 (same as `ser-emp-23-nollm`) |
+| Live writes books | **pass** — v1→v8. retrieveTopChanged home **1/6** (cycle → 122), away **1/6** |
+| Lead-protect skating | **pass** — 0 illegal hits. g3×1 / g6×2 protect-lead while leading (legal) |
+| Offsides 0–2 | **pass** — max 2 |
+| Chance mean | **3.43** (6,4,4,2,2,3,3) < 6 (**floor fail**) |
+| Pairs `--compare 0,6` | **1** < 4 (**floor fail**). Pair is `pp1-umbrella` OZ goal→goal |
+| Home Δ xG g0→g6 | **−0.049** (0.320 → 0.271) would beat −0.071; floors fail |
+| Transfer skate | **g1 opened `nz-122-trap`**. Cycle games **1**. Then retrieve back to 122 |
+
+**Improved: no.** Bank **2 / 5**. Cycle 5 attempt **1 / 5**. Flat **1 / 3**.
+
+Live card:
+
+| G | Score | Home opening | Home retrieve | Home ch/off | Home AAR boost |
+| --- | --- | --- | --- | ---: | --- |
+| 0 | 2–1 home | `5v5-122-forecheck` | `oz-cycle-low` | 6 / 1 | **`5v5-122-forecheck`** (not umbrella) |
+| 1 | 0–0 tie | **`nz-122-trap`** | `5v5-122-forecheck` | 4 / 2 | **`pk1-box`** |
+| 2 | 1–1 tie | `5v5-122-forecheck` | `5v5-122-forecheck` | 4 / 2 | `5v5-122-forecheck` |
+| 3 | 2–0 home | `5v5-122-forecheck` | `5v5-122-forecheck` | 2 / 1 | `protect-lead-1-1-3` |
+| 4 | 1–1 tie | `5v5-122-forecheck` | `5v5-122-forecheck` | 2 / 0 | **`pk1-box`** |
+| 5 | 1–4 away | `5v5-122-forecheck` | `5v5-122-forecheck` | 3 / 1 | add_counter `oz-cycle-low` |
+| 6 | 3–0 home | `5v5-122-forecheck` | `5v5-122-forecheck` | 3 / 1 | `5v5-122-forecheck` |
+
+g0 mix umbrella×8 + 122×3, digest `topPlay=pp1-umbrella` share 55% — AAR still boosted **122**. That is PR-R5 working when 5v5 had usage seconds. g1 mix trap×1 + cycle×1 + pk-box×11; g4 mix 122×1 + collapse×1 + pk-box×14. Both still boosted **pk1-box**. `evenStrengthOnIce` keys off `playUsage` seconds/xG, not `DirectiveApplied`. Opening leftover that is immediately replaced by a penalty has **0** even-strength seconds, so the strip does not fire.
+
+End menu: 122 games **6** net **+0.44**; cycle games **1** net 0; trap games **1** net 0; pk-box games **4** net **−1.64**.
+
+### Cycle 5 Diagnose (after Evaluate 17)
+
+Bank stays 2. PR-R5 is **partial**. Do **not** revert it. Do **not** raise unused bonus. Do **not** revert leftover retrieve. Do **not** raise timeouts. Do **not** change the Δ xG bar.
+
+The floor fail is still chance mean and pairs. The remaining AAR hole: **treat even-strength `DirectiveApplied` as on-ice** even when `playUsage` seconds and xG are 0. That is how g1/g4 (and g5 away PP boost) still wrote special-teams sheets. Winner boosting `protect-lead` on g3 is legal skating and a separate targeting question — not this Evaluate’s credit.
 
 ### Dump-in golden move (intentional)
 

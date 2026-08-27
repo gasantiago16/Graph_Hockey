@@ -2,7 +2,7 @@
 
 You wanted two LangGraphs to fight each other at hockey, then get smarter after every result. That is still the product. What we *shipped* is more specific, and this file is honest about it: **two independent benches**, **ice that is code**, **one Head Coach call per live epoch**, and **an After-Action Review that patches a playbook** so game 7 is not a rerun of game 1.
 
-We measured that loop (`ser-emp-7`), gated retrieve, killed offside storms, shipped dump-in, taught AAR to boost 5v5, F2 dump-chase, DZ leftover, film chance-pair, high-slot, DZ outlet, F2/F3 ice, then retrieve unused + leftover retrieve #1. Evaluate 8 credited bank **2/5**. Cycle 4 aborted after Evaluate 16. Evaluate 15–16 **moved the menu** (`oz-cycle-low`, g1 trap); 122 still wins on rate after the one-look.
+We measured that loop (`ser-emp-7`), gated retrieve, killed offside storms, shipped dump-in, taught AAR to boost 5v5, F2 dump-chase, DZ leftover, film chance-pair, high-slot, DZ outlet, F2/F3 ice, then retrieve unused + leftover retrieve #1. Evaluate 8 credited bank **2/5**. Cycle 4 aborted after Evaluate 16. Evaluate 17 (PR-R5) was **not credited**: g0 boosted 122 not umbrella, g1/g4 still boosted pk-box. Chance mean **3.43**, pairs 1, Δ **−0.049**. Evaluate 15–17 **moved the menu** (`oz-cycle-low`, g1 trap); 122 still wins on rate after the one-look.
 
 Three proofs, not one slogan: **write path proven**, **retention survive proven** (`ser-retain-1` g0 v8), **transfer started** (menu + one leftover skate), **hockey bank 2/5**. Plan: [`knowledge-and-learning.md`](knowledge-and-learning.md). Scoreboard: [`better-hockey.md`](better-hockey.md).
 
@@ -270,7 +270,8 @@ Seven games as a row of books. The loop is the row getting thicker. Quality is w
 | **`ser-emp-22` Evaluate 15** | retrieveTop **`oz-cycle-low`**. g1 opened trap. Δ **+0.359**. Chance mean **3.86**, pairs 0. Not credited. | Menu transferred. Skating still mostly 122 (timeout leftover). Unused never expires: cycle `stats.games` stayed 0. |
 | **Leftover retrieve #1 (`33878fc`)** | Timeout/micro skate retrieveFallbackId. Goldens unchanged. | Leftover 122 is gone when retrieve moved. |
 | **`ser-emp-23` Evaluate 16** | g1 opened **trap**. Cycle games 1. retrieve back to 122. Chance mean **4.29**, pairs 0, Δ **−0.023**. **Cycle 4 abort.** | One-look unused works. Quality fail is PP/PK boost (g0 umbrella×10, g4 pk-box×14). |
-| **AAR no PP/PK boost if 5v5 on ice** | Stay even-strength when 5v5/3v3 had seconds. Strip special-teams boosts. Goldens unchanged. | Evaluate 17 waits for Glimmer. |
+| **AAR no PP/PK boost if 5v5 on ice (`99b4e4e`)** | Stay even-strength when 5v5/3v3 had **usage seconds**. Strip special-teams boosts. Goldens unchanged. | Counted Evaluate 17. Partial. |
+| **`ser-emp-24` Evaluate 17** | g0 boosted **122** not umbrella. g1/g4 still **pk1-box**. Chance mean **3.43**, pairs 1, Δ **−0.049**. Not credited. | PR-R5 partial: `evenStrengthOnIce` misses 0-second leftover 5v5. |
 
 ### The 7-game card (`ser-emp-7`)
 
@@ -532,10 +533,10 @@ These are not hypothetical. They showed up in design review or PR review and wou
 
 Live counters: [`better-hockey.md`](better-hockey.md) (bank **2/5**). Learning plan: [`knowledge-and-learning.md`](knowledge-and-learning.md). Bibliography: [`ANNOTATED_BIBLIOGRAPHY.md`](ANNOTATED_BIBLIOGRAPHY.md).
 
-1. **AAR no PP/PK boost if 5v5 was on the ice — shipped.** Evaluate 17 waits for Glimmer. Pure special-teams games still boost PP/PK.
-2. **Chance mean** still under 6 (Evaluate 16: 4.29). Do not raise unused bonus. Do not revert leftover retrieve.
+1. **Even-strength `DirectiveApplied` counts as on-ice.** Evaluate 17: g0 PR-R5 worked; g1/g4 still boosted pk-box because trap/122 had 0 `playUsage` seconds. Do not revert `99b4e4e`.
+2. **Chance mean** still under 6 (Evaluate 17: 3.43, pairs 1). Do not raise unused bonus. Do not revert leftover retrieve.
 3. **Captain micro** stays off. **HITL later.**
-4. Glimmer is **down** (killed). Do not restart `:8080` or 8787 unless asked. Do not raise timeouts.
+4. Glimmer is **up** (used for Evaluate 17). Do not kill `:8080` unless asked. Do not restart 8787. Do not raise timeouts.
 5. Keep `AGENTS.md` honest: `src/ice/` is environment. Playbooks are agent memory. `--aar-mode code` is not `--no-llm`. We do **not** compile LangGraph `store` today.
 
 ---
@@ -557,4 +558,4 @@ Live counters: [`better-hockey.md`](better-hockey.md) (bank **2/5**). Learning p
 
 ---
 
-*Closed 2026-08-26. `main` playable (`33878fc` leftover retrieve, docs after Evaluate 16). Write path proven. Retention survive proven. Transfer started (one-look). Quality bank 2/5. Cycle 4 aborted. Glimmer down. HITL not in v1.*
+*Closed 2026-08-27. `main` playable (`99b4e4e` AAR even-strength boost, docs after Evaluate 17). Write path proven. Retention survive proven. Transfer started (one-look). Quality bank 2/5. Cycle 5 attempt 1/5. Glimmer up. HITL not in v1.*

@@ -2,8 +2,8 @@
 
 | Field | Value |
 | --- | --- |
-| **Date** | 2026-08-26 |
-| **Status** | 2026-08-27. Cycle 4 aborted (bank **2/5**). PR-R5 shipped (no PP/PK boost if 5v5 on ice). Glimmer **down**. Evaluate 17 waits. |
+| **Date** | 2026-08-27 |
+| **Status** | Cycle 5 attempt **1/5** (bank **2/5**). PR-R5 counted: Evaluate 17 not credited (chance mean 3.43, pairs 1, Δ **−0.049**). Glimmer **up**. |
 | **Scoreboard** | [`better-hockey.md`](better-hockey.md) |
 | **Bibliography** | [`ANNOTATED_BIBLIOGRAPHY.md`](ANNOTATED_BIBLIOGRAPHY.md) |
 | **Handbook** | [`FORgasan.md`](FORgasan.md) |
@@ -26,7 +26,7 @@ This document is the plan to **prove** three different things we have been sayin
 
 6. **Quality bank stays 5 Δ xG credits.** Retention gets its **own** pass/fail and does **not** steal a bank slot. Ice PRs that fix chance mean may still take a counting quality Evaluate.
 
-7. **Carry-forward before more ice, unless Glimmer is down.** R1/R2/H1/R4 and leftover retrieve #1 shipped. Retention Evaluate ran. Glimmer is **down** (killed). Do not restart `:8080` or 8787 unless asked. Timeouts not raised. Live Evaluates wait.
+7. **Carry-forward before more ice, unless Glimmer is down.** R1/R2/H1/R4, leftover retrieve #1, and PR-R5 shipped. Retention Evaluate ran. Glimmer is **up** (Evaluate 17). Do not kill `:8080` unless asked. Do not restart 8787. Timeouts not raised.
 
 ---
 
@@ -58,6 +58,8 @@ Checkpointer is still `MemorySaver` per-epoch. Long-term knowledge lives in SQLi
 | Bank | 0 | **2 / 5** |
 
 Evaluate 16 (cycle 4 abort): leftover retrieve #1 **skated** (g1 trap). Chance mean **4.29**, pairs 0, Δ **−0.023**. Quality fail is PP/PK AAR boost (g0 umbrella×10, g4 pk-box×14), not missing F3 geometry. Do not cash uncashed Δ xG from Evaluate 11/15.
+
+Evaluate 17 (cycle 5 attempt 1): PR-R5 **partial**. g0 boosted **122** not umbrella. g1/g4 still boosted **pk1-box** because even-strength leftover had 0 `playUsage` seconds. Chance mean **3.43**, pairs 1, Δ **−0.049** (would beat −0.071; floors fail). Do not cash it.
 
 ---
 
@@ -150,9 +152,9 @@ npm run gh -- series --from-snapshot data/playbook-snapshots/ser-emp-15/after-ga
 
 ### Quality track (cycle 5, existing bar)
 
-Offs band is honest. Unused one-look and leftover retrieve #1 shipped. Next code: **never boost PP/PK when a 5v5 play was on the ice**. That is AAR targeting, not ice. Counting Evaluate 17 when Glimmer is back.
+Offs band is honest. Unused one-look and leftover retrieve #1 shipped. PR-R5 counted (Evaluate 17 not credited). Next code: **even-strength `DirectiveApplied` counts as on-ice** even at 0 `playUsage` seconds. That is AAR targeting, not ice.
 
-Glimmer is **down**. Do not restart `:8080` or 8787 unless asked. Timeouts not raised.
+Glimmer is **up**. Do not kill `:8080` unless asked. Do not restart 8787. Timeouts not raised.
 
 ### Optional LangGraph Store adapter (later)
 
@@ -171,15 +173,16 @@ A `PlaybookStore` implementing `BaseStore`: namespace `["playbook", teamId]`, ke
 | **PR-H1b** | F2 outlet only in established OZ (`BLUE+8`) | `src/ice/roles.ts`, tests, goldens | H1 | **shipped `9ddd4f4`.** Evaluate 12 not credited (g5 home 4 offs). |
 | **PR-R4** | Retrieve unused + loser retarget | `src/playbook/retrieve.ts`, `draftRevision.ts` | R1 | **shipped `5f7ca56`.** Evaluate 15 retrieveTop cycle. |
 | **Leftover #1** | Timeout/micro skate retrieveFallbackId | `invokeTeam.ts`, `assembleDirective.ts` | R4 | **shipped `33878fc`.** Evaluate 16 g1 trap; cycle 4 abort. |
-| **PR-R5** | Never boost PP/PK when 5v5 was on the ice | `src/aar/nodes/draftRevision.ts` | R4 | **shipped.** Counting Evaluate 17 when Glimmer is back. |
+| **PR-R5** | Never boost PP/PK when 5v5 was on the ice | `src/aar/nodes/draftRevision.ts` | R4 | **shipped `99b4e4e`.** Evaluate 17 **not credited** (g0 worked; g1/g4 0-second leftover). |
+| **PR-R5b** | Even-strength DirectiveApplied counts as on-ice | `src/aar/nodes/draftRevision.ts` | R5 | Next. Close the g1/g4 pk-box hole. Goldens must not move. |
 | **PR-R3** | Optional `BaseStore` playbook adapter | `src/playbook/`, `teamGraph.ts` | R1 | Only if retrieve path actually reads Store |
 
 Independently mergeable: R2 and H1 do not need R1. R1 is the learning proof. Cranky → `npm test` on all. Goldens move only if H1 changes `--no-llm` physics.
 
 ### Suggested sequence
 
-1. Docs + R1–R4 + leftover retrieve **shipped**. Retention survive **ran**. Live transfer **started** (cycle, then trap, then 122 rate).
-2. **Now:** PR-R5 shipped (no PP/PK boost when 5v5 was on the ice). Evaluate 17 when Glimmer is back.
+1. Docs + R1–R5 + leftover retrieve **shipped**. Retention survive **ran**. Live transfer **started** (cycle, then trap, then 122 rate).
+2. **Now:** PR-R5b — even-strength `DirectiveApplied` is on-ice even at 0 usage seconds. Counting Evaluate 18.
 3. Bank 5 is still the hockey program.
 
 ---
@@ -192,7 +195,7 @@ Independently mergeable: R2 and H1 do not need R1. R1 is the learning proof. Cra
 | Operator thinks `env` seed 7 “resets memory” | Seed reseeds **physics**. Playbooks are separate. Document on the CLI help line. |
 | Quality bank confused with retention | Separate heading, separate series ids `ser-retain-*`. |
 | BaseStore rewrite stalls hockey | Optional. R1 first. |
-| Glimmer down | Live Evaluates need `:8080`. **Killed 2026-08-26.** Do not restart unless asked. Do not restart 8787. |
+| Glimmer down | Live Evaluates need `:8080`. **Up for Evaluate 17.** Do not kill unless asked. Do not restart 8787. |
 
 ---
 
