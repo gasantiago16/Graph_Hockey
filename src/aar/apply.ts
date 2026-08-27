@@ -93,6 +93,8 @@ export function applyAarRevision(opts: {
     playUsage: actual.usage,
     mintEligible: actual.mintEligible,
     mintClusters: actual.mintClusters,
+    side: opts.report.side,
+    events,
   });
 
   const rejectedOps = [...(opts.report.rejectedOps ?? []), ...mutated.rejected];

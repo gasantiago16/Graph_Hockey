@@ -1,6 +1,6 @@
 import { AAR_CITATION_REJECTED, TIE_BOOST_XG_SHARE, type AarResult } from "../types/aar.ts";
 import { EventIdSchema } from "../types/ids.ts";
-import type { Position } from "../types/hockey.ts";
+import type { Position, Side } from "../types/hockey.ts";
 import { POSITIONS } from "../types/hockey.ts";
 import {
   DEFAULT_PLAY_ID,
@@ -11,6 +11,7 @@ import {
   type Playbook,
   type PlaybookRevision,
 } from "../types/play.ts";
+import { evenStrengthOnIce, isEvenStrengthPlay } from "./evenStrength.ts";
 import { playSimilarity, tooSimilar } from "./similarity.ts";
 import { defaultPlayIdForBook } from "./store.ts";
 
@@ -45,6 +46,9 @@ export type MutateContext = {
   playUsage?: readonly MutatePlayUsage[];
   mintEligible?: boolean;
   mintClusters?: readonly MutateMintCluster[];
+  /** Reviewing side — required to treat leftover 5v5 DirectiveApplied as on-ice. */
+  side?: Side;
+  events?: readonly { type: string; payload?: unknown }[];
 };
 
 export type MutateResult = {
@@ -286,16 +290,45 @@ function pickBoostPlay(
   return undefined;
 }
 
+function lessonUsage(book: Playbook, ctx: MutateContext): readonly MutatePlayUsage[] {
+  const usage = ctx.playUsage ?? [];
+  const evenOnIce = evenStrengthOnIce({
+    book,
+    side: ctx.side,
+    playUsage: usage,
+    events: ctx.events,
+  });
+  if (!evenOnIce) return usage;
+  return usage.filter((u) => {
+    const play = findPlay(book, u.playId);
+    return !!play && isEvenStrengthPlay(play);
+  });
+}
+
 function ensureMandatoryBoost(ops: PlayMutation[], book: Playbook, ctx: MutateContext): PlayMutation[] {
-  const share = (ctx.playUsage ?? []).find((u) => u.xgShare > TIE_BOOST_XG_SHARE && u.xgFor > 0);
+  const evenOnIce = evenStrengthOnIce({
+    book,
+    side: ctx.side,
+    playUsage: ctx.playUsage,
+    events: ctx.events,
+  });
+  if (evenOnIce) {
+    ops = ops.filter((op) => {
+      if (op.op !== "boost") return true;
+      const play = findPlay(book, op.playId);
+      return play ? isEvenStrengthPlay(play) : false;
+    });
+  }
+  const pool = lessonUsage(book, ctx);
+  const share = pool.find((u) => u.xgShare > TIE_BOOST_XG_SHARE && u.xgFor > 0);
   const needWin = ctx.result === "win";
   const needTie = ctx.result === "tie" && share !== undefined;
   if (!needWin && !needTie) return ops;
   if (ops.some((o) => o.op === "boost")) return ops;
-  const play = pickBoostPlay(book, ctx.playUsage, share?.playId);
+  const play = pickBoostPlay(book, pool, share?.playId);
   const eventId = ctx.knownEventIds[0];
   if (!play || !eventId) return ops;
-  const row = (ctx.playUsage ?? []).find((u) => u.playId === play.id);
+  const row = pool.find((u) => u.playId === play.id);
   if (!row || row.xgFor <= 0) return ops;
   const boost: PlayMutation = {
     op: "boost",

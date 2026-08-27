@@ -70,6 +70,42 @@ describe("codeOnlyAarReport", () => {
     expect(report.revision?.ops.some((o) => o.op === "add_counter")).toBe(true);
   });
 
+  it("code apply does not write a pk1-box boost after a same-tick even-strength leftover", async () => {
+    const events: MatchEvent[] = [
+      ev(0, "DirectiveApplied", {
+        liveTick: 0,
+        zone: "NZ",
+        payload: { side: "home", directive: { playId: "nz-122-trap", pressure: "neutral" } },
+      }),
+      ev(1, "DirectiveApplied", {
+        liveTick: 0,
+        zone: "DZ",
+        payload: { side: "home", directive: { playId: "pk1-box", pressure: "passive" } },
+      }),
+      ev(2, "Shot", { liveTick: 20, xG: 0.32, payload: { side: "home" } }),
+    ];
+    const db = await openMemoryDb();
+    try {
+      insertMatch(db, makeOpeningSnapshot({ matchId: "m1", seed: 1 }));
+      insertEvents(db, "m1", events);
+      ensureSeedPlaybooks(db);
+      const out = await runPostMatchAar({
+        db,
+        matchId: "m1",
+        matchResult: "tie",
+        homePlaybook: loadPlaybook("original-six"),
+        awayPlaybook: loadPlaybook("expansion"),
+        events,
+        noLlm: false,
+        aarMode: "code",
+      });
+      expect(out.home.revision?.ops.some((o) => o.op === "boost" && o.playId === "pk1-box")).toBe(false);
+      expect(out.home.revision?.ops.some((o) => o.op === "boost")).toBe(false);
+    } finally {
+      db.close();
+    }
+  });
+
   it("tie does not boost pk1-box after a same-tick even-strength leftover", () => {
     const events: MatchEvent[] = [
       ev(0, "DirectiveApplied", {

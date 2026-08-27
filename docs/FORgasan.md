@@ -272,7 +272,9 @@ Seven games as a row of books. The loop is the row getting thicker. Quality is w
 | **`ser-emp-23` Evaluate 16** | g1 opened **trap**. Cycle games 1. retrieve back to 122. Chance mean **4.29**, pairs 0, Δ **−0.023**. **Cycle 4 abort.** | One-look unused works. Quality fail is PP/PK boost (g0 umbrella×10, g4 pk-box×14). |
 | **AAR no PP/PK boost if 5v5 on ice (`99b4e4e`)** | Stay even-strength when 5v5/3v3 had **usage seconds**. Strip special-teams boosts. Goldens unchanged. | Counted Evaluate 17. Partial. |
 | **`ser-emp-24` Evaluate 17** | g0 boosted **122** not umbrella. g1/g4 still **pk1-box**. Chance mean **3.43**, pairs 1, Δ **−0.049**. Not credited. | PR-R5 partial: `evenStrengthOnIce` misses 0-second leftover 5v5. |
-| **Even-strength DirectiveApplied on-ice** | 0-second leftover 5v5 still even-on-ice. `default-structure` is not 122. Goldens unchanged. | Counting Evaluate 18. |
+| **Even-strength DirectiveApplied on-ice** | Draft-only `b535c63`. Evaluate 18 still boosted pk-box (mutate re-inject). | Void series. Apply-path is the real gate. |
+| **`ser-emp-25` Evaluate 18** | Ice matched Evaluate 17 through g2. g1/g4 still **pk1-box**. Δ **−0.049**, chance mean 3.43, pairs 1. | **Void.** Not a cycle attempt. |
+| **Apply-path even-on-ice** | `mutate.ensureMandatoryBoost` uses even-on-ice. Goldens unchanged. | Counting Evaluate 19. |
 
 ### The 7-game card (`ser-emp-7`)
 
@@ -534,7 +536,7 @@ These are not hypothetical. They showed up in design review or PR review and wou
 
 Live counters: [`better-hockey.md`](better-hockey.md) (bank **2/5**). Learning plan: [`knowledge-and-learning.md`](knowledge-and-learning.md). Bibliography: [`ANNOTATED_BIBLIOGRAPHY.md`](ANNOTATED_BIBLIOGRAPHY.md).
 
-1. **Even-strength `DirectiveApplied` counts as on-ice — shipped.** Evaluate 18 is the counting series. Do not revert `99b4e4e`. Do not alias `default-structure` to 122.
+1. **Apply-path even-on-ice — shipped.** Evaluate 18 was void (mutate re-injected pk-box). Counting Evaluate 19. Do not revert `99b4e4e`. Do not alias `default-structure` to 122.
 2. **Chance mean** still under 6 (Evaluate 17: 3.43, pairs 1). Do not raise unused bonus. Do not revert leftover retrieve.
 3. **Captain micro** stays off. **HITL later.**
 4. Glimmer is **up** (used for Evaluate 17). Do not kill `:8080` unless asked. Do not restart 8787. Do not raise timeouts.

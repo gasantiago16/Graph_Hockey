@@ -1,11 +1,12 @@
 import { PlaybookRevisionSchema } from "../../llm/schemas.ts";
 import { TIE_BOOST_XG_SHARE } from "../../types/aar.ts";
 import { DEFAULT_PLAY_ID, type Play, type PlayMutation, type PlaybookRevision } from "../../types/play.ts";
+import { evenStrengthOnIce, isEvenStrengthPlay } from "../../playbook/evenStrength.ts";
 import { isEmptyNetPlay, isLeadProtectPlay } from "../../playbook/retrieve.ts";
 import { defaultPlayIdForBook } from "../../playbook/store.ts";
 import type { AarGraphNode, AarGraphStateType } from "../state.ts";
 import { invokeAarStructured, type AarLlmOpts } from "../llm.ts";
-import { payloadRecord, playWithXgShare, themFamilyFromEvents, topPlay, type PlayUsage } from "./actual.ts";
+import { playWithXgShare, themFamilyFromEvents, topPlay, type PlayUsage } from "./actual.ts";
 
 export type DraftOpts = AarLlmOpts;
 
@@ -47,41 +48,18 @@ function targetPlay(state: AarGraphStateType, playId?: string): Play | undefined
   return plays.find((p) => p.status === "active") ?? plays[0];
 }
 
-function isEvenStrengthPlay(play: Play): boolean {
-  return play.strength.includes("5v5") || play.strength.includes("3v3");
-}
-
 /** Exact seed row. Do not alias `default-structure` to the first 5v5 play. */
 function playById(state: AarGraphStateType, playId: string | undefined): Play | undefined {
   if (!playId || playId === DEFAULT_PLAY_ID) return undefined;
   return (state.playbook.plays ?? []).find((p) => p.id === playId);
 }
 
-function directivePlayId(event: { type: string; payload?: unknown }): string | undefined {
-  if (event.type !== "DirectiveApplied") return undefined;
-  const rec = payloadRecord(event.payload);
-  const dir = rec?.directive;
-  if (!dir || typeof dir !== "object" || !("playId" in dir)) return undefined;
-  const playId = (dir as { playId: unknown }).playId;
-  return typeof playId === "string" ? playId : undefined;
-}
-
-/** Opening leftover 5v5 with 0 usage seconds still counts — Evaluate 17 g1/g4. */
-function evenStrengthDirectiveOnIce(state: AarGraphStateType): boolean {
-  for (const event of state.events ?? []) {
-    const rec = payloadRecord(event.payload);
-    if (rec?.side !== state.side) continue;
-    const play = playById(state, directivePlayId(event));
-    if (play && isEvenStrengthPlay(play)) return true;
-  }
-  return false;
-}
-
-function evenStrengthOnIce(state: AarGraphStateType): boolean {
-  if (evenStrengthDirectiveOnIce(state)) return true;
-  return (state.playUsage ?? []).some((row) => {
-    const play = playById(state, row.playId);
-    return !!play && isEvenStrengthPlay(play);
+function evenOnIce(state: AarGraphStateType): boolean {
+  return evenStrengthOnIce({
+    book: state.playbook,
+    side: state.side,
+    playUsage: state.playUsage,
+    events: state.events,
   });
 }
 
@@ -92,7 +70,7 @@ function lessonUsage(state: AarGraphStateType): PlayUsage[] {
     const play = playById(state, row.playId);
     return play ? isEvenStrengthPlay(play) : false;
   });
-  if (evenStrengthOnIce(state)) return even;
+  if (evenOnIce(state)) return even;
   return [...usage];
 }
 
@@ -115,8 +93,8 @@ function boostHasMatchXg(state: AarGraphStateType, op: PlayMutation): boolean {
 }
 
 export function ensureMandatoryBoost(state: AarGraphStateType, revision: PlaybookRevision): PlaybookRevision {
-  const evenOnIce = evenStrengthOnIce(state);
-  if (evenOnIce) {
+  const evenOnIceNow = evenOnIce(state);
+  if (evenOnIceNow) {
     revision = {
       summary: revision.summary,
       ops: revision.ops.filter((op) => {

@@ -145,6 +145,57 @@ describe("applyPlaybookRevision caps", () => {
     }
   });
 
+  it("does not inject a pk1-box tie boost when leftover 5v5 had 0 seconds", () => {
+    const book = loadPlaybook("original-six");
+    const out = applyPlaybookRevision(
+      book,
+      rev([]),
+      ctx({
+        result: "tie",
+        side: "home",
+        playUsage: [
+          usage({ playId: "nz-122-trap", xgFor: 0, seconds: 0, xgShare: 0 }),
+          usage({ playId: "pk1-box", xgFor: 0.32, seconds: 40, xgShare: 1 }),
+        ],
+      }),
+    );
+    expect(out.applied.some((o) => o.op === "boost")).toBe(false);
+  });
+
+  it("still injects a pk1-box tie boost when no even-strength play was on the ice", () => {
+    const book = loadPlaybook("original-six");
+    const out = applyPlaybookRevision(
+      book,
+      rev([]),
+      ctx({
+        result: "tie",
+        side: "home",
+        playUsage: [usage({ playId: "pk1-box", xgFor: 0.32, seconds: 40, xgShare: 1 })],
+      }),
+    );
+    expect(out.applied.some((o) => o.op === "boost" && o.playId === "pk1-box")).toBe(true);
+  });
+
+  it("does not inject a PP winner boost when 5v5 leftover is only a DirectiveApplied", () => {
+    const book = loadPlaybook("original-six");
+    const out = applyPlaybookRevision(
+      book,
+      rev([]),
+      ctx({
+        result: "win",
+        side: "home",
+        playUsage: [usage({ playId: "pp1-umbrella", xgFor: 0.74, seconds: 12, xgShare: 1 })],
+        events: [
+          {
+            type: "DirectiveApplied",
+            payload: { side: "home", directive: { playId: "5v5-122-forecheck", pressure: "neutral" } },
+          },
+        ],
+      }),
+    );
+    expect(out.applied.some((o) => o.op === "boost")).toBe(false);
+  });
+
   it("boosts lock in what worked and bump book version", () => {
     const book = loadPlaybook("original-six");
     const before = book.plays.find((p) => p.id === PLAY)!;
