@@ -537,8 +537,8 @@ These are not hypothetical. They showed up in design review or PR review and wou
 
 Live counters: [`better-hockey.md`](better-hockey.md) (bank **2/5**). Learning plan: [`knowledge-and-learning.md`](knowledge-and-learning.md). Bibliography: [`ANNOTATED_BIBLIOGRAPHY.md`](ANNOTATED_BIBLIOGRAPHY.md).
 
-1. **Cross-play vs frozen seed: both staffs pass chance mean.** HS home μ **5.57** > SS **4.43**. SH away μ **5.86** > SS **4.86**. Not a quality-bank slot.
-2. **Next:** M2 null retrieve (`--retrieve-seed`). Dual card + audit already shipped. Bank 2/5 unchanged.
+1. **Cross-play vs frozen seed: both staffs pass chance mean.** HS home μ **5.57** > SS **4.43**. SH away μ **5.86** > SS **4.86**.
+2. **Null retrieve:** evenNonDefault weakly higher with live ranking; combined chances **higher** when retrieve is nulled (8.57 vs 9.57). Retrieved ranking is not the HS/SH win. Bank 2/5 unchanged.
 3. **Captain micro** stays off. **HITL later.**
 4. Glimmer is **up** (used for Evaluate 17). Do not kill `:8080` unless asked. Do not restart 8787. Do not raise timeouts.
 5. Keep `AGENTS.md` honest: `src/ice/` is environment. Playbooks are agent memory. `--aar-mode code` is not `--no-llm`. We do **not** compile LangGraph `store` today.

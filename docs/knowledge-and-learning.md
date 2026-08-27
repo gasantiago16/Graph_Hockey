@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | **Date** | 2026-08-27 |
-| **Status** | Cycle 5 attempt **2/5** (bank **2/5**). Cross-play HS/SH **pass** vs seed-fresh on chance mean. Not a bank slot. Next M2 null retrieve. |
+| **Status** | Cycle 5 attempt **2/5** (bank **2/5**). Cross-play HS/SH pass vs seed. Null retrieve: memory-in-use weak; beneficial fail. |
 | **Scoreboard** | [`better-hockey.md`](better-hockey.md) |
 | **Bibliography** | [`ANNOTATED_BIBLIOGRAPHY.md`](ANNOTATED_BIBLIOGRAPHY.md) |
 | **Handbook** | [`FORgasan.md`](FORgasan.md) |
@@ -75,6 +75,15 @@ Cross-play `ser-cross-*` (2026-08-27, not a bank slot). Snapshot `ser-emp-26/aft
 | **HH** `ser-cross-hh` | trained / trained | 4.86 | 3.71 | 8.57 | both-up Δ xG; volume down (arms race). g2 home **4** offs |
 
 We may say: **each emp-26 book beats a seed opponent on chance mean.** We may not say: LangGraph Store, version integers, or “the live-vs-live quality bank moved.” Home retrieve stayed 122; away retrieve `oz-crash-net` on SH/HH. evenNonDefault SH away **66/75**.
+
+Null retrieve `ser-cross-null` (same snapshot as HH, `--null-retrieve`): leftover/HC rank the **seed** JSON. Scorecard `retrieveTop` still reads the live book (away crash-net) — that is the stored menu, not the null ranking.
+
+| Arm | evenNonDefault home | evenNonDefault away | Combined |
+| --- | ---: | ---: | ---: |
+| HH live retrieve | 31/93 | 72/108 | 8.57 |
+| Null seed ranking | 21/72 | 64/88 | **9.57** |
+
+Memory-in-use: counts **pass** (HH > null). Beneficial transfer: **fail** (null had more chances). Retrieved ranking of the trained book is not what is producing the HS/SH chance-mean win vs seed.
 
 ---
 
@@ -193,7 +202,7 @@ A `PlaybookStore` implementing `BaseStore`: namespace `["playbook", teamId]`, ke
 | **PR-R5b apply** | mutate even-on-ice (do not re-inject PP/PK) | `src/playbook/mutate.ts`, `apply.ts` | R5b | **shipped `4055986`.** Evaluate 19 **not credited** (g1/g4 none; chance mean 4.43, pairs 0). |
 | **Q1** | Dual quality card (combined chances, both Δ xG, evenNonDefault, coadapt) | `src/film/qualityCard.ts`, CLI | none | **shipped.** Never an Evaluate. Bank rule unchanged. |
 | **M1** | `playbook --audit` retrieve/leftover/unused | `src/playbook/audit.ts`, CLI | none | **shipped.** Never an Evaluate. |
-| **M2** | `--retrieve-seed` null arm | series CLI | M1 | Learning Evaluate later |
+| **M2** | `--null-retrieve` ranks leftover from seed JSON | series CLI, teamGraph | M1 | **shipped `40f0f5d`.** `ser-cross-null` vs HH: evenNonDefault weak pass; combined chances **fail**. |
 | **M3** | Per-side `--from-snapshot` + cross-play | series CLI | R1 | **shipped `06f47da`.** `ser-cross-hs` / `ser-cross-sh` **pass** vs seed-fresh Evaluate 19. Not a quality-bank slot. |
 | **PR-R3** | Optional `BaseStore` playbook adapter | `src/playbook/`, `teamGraph.ts` | R1 | Only if retrieve path actually reads Store |
 
@@ -202,7 +211,7 @@ Independently mergeable: R2 and H1 do not need R1. R1 is the learning proof. Cra
 ### Suggested sequence
 
 1. Docs + R1–R5 + leftover retrieve **shipped**. Retention survive **ran**. Live transfer **started** (cycle, then trap, then 122 rate).
-2. **Now:** M3 cross-play **ran**. Trained home vs seed away (HS home μ **5.57** > SS **4.43**). Trained away vs seed home (SH away μ **5.86** > SS **4.86**). Both staffs beat a frozen seed book on chance mean. Next is M2 null retrieve (was it retrieve, or ice?). Do not recode bank 2/5.
+2. **Now:** M2 null retrieve **ran**. Same emp-26 books; `--null-retrieve` ranks seed JSON. HH evenNonDefault home **31/93** vs null **21/72**, away **72/108** vs **64/88** (weak memory-in-use). Combined chances HH **8.57** < null **9.57** (retrieved ranking did not help). Cross-play HS/SH remains the staff-skill proof. Do not recode bank 2/5.
 3. Bank 5 is still the hockey program; combined chance mean **11.43** (Evaluate 8) is the pending combined floor.
 
 ---

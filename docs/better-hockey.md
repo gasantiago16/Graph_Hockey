@@ -4,7 +4,7 @@
 | --- | --- |
 | **Author** | Graph_Hockey staff (design) |
 | **Date** | 2026-08-27 |
-| **Status** | **Cycle 5 attempt 2/5 (bank 2/5).** Cross-play HS/SH pass chance mean vs seed. Dual card shipped. Bank unchanged. |
+| **Status** | **Cycle 5 attempt 2/5 (bank 2/5).** Cross-play HS/SH pass vs seed. Null retrieve: evenNonDefault weak pass, combined chances fail. |
 | **Repo** | `C:\Users\gasan\Graph_Hockey` (private, `main` playable) |
 | **Success criterion** | **Five empirical improvements.** Not five attempts. Not five version bumps. Not “stop when the numbered PR stack is done.” Keep cycling (including a **post-stack Diagnose menu**) until `improvements == 5` or the user stops. |
 | **PLAN_ID** | `f1d4bdeb` (resume leftover PRs with `/execute-plan --resume f1d4bdeb` after Evaluate context) |
@@ -749,7 +749,18 @@ Pending credit flip (not live): replace home chance mean ≥ 6 with combined ≥
 | SH seed home / trained away | 3.71 | **5.86** | 9.57 | away **pass** |
 | HH both trained | 4.86 | 3.71 | 8.57 | both-up Δ xG; g2 home 4 offs |
 
-Staff skill vs frozen seed: **both pass** on chance mean. Quality bank **unchanged**. Next: M2 null retrieve.
+Staff skill vs frozen seed: **both pass** on chance mean. Quality bank **unchanged**.
+
+### Null retrieve `ser-cross-null` (2026-08-27) — not a bank slot
+
+Same snapshot as HH. `--null-retrieve` ranks leftover from seed JSON. AAR still writes the carried books.
+
+| Arm | evenNonDefault H/A | Combined | Notes |
+| --- | --- | ---: | --- |
+| HH live retrieve | 31/93 · 72/108 | 8.57 | trained ranking |
+| Null seed ranking | 21/72 · 64/88 | **9.57** | leftover 122/212 |
+
+Memory-in-use (evenNonDefault HH > null): **weak pass**. Beneficial (combined HH > null): **fail**. HS/SH vs seed opponent is the staff-skill proof, not live retrieve ranking on the carried book.
 
 ### Dump-in golden move (intentional)
 
