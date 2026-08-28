@@ -52,7 +52,7 @@ simulate --no-llm skips grok-4.5 / grok-4.3 and writes events to SQLite.
 Without --no-llm, live epochs call the home/away providers (keys in .env) and print a cost summary.
 AAR runs after every result. Live simulate/series default --aar-mode code: code digest, no grok-4.5 AAR graph, capped apply.
 --aar-mode auto restores the LLM AAR graph (45s/side). --aar-mode code is not --no-llm (live epochs still call grok).
---aar-mode propose writes the AAR JSON and does not bump playbook versions.
+--aar-mode propose writes the code AAR digest and does not bump playbook versions (frozen probe; not the 45s grok graph).
 --no-llm skips AAR LLM, stores a code-only digest, and never mutates playbooks.
 --no-record skips the clip index (events still stored). CI golden hashes use --no-record.
 series default is 7 games; gameSeed = seed + gameIndex. AAR code/auto apply mutates playbooks between games (not --no-llm).

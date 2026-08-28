@@ -200,6 +200,46 @@ describe("runPostMatchAar", () => {
     }
   });
 
+  it("--aar-mode propose uses the code digest and does not bump", async () => {
+    const db = await openMemoryDb();
+    let invoked = 0;
+    const graph: CompiledAarGraph = {
+      nodes: {},
+      invoke: async () => {
+        invoked += 1;
+        throw new Error("aar graph must not run in propose mode");
+      },
+      stream: async () => {
+        throw new Error("unused");
+      },
+    };
+    try {
+      insertMatch(db, makeOpeningSnapshot({ matchId: "m1", seed: 1 }));
+      insertEvents(db, "m1", EVENTS);
+      ensureSeedPlaybooks(db);
+      expect(shouldApplyRevision({ noLlm: false, aarMode: "propose" })).toBe(false);
+      const book = loadPlaybook("original-six");
+      const out = await runPostMatchAar({
+        db,
+        matchId: "m1",
+        matchResult: "home",
+        homePlaybook: book,
+        awayPlaybook: loadPlaybook("expansion"),
+        events: EVENTS,
+        noLlm: false,
+        aarMode: "propose",
+        homeGraph: graph,
+        awayGraph: graph,
+      });
+      expect(invoked).toBe(0);
+      expect(out.home.revision?.ops.length).toBeGreaterThan(0);
+      expect(latestPlaybook(db, "original-six")?.version).toBe(1);
+      expect(latestPlaybook(db, "expansion")?.version).toBe(1);
+    } finally {
+      db.close();
+    }
+  });
+
   it("--no-llm still never mutates the playbook", async () => {
     const db = await openMemoryDb();
     try {

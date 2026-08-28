@@ -1,0 +1,604 @@
+{
+  "seriesId": "b-ss-s29",
+  "seed": 29,
+  "games": 7,
+  "home": "original-six",
+  "away": "expansion",
+  "noLlm": false,
+  "periodSeconds": 20,
+  "db": "C:\\Users\\gasan\\Graph_Hockey\\data\\factorial-b\\b-ss-s29.sqlite",
+  "snapshotDir": "C:\\Users\\gasan\\Graph_Hockey\\data\\playbook-snapshots\\b-ss-s29",
+  "snapshots": [
+    "C:\\Users\\gasan\\Graph_Hockey\\data\\playbook-snapshots\\b-ss-s29\\before.json",
+    "C:\\Users\\gasan\\Graph_Hockey\\data\\playbook-snapshots\\b-ss-s29\\after-game-0.json",
+    "C:\\Users\\gasan\\Graph_Hockey\\data\\playbook-snapshots\\b-ss-s29\\after-game-1.json",
+    "C:\\Users\\gasan\\Graph_Hockey\\data\\playbook-snapshots\\b-ss-s29\\after-game-2.json",
+    "C:\\Users\\gasan\\Graph_Hockey\\data\\playbook-snapshots\\b-ss-s29\\after-game-3.json",
+    "C:\\Users\\gasan\\Graph_Hockey\\data\\playbook-snapshots\\b-ss-s29\\after-game-4.json",
+    "C:\\Users\\gasan\\Graph_Hockey\\data\\playbook-snapshots\\b-ss-s29\\after-game-5.json",
+    "C:\\Users\\gasan\\Graph_Hockey\\data\\playbook-snapshots\\b-ss-s29\\after-game-6.json"
+  ],
+  "carriedFromSnapshot": false,
+  "carriedSides": {
+    "home": false,
+    "away": false
+  },
+  "retrieveSeed": false,
+  "matches": [
+    {
+      "gameIndex": 0,
+      "gameSeed": 29,
+      "matchId": "b-ss-s29-g0",
+      "score": {
+        "home": 3,
+        "away": 0
+      },
+      "result": "home",
+      "events": 1925,
+      "eventHash": "c75187f00cd442dca9ed1d1230bc0d5dc437e8925760657da00ede9d0843a662",
+      "playbookVersions": {
+        "home": 1,
+        "away": 1
+      },
+      "xg": {
+        "home": 0.46920093040190997,
+        "away": 0.09046261899742061
+      },
+      "home": {
+        "shots": 6,
+        "distinctChances": 6,
+        "offsides": 2,
+        "openingPlayId": "5v5-122-forecheck",
+        "retrieveTopId": "5v5-122-forecheck",
+        "playbookVersion": 1,
+        "playMix": [
+          {
+            "playId": "pp1-umbrella",
+            "directives": 7
+          },
+          {
+            "playId": "5v5-122-forecheck",
+            "directives": 4
+          },
+          {
+            "playId": "5v5-breakout-d-to-winger",
+            "directives": 4
+          }
+        ],
+        "openingMatchesRetrieve": true
+      },
+      "away": {
+        "shots": 1,
+        "distinctChances": 1,
+        "offsides": 1,
+        "openingPlayId": "stretch-pass-nz",
+        "retrieveTopId": "5v5-212-forecheck",
+        "playbookVersion": 1,
+        "playMix": [
+          {
+            "playId": "pk1-diamond-press",
+            "directives": 7
+          },
+          {
+            "playId": "stretch-pass-nz",
+            "directives": 6
+          },
+          {
+            "playId": "5v5-212-forecheck",
+            "directives": 4
+          },
+          {
+            "playId": "dz-over-aggressive",
+            "directives": 1
+          }
+        ],
+        "openingMatchesRetrieve": false
+      }
+    },
+    {
+      "gameIndex": 1,
+      "gameSeed": 30,
+      "matchId": "b-ss-s29-g1",
+      "score": {
+        "home": 1,
+        "away": 3
+      },
+      "result": "away",
+      "events": 1568,
+      "eventHash": "a515e9d31eba0ae22611e602456bf60a402ce566912b1c5a2faefa23690ca83b",
+      "playbookVersions": {
+        "home": 1,
+        "away": 1
+      },
+      "xg": {
+        "home": 0.3456254749532557,
+        "away": 0.6915473961708611
+      },
+      "home": {
+        "shots": 3,
+        "distinctChances": 3,
+        "offsides": 0,
+        "openingPlayId": "5v5-122-forecheck",
+        "retrieveTopId": "5v5-122-forecheck",
+        "playbookVersion": 1,
+        "playMix": [
+          {
+            "playId": "5v5-122-forecheck",
+            "directives": 9
+          },
+          {
+            "playId": "5v5-breakout-d-to-winger",
+            "directives": 9
+          },
+          {
+            "playId": "pp1-umbrella",
+            "directives": 3
+          }
+        ],
+        "openingMatchesRetrieve": true
+      },
+      "away": {
+        "shots": 6,
+        "distinctChances": 6,
+        "offsides": 1,
+        "openingPlayId": "stretch-pass-nz",
+        "retrieveTopId": "5v5-212-forecheck",
+        "playbookVersion": 1,
+        "playMix": [
+          {
+            "playId": "5v5-212-forecheck",
+            "directives": 9
+          },
+          {
+            "playId": "stretch-pass-nz",
+            "directives": 6
+          },
+          {
+            "playId": "oz-crash-net",
+            "directives": 4
+          },
+          {
+            "playId": "pk1-diamond-press",
+            "directives": 3
+          }
+        ],
+        "openingMatchesRetrieve": false
+      }
+    },
+    {
+      "gameIndex": 2,
+      "gameSeed": 31,
+      "matchId": "b-ss-s29-g2",
+      "score": {
+        "home": 1,
+        "away": 4
+      },
+      "result": "away",
+      "events": 1295,
+      "eventHash": "a947214c92acddaf02a71ecaeeb80c05f52019c4870dc59d67baed4876757fae",
+      "playbookVersions": {
+        "home": 1,
+        "away": 1
+      },
+      "xg": {
+        "home": 0.08761564995498473,
+        "away": 1.0664034077452609
+      },
+      "home": {
+        "shots": 1,
+        "distinctChances": 1,
+        "offsides": 1,
+        "openingPlayId": "5v5-122-forecheck",
+        "retrieveTopId": "5v5-122-forecheck",
+        "playbookVersion": 1,
+        "playMix": [
+          {
+            "playId": "5v5-122-forecheck",
+            "directives": 12
+          },
+          {
+            "playId": "5v5-breakout-d-to-winger",
+            "directives": 7
+          },
+          {
+            "playId": "pk1-box",
+            "directives": 2
+          },
+          {
+            "playId": "oz-cycle-low",
+            "directives": 1
+          }
+        ],
+        "openingMatchesRetrieve": true
+      },
+      "away": {
+        "shots": 10,
+        "distinctChances": 10,
+        "offsides": 0,
+        "openingPlayId": "stretch-pass-nz",
+        "retrieveTopId": "5v5-212-forecheck",
+        "playbookVersion": 1,
+        "playMix": [
+          {
+            "playId": "stretch-pass-nz",
+            "directives": 11
+          },
+          {
+            "playId": "5v5-212-forecheck",
+            "directives": 5
+          },
+          {
+            "playId": "oz-crash-net",
+            "directives": 4
+          },
+          {
+            "playId": "pp1-overload-half-wall",
+            "directives": 2
+          },
+          {
+            "playId": "dz-over-aggressive",
+            "directives": 1
+          }
+        ],
+        "openingMatchesRetrieve": false
+      }
+    },
+    {
+      "gameIndex": 3,
+      "gameSeed": 32,
+      "matchId": "b-ss-s29-g3",
+      "score": {
+        "home": 0,
+        "away": 4
+      },
+      "result": "away",
+      "events": 1717,
+      "eventHash": "f3063af48d57ba01388eaffecffca95d22e403ed9c97133021d42730e81595dd",
+      "playbookVersions": {
+        "home": 1,
+        "away": 1
+      },
+      "xg": {
+        "home": 0.31939881725618224,
+        "away": 0.8548214661838922
+      },
+      "home": {
+        "shots": 4,
+        "distinctChances": 4,
+        "offsides": 2,
+        "openingPlayId": "5v5-122-forecheck",
+        "retrieveTopId": "5v5-122-forecheck",
+        "playbookVersion": 1,
+        "playMix": [
+          {
+            "playId": "5v5-122-forecheck",
+            "directives": 8
+          },
+          {
+            "playId": "pk1-box",
+            "directives": 5
+          },
+          {
+            "playId": "5v5-breakout-d-to-winger",
+            "directives": 4
+          }
+        ],
+        "openingMatchesRetrieve": true
+      },
+      "away": {
+        "shots": 8,
+        "distinctChances": 8,
+        "offsides": 1,
+        "openingPlayId": "stretch-pass-nz",
+        "retrieveTopId": "5v5-212-forecheck",
+        "playbookVersion": 1,
+        "playMix": [
+          {
+            "playId": "pp1-overload-half-wall",
+            "directives": 5
+          },
+          {
+            "playId": "5v5-212-forecheck",
+            "directives": 4
+          },
+          {
+            "playId": "dz-over-aggressive",
+            "directives": 4
+          },
+          {
+            "playId": "stretch-pass-nz",
+            "directives": 4
+          },
+          {
+            "playId": "oz-crash-net",
+            "directives": 3
+          }
+        ],
+        "openingMatchesRetrieve": false
+      }
+    },
+    {
+      "gameIndex": 4,
+      "gameSeed": 33,
+      "matchId": "b-ss-s29-g4",
+      "score": {
+        "home": 1,
+        "away": 3
+      },
+      "result": "away",
+      "events": 1924,
+      "eventHash": "7729a487f914cf89038309ae95b813a40f697835a1dc0537e80e5375ef30771e",
+      "playbookVersions": {
+        "home": 1,
+        "away": 1
+      },
+      "xg": {
+        "home": 0.33253623848923786,
+        "away": 0.43801762698394786
+      },
+      "home": {
+        "shots": 2,
+        "distinctChances": 2,
+        "offsides": 0,
+        "openingPlayId": "5v5-122-forecheck",
+        "retrieveTopId": "5v5-122-forecheck",
+        "playbookVersion": 1,
+        "playMix": [
+          {
+            "playId": "pp1-umbrella",
+            "directives": 8
+          },
+          {
+            "playId": "5v5-122-forecheck",
+            "directives": 4
+          },
+          {
+            "playId": "5v5-breakout-d-to-winger",
+            "directives": 2
+          },
+          {
+            "playId": "oz-cycle-low",
+            "directives": 1
+          }
+        ],
+        "openingMatchesRetrieve": true
+      },
+      "away": {
+        "shots": 5,
+        "distinctChances": 5,
+        "offsides": 2,
+        "openingPlayId": "stretch-pass-nz",
+        "retrieveTopId": "5v5-212-forecheck",
+        "playbookVersion": 1,
+        "playMix": [
+          {
+            "playId": "pk1-diamond-press",
+            "directives": 8
+          },
+          {
+            "playId": "stretch-pass-nz",
+            "directives": 3
+          },
+          {
+            "playId": "5v5-212-forecheck",
+            "directives": 2
+          },
+          {
+            "playId": "dz-over-aggressive",
+            "directives": 1
+          }
+        ],
+        "openingMatchesRetrieve": false
+      }
+    },
+    {
+      "gameIndex": 5,
+      "gameSeed": 34,
+      "matchId": "b-ss-s29-g5",
+      "score": {
+        "home": 2,
+        "away": 2
+      },
+      "result": "tie",
+      "events": 1828,
+      "eventHash": "2137e8b3070c5aa7fdd96c47ce50d4da64ee34d772ac2e9167d5a342b84c2728",
+      "playbookVersions": {
+        "home": 1,
+        "away": 1
+      },
+      "xg": {
+        "home": 0.6080144660911848,
+        "away": 1.062497729416633
+      },
+      "home": {
+        "shots": 4,
+        "distinctChances": 4,
+        "offsides": 1,
+        "openingPlayId": "5v5-122-forecheck",
+        "retrieveTopId": "5v5-122-forecheck",
+        "playbookVersion": 1,
+        "playMix": [
+          {
+            "playId": "5v5-122-forecheck",
+            "directives": 10
+          },
+          {
+            "playId": "5v5-breakout-d-to-winger",
+            "directives": 6
+          },
+          {
+            "playId": "ot-3v3-2-1-spread",
+            "directives": 3
+          },
+          {
+            "playId": "pk1-box",
+            "directives": 1
+          }
+        ],
+        "openingMatchesRetrieve": true
+      },
+      "away": {
+        "shots": 10,
+        "distinctChances": 10,
+        "offsides": 1,
+        "openingPlayId": "stretch-pass-nz",
+        "retrieveTopId": "5v5-212-forecheck",
+        "playbookVersion": 1,
+        "playMix": [
+          {
+            "playId": "stretch-pass-nz",
+            "directives": 10
+          },
+          {
+            "playId": "5v5-212-forecheck",
+            "directives": 5
+          },
+          {
+            "playId": "ot-3v3-aggressive-forecheck",
+            "directives": 3
+          },
+          {
+            "playId": "dz-over-aggressive",
+            "directives": 2
+          },
+          {
+            "playId": "oz-crash-net",
+            "directives": 2
+          },
+          {
+            "playId": "pp1-overload-half-wall",
+            "directives": 1
+          }
+        ],
+        "openingMatchesRetrieve": false
+      }
+    },
+    {
+      "gameIndex": 6,
+      "gameSeed": 35,
+      "matchId": "b-ss-s29-g6",
+      "score": {
+        "home": 1,
+        "away": 2
+      },
+      "result": "away",
+      "events": 1215,
+      "eventHash": "1da4d1ecfd55347ca9e13c6e991138d21fe8935cc69633cf98bc7e9ad9644feb",
+      "playbookVersions": {
+        "home": 1,
+        "away": 1
+      },
+      "xg": {
+        "home": 0.6691906235516969,
+        "away": 0.2974841041554119
+      },
+      "home": {
+        "shots": 8,
+        "distinctChances": 8,
+        "offsides": 0,
+        "openingPlayId": "5v5-122-forecheck",
+        "retrieveTopId": "5v5-122-forecheck",
+        "playbookVersion": 1,
+        "playMix": [
+          {
+            "playId": "5v5-122-forecheck",
+            "directives": 9
+          },
+          {
+            "playId": "5v5-breakout-d-to-winger",
+            "directives": 4
+          },
+          {
+            "playId": "pp1-umbrella",
+            "directives": 3
+          }
+        ],
+        "openingMatchesRetrieve": true
+      },
+      "away": {
+        "shots": 3,
+        "distinctChances": 3,
+        "offsides": 0,
+        "openingPlayId": "stretch-pass-nz",
+        "retrieveTopId": "5v5-212-forecheck",
+        "playbookVersion": 1,
+        "playMix": [
+          {
+            "playId": "5v5-212-forecheck",
+            "directives": 7
+          },
+          {
+            "playId": "pk1-diamond-press",
+            "directives": 3
+          },
+          {
+            "playId": "stretch-pass-nz",
+            "directives": 3
+          },
+          {
+            "playId": "dz-over-aggressive",
+            "directives": 2
+          },
+          {
+            "playId": "nz-2-3-pressure",
+            "directives": 1
+          }
+        ],
+        "openingMatchesRetrieve": false
+      }
+    }
+  ],
+  "learning": {
+    "retrieveTopChanged": {
+      "home": 0,
+      "away": 0,
+      "steps": 6
+    },
+    "booksMoved": {
+      "home": false,
+      "away": false
+    },
+    "openingMatchesRetrieve": {
+      "home": 7,
+      "away": 0,
+      "steps": 7
+    }
+  },
+  "quality": {
+    "combinedChanceMean": 10.142857142857142,
+    "homeChanceMean": 4,
+    "awayChanceMean": 6.142857142857143,
+    "offsMax": {
+      "home": 2,
+      "away": 2
+    },
+    "evenShare": {
+      "home": {
+        "even": 97,
+        "total": 126,
+        "pct": 76.98412698412699
+      },
+      "away": {
+        "even": 107,
+        "total": 136,
+        "pct": 78.67647058823529
+      }
+    },
+    "evenNonDefault": {
+      "home": {
+        "nonDefault": 41,
+        "even": 97
+      },
+      "away": {
+        "nonDefault": 71,
+        "even": 107
+      }
+    },
+    "arms": {
+      "homeDxg": 0.19998969314978693,
+      "awayDxg": 0.20702148515799126
+    },
+    "flag": "both-up",
+    "pairs": 0
+  }
+}

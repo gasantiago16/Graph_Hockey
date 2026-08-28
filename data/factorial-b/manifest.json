@@ -1,0 +1,21 @@
+{
+  "snapshot": "C:\\Users\\gasan\\Graph_Hockey\\data\\playbook-snapshots\\ser-emp-26\\after-game-6.json",
+  "seeds": [
+    7,
+    11,
+    19,
+    23,
+    29
+  ],
+  "arms": [
+    "ss",
+    "hs-live",
+    "hs-null",
+    "sh-live",
+    "sh-null"
+  ],
+  "done": 25,
+  "total": 25,
+  "failed": 0,
+  "at": "2026-08-28T03:01:45.908Z"
+}

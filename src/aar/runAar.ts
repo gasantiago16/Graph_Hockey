@@ -119,7 +119,7 @@ export type PostMatchAarOpts = {
   awayPlaybook: Playbook;
   events?: MatchEvent[];
   noLlm?: boolean;
-  /** Default auto. `code` skips the AAR LLM graph and still applies. propose/hitl do not bump. */
+  /** Default auto. `code` skips the AAR LLM graph and still applies. `propose` is that digest and does not bump. hitl does not bump. */
   aarMode?: AarMode;
   budget?: MatchBudget;
   graph?: CompiledAarGraph;
@@ -213,14 +213,15 @@ function finalizeSide(
 /**
  * Invoked twice after every result. `--no-llm` skips grok-4.5 and writes a code digest.
  * `--aar-mode code` is the same digest without the 45s graph, and still auto-applies.
- * Auto-apply writes playbook version N+1 unless `--aar-mode propose` / noLlm.
+ * `--aar-mode propose` is that digest and does **not** bump (frozen probe).
+ * `--aar-mode auto` is the 45s LLM AAR graph. Auto-apply writes version N+1 unless propose / noLlm.
  */
 export async function runPostMatchAar(opts: PostMatchAarOpts): Promise<{ home: AarReport; away: AarReport }> {
   const events = opts.events ?? listEvents(opts.db, opts.matchId);
   const noLlm = opts.noLlm === true;
   const aarMode = opts.aarMode ?? "auto";
 
-  if (noLlm || aarMode === "code") {
+  if (noLlm || aarMode === "code" || aarMode === "propose") {
     const epochs = listEpochInvocations(opts.db, opts.matchId);
     const home = codeOnlyAarReport({
       matchId: opts.matchId,

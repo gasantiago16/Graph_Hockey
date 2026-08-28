@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Playbook Writes Are Not Beneficial Retrieve</title>
+  <style>
+    :root {
+      --ink: #1a1f26;
+      --muted: #4a5560;
+      --rule: #c5c0b4;
+      --paper: #f4f1ea;
+      --panel: #fffdf8;
+      --navy: #1e3a5f;
+      --gold: #8a6d2b;
+      --link: #1e3a5f;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      background: var(--paper);
+      color: var(--ink);
+      font: 18px/1.62 "Georgia", "Times New Roman", serif;
+    }
+    article {
+      max-width: 42rem;
+      margin: 0 auto;
+      padding: 2.5rem 1.4rem 4.5rem;
+    }
+    header {
+      border-bottom: 2px solid var(--navy);
+      padding-bottom: 1.25rem;
+      margin-bottom: 1.75rem;
+    }
+    .kicker {
+      font-family: "Segoe UI", system-ui, sans-serif;
+      font-size: 0.72rem;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--gold);
+      margin: 0 0 0.6rem;
+    }
+    h1 {
+      font-size: 1.85rem;
+      font-weight: 700;
+      line-height: 1.2;
+      margin: 0 0 0.45rem;
+      color: var(--navy);
+    }
+    .sub { font-style: italic; color: var(--muted); margin: 0 0 0.85rem; }
+    .byline {
+      font-family: "Segoe UI", system-ui, sans-serif;
+      font-size: 0.88rem;
+      color: var(--muted);
+      margin: 0;
+    }
+    h2 {
+      font-family: "Segoe UI", system-ui, sans-serif;
+      font-size: 1.05rem;
+      letter-spacing: 0.04em;
+      color: var(--navy);
+      margin: 2.15rem 0 0.85rem;
+      padding-top: 0.85rem;
+      border-top: 1px solid var(--rule);
+    }
+    h3 {
+      font-family: "Segoe UI", system-ui, sans-serif;
+      font-size: 0.92rem;
+      font-weight: 650;
+      color: var(--navy);
+      margin: 1.35rem 0 0.55rem;
+    }
+    p { margin: 0 0 0.95rem; }
+    a { color: var(--link); }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.88rem;
+      margin: 0.6rem 0 1.2rem;
+      font-family: "Segoe UI", system-ui, sans-serif;
+      background: var(--panel);
+    }
+    caption {
+      text-align: left;
+      font-style: italic;
+      font-family: Georgia, serif;
+      font-size: 0.92rem;
+      margin: 0 0 0.4rem;
+      color: var(--muted);
+    }
+    th, td {
+      border: 1px solid var(--rule);
+      padding: 0.4rem 0.55rem;
+      text-align: left;
+      vertical-align: top;
+    }
+    th { background: #ece7db; color: var(--navy); font-weight: 650; }
+    td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+    .refs p {
+      font-size: 0.9rem;
+      padding-left: 1.4rem;
+      text-indent: -1.4rem;
+      margin-bottom: 0.65rem;
+    }
+    footer {
+      margin-top: 2.5rem;
+      padding-top: 0.8rem;
+      border-top: 1px solid var(--rule);
+      font-family: "Segoe UI", system-ui, sans-serif;
+      font-size: 0.78rem;
+      color: var(--muted);
+    }
+    @media print {
+      body { background: white; font-size: 11pt; }
+      article { padding: 0; max-width: none; }
+      a { color: inherit; text-decoration: none; }
+      h2, h3 { break-after: avoid; }
+      table { break-inside: avoid; }
+    }
+  </style>
+</head>
+<body>
+<article>
+  <header>
+    <p class="kicker">Research paper · language-model agents · self-play evaluation</p>
+    <h1>Playbook Writes Are Not Beneficial Retrieve</h1>
+    <p class="sub">Frozen cross-play of language-model hockey coaches</p>
+    <p class="byline">Graph_Hockey laboratory</p>
+  </header>
+
+  <h2>Abstract</h2>
+  <p>We ran twenty-five series of simulated ice hockey, seven games each. In every series the playbooks were locked: after the horn, the staff could not rewrite the sheet before the next faceoff. Three ways of using those sheets were compared—ask the trained book what to run, ask the original seed book what to run, and give both benches the seed book. Average scoring-chance volume did not leave one band (9.23 to 9.71 combined chances per game). Standard errors overlap.</p>
+  <p>It would be difficult to find anyone arguing against “the staff should remember the last game.” The argument that bumping a version number in a database <em>is</em> that memory is one of semantics.</p>
+  <p>The test must freeze the opponent’s book. Saving a lesson is a control. Using a lesson is a later game against an opponent that cannot rewrite while you play.</p>
+  <p>This plant is two language-model coaching staffs on a coded rink. Ice, not the model, moves the skaters. After a result, After-Action Review may write a structured playbook. The next game may read that book when choosing a play. A twin with the language model turned off never writes. That twin proves the write happens. It does not prove later hockey changed.</p>
+  <p>Measuring one learning staff against another learning staff is coadaptation, not skill (Zhang et al. 2024; Lu et al. 2025). The design here locks both books, uses the same model on both benches, and repeats the three ways of reading the book at five random seeds. What was counted: how many distinct scoring chances the trained side created, and both sides together.</p>
+  <p>On paired seeds, a trained home staff was +0.03 chances per game versus seed-versus-seed. A trained away staff was −0.17. Asking the trained away book what to run never beat asking the seed book (difference −0.51; every seed at or below zero). That is not a claim of harm. It is a failure to show help.</p>
+  <p>The scarce input is a coach answer inside eight seconds. If the model times out, the team keeps the last leftover play. Ice code is a second policy on the same stick.</p>
+  <p><strong>Conclusion.</strong> Playbook writes fire. Retrieving those writes does not raise scoring-chance volume against an opponent whose book is locked. Official LangGraph Store, National Hockey League–calibrated expected goals, and “the staffs learned hockey” are not licensed by this evidence.</p>
+
+  <h2>1. Background</h2>
+  <h3>1.1 The plant</h3>
+  <p>Graph_Hockey is a deterministic ice-hockey simulation. Two benches compete on a rink 200 by 85 feet. Physics and rules advance at ten hertz. The puck, offside, icing, and goals are decided by code. A spectator may watch. The spectator process never calls a model and never receives the opponent playbook.</p>
+  <p>Each bench is a compiled LangGraph staff: home and away, separate short-term threads, separate playbooks. They do not vote as twelve skaters. They share a structured play—a JSON sheet that names a formation and a shot policy. A Head Coach, which is a language model, is queried only at decision epochs: faceoff, special-teams change, or a possession that has lasted about eight seconds of simulated time. Between those calls, coded roles (first forward through goalie) skate.</p>
+  <p>After the result, After-Action Review reads the event log and may patch the playbook. The next game may retrieve from that book. That loop is the object of study.</p>
+  <p>LangGraph documents split short-term thread state (a checkpointer) from long-term application documents (a store) (LangChain, Persistence; Stores). This plant compiles the checkpointer only. Playbooks reside in SQLite beside the graph. That is an application store, not compilation with a store argument. The claim that official LangGraph Store is how the benches remember does not survive the compile line (LangChain 2024).</p>
+  <p>Ice is environment. The staff cannot arbitrarily rewrite faceoff alignment or support-forward geometry from a prompt. Anything the agent cannot change at will is environment (Sutton and Barto, Ch. 3.1). The same physical loop, cut differently, yields different optimal values (Jiang 2019). Playbooks stay on the agent side of that cut, or “the graph learned hockey” becomes a tautology about whoever last edited the ice.</p>
+  <p>There are important interdependencies between those layers. Overlay shot policy is a staff action. Ice first-forward shoot still beats overlay pass in the offensive zone. Timeout leftover strips overlay so ice can shoot. A playbook slot that ice never reads is a geometry API in name only. Either layer can look like improvement if the test does not lock the other.</p>
+
+  <h3>1.2 What the literature requires</h3>
+  <p>CoALA labels writing long-term memory as a learning action (Sumers et al. 2024). That is a taxonomy. Instantiating it is not a result.</p>
+  <p>Frozen-weight agents can change later behavior by writing external memory. Reflexion, Voyager, and ExpeL were accepted because performance on the task moved, with ablations (Shinn et al. 2023; Wang et al. 2023; Zhao et al. 2024). A log is not memory until a later run retrieves it and uses it to change behavior (LangChain 2026). Mitchell’s test, which ExpeL prints as epigraph, is the same: experience counts as learning only if the measure on the task improves (Zhao et al. 2024). Retrieved skills can hurt (Feng et al. 2026). Library size is not contribution.</p>
+  <p>Competing coaches who write structured advice after a match are not a new experimental class. RoboCup’s coach wrote CLang playbooks from game logs while independent players executed (Kuhlmann, Knox, and Stone 2006). LLCoach generates soccer plans that robots run (Brienza et al. 2024). AgentPitch compiles two language-model strategies onto a deterministic football engine and rewrites them after the result (Tao 2026). FM-Bench seats competing club agents on a deterministic football world (Wang et al. 2026). Graph_Hockey is that split—JSON and a language-model Head Coach—on ice. The plant is unpublished. The class is not.</p>
+  <p>Skill in self-play is a payoff against frozen copies or a population, not in-game score against a co-learner who is also writing (Zhang et al. 2024; Berner et al. 2019; Vinyals et al. 2019). In-game reward can dip while a frozen benchmark rises, because the opponent got harder (Lu et al. 2025).</p>
+  <p>Goals in seven 20-second periods are not skill. National Hockey League process statistics accumulate over 60-minute games, and many of them (DataDrivenHockey 2024; MoneyPuck n.d.). This clock is a volume diagnostic: distinct shot clusters, 1.5 seconds apart. A 120-second minor penalty remains unscaled inside a 60-second regulation. Name the defect. Do not call the metric a fitted National Hockey League expected-goals model.</p>
+
+  <h3>1.3 Prior measurements in this plant</h3>
+  <p>A writing series with After-Action Review applied advances live playbooks from version 1 to version 8. A no-model twin, same physics seed, stays at version 1. That is the write path.</p>
+  <p>Restoring those rows into a new series is persistence, not continual learning (Hu, Long, and Wang 2026; Lopez-Paz and Ranzato 2017). Voyager’s transfer test is a new world with skills executed (Wang et al. 2023).</p>
+  <p>An earlier cross-play of trained versus seed books left the seed side still applying After-Action Review. Books still moved from version 1 to version 8. The opponent was not frozen. A ranking ablation on both-trained-versus-both-trained, one seed, cannot identify trained-versus-seed use.</p>
+
+  <h2>2. Hypothesis</h2>
+  <p>It would be difficult to find anyone arguing against “the staff should remember the last game.” The argument that a version integer <em>is</em> that memory is one of semantics.</p>
+  <p>The question is operational. Did the written book change later scoring-chance volume against an opponent whose book could not change on the same clock?</p>
+  <p><strong>H1.</strong> With playbooks locked, a staff that reads the trained book’s preferred ranking produces a higher trained-side chance mean than seed-versus-seed.</p>
+  <p><strong>H2.</strong> With the same trained sheet on the ice, reading the trained book’s ranking produces a higher trained-side chance mean than reading the seed book’s ranking.</p>
+  <p><strong>H0.</strong> Live, seed-ranking, and seed-versus-seed sit in one band. The written book is dead weight on this metric.</p>
+  <p>Pre-registered outputs: trained-side distinct chance mean; combined chance mean (both benches). Freeze check: playbook version at game 6 equals version at game 0. Help is licensed only if H1 holds. Ranking as the mechanism is licensed only if H2 holds. Harm is not licensed without intervals that exclude zero (Feng et al. 2026).</p>
+  <p>The scarce input is a Head Coach completion inside eight seconds. If the model times out, leftover skating is ice plus the last play, not retrieve.</p>
+
+  <h2>3. Methods</h2>
+  <h3>3.1 Design</h3>
+  <p>Playbooks are locked for the entire series. After-Action Review writes a digest of the game and does not change the playbook version. The Head Coach is still asked each epoch. The same commercial language model sits on both benches, so side is not confounded with provider. Extending the timeout would buy time the live epoch does not have.</p>
+  <p>Playbooks restored for the trained side are those written during a prior seven-game series in which After-Action Review <em>did</em> apply (version 8). Each series is seven games of 20-second periods. Physics seeds: 7, 11, 19, 23, 29. Twenty-five series in all.</p>
+  <p>Table 1 is shorthand. “Live” means ask the trained book what to run. “Null” means keep that trained sheet but ask the original seed book what to run. “ss” means seed books on both benches. Home-trained (hs) and away-trained (sh) reverse which staff holds version 8.</p>
+  <table>
+    <caption>Table 1. The three ways of reading the book, home-trained and away-trained.</caption>
+    <thead>
+      <tr><th>Path</th><th>Home book</th><th>Away book</th><th>Retrieve ranks</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>ss</td><td>seed</td><td>seed</td><td>seed</td></tr>
+      <tr><td>hs-live</td><td>trained</td><td>seed, locked</td><td>trained home book</td></tr>
+      <tr><td>hs-null</td><td>trained</td><td>seed, locked</td><td>seed JSON order</td></tr>
+      <tr><td>sh-live</td><td>seed, locked</td><td>trained</td><td>trained away book</td></tr>
+      <tr><td>sh-null</td><td>seed, locked</td><td>trained</td><td>seed JSON order</td></tr>
+    </tbody>
+  </table>
+  <p>A design for the real range of the problem may have to embody more than one path. Live without null cannot separate ranking from the sheet. Null without ss cannot say whether the sheet itself beat seed. Seed-versus-seed without a lock is co-play.</p>
+  <p>How will leftover defeat the intervention? By skating the seed 1-2-2 when the coach misses the window. How is that countered? A leftover-only twin, so the ranker is the policy, or a coach that finishes. This paper names the countermeasure. It does not close it.</p>
+
+  <h3>3.2 Measures</h3>
+  <p>A distinct chance is a cluster of shots by one side, broken after 1.5 seconds without a shot or after a stoppage. Combined chance mean is home plus away clusters, averaged across the seven games.</p>
+  <p>Chance mean is a volume diagnostic on a short clock. It is not National Hockey League expected goals (MoneyPuck n.d.; DataDrivenHockey 2024).</p>
+  <p>Means are reported ± standard error across the five seeds. Paired differences use the same physics seed.</p>
+
+  <h2>4. Results</h2>
+  <p>Playbook versions did not change in any of the twenty-five series. Seed-versus-seed stayed at version 1/1. Home-trained series stayed at 8/1. Away-trained series stayed at 1/8. The lock held.</p>
+  <table>
+    <caption>Table 2. Distinct chance mean ± standard error (n = 5 seeds).</caption>
+    <thead>
+      <tr><th>Path</th><th class="num">Home μ</th><th class="num">Away μ</th><th class="num">Combined μ</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>ss</td><td class="num">4.89±0.32</td><td class="num">4.77±0.38</td><td class="num">9.66±0.21</td></tr>
+      <tr><td>hs-live</td><td class="num">4.91±0.44</td><td class="num">4.80±0.29</td><td class="num">9.71±0.23</td></tr>
+      <tr><td>hs-null</td><td class="num">4.74±0.30</td><td class="num">4.80±0.20</td><td class="num">9.54±0.25</td></tr>
+      <tr><td>sh-live</td><td class="num">4.63±0.31</td><td class="num">4.60±0.31</td><td class="num">9.23±0.13</td></tr>
+      <tr><td>sh-null</td><td class="num">4.54±0.39</td><td class="num">5.11±0.23</td><td class="num">9.66±0.31</td></tr>
+    </tbody>
+  </table>
+  <table>
+    <caption>Table 3. Paired differences, same physics seed.</caption>
+    <thead>
+      <tr><th>Contrast</th><th class="num">Mean</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Trained home, live minus ss</td><td class="num">+0.03</td></tr>
+      <tr><td>Trained home, live minus null</td><td class="num">+0.17</td></tr>
+      <tr><td>Trained away, live minus ss</td><td class="num">−0.17</td></tr>
+      <tr><td>Trained away, live minus null</td><td class="num">−0.51 (every seed ≤ 0)</td></tr>
+    </tbody>
+  </table>
+  <p>Live, null, and seed-versus-seed sit in one band. Combined volume does not separate.</p>
+  <p>The published retrieve-top field under seed ranking still names the live book. That is the stored menu, not the ranking leftover used. A leak in the scorecard, not a manipulation check. One seed-versus-seed series recorded a home offside maximum of three. That is an engine-storm gate, not the research question.</p>
+  <p>The write path from the writing series still stands: live versions advance; the no-model twin does not. Snapshot restore still loads rows. Loading is not this test.</p>
+
+  <h2>5. Analysis</h2>
+  <p>H1 is not supported. Trained home live minus seed-versus-seed is +0.03; signs mix across seeds. Trained away live minus seed-versus-seed is −0.17. Combined means occupy 9.23–9.71 with overlapping standard errors.</p>
+  <p>H2 is not supported as help. Trained away live minus null is −0.51, and every seed is at or below zero. Standard errors still overlap. Feng et al. (2026) require a no-memory contrast with intervals before a harm claim. The licensed sentence is: ranking the trained book is not shown to help.</p>
+  <p>H0 is the reading that survives. Written version-8 books are dead weight on this volume metric against an opponent whose book is locked.</p>
+  <p>Ice and leftover remain competing policies. If the coach misses eight seconds, the team skates seed structure. That can mask retrieve even when the JSON exists. Overlay pass that ice converts to shoot is the same class of leak: the sheet is not the motor.</p>
+  <p>Official LangGraph Store is not shown. The compile line does not pass a store.</p>
+  <p>A quality bank of two credits in five is not hockey science. Those credits were live-versus-live, and both home expected-goals deltas were negative. Ice patches (offside faceoff clamp, support-forward geometry) change the environment. No-model event hashes move when ice moves. That is not staff learning (Ng, Harada, and Russell 1999).</p>
+  <p>Goals as skill, version integers as retention, “both staffs improved,” and National Hockey League–calibrated expected goals are not licensed. Main-track originality of competing coaches who write playbooks after the horn is not licensed (Kuhlmann, Knox, and Stone 2006; Brienza et al. 2024; Tao 2026; Wang et al. 2026).</p>
+  <p>Autonomous staff is a misnomer. An operator starts the series, chooses models, and can stop the process. The Head Coach is a queried model on an eight-second leash.</p>
+  <p>Technology changes the status quo only if it changes later behavior against a locked opponent, or the time to an honest no. On this metric, the version-8 books do not change the first. They do buy the second.</p>
+
+  <h2>6. Future work</h2>
+  <p>What capabilities are essential, and how should they be prioritized?</p>
+  <p>Consider leftover-only and micro-only twins so retrieve ranking is the policy, not a menu the coach may ignore.</p>
+  <p>Examine whether play JSON (assignments, counters) moves anything if ranking does not. That is a different ablation: seed structure, zeroed statistics, trained sheet.</p>
+  <p>Compare lock-and-rank, as the counting experiment, against further ice geometry. If the claim is memory, ice is residual research and development.</p>
+  <p>Test a new written snapshot only after lock, factorial, and paired seeds are the protocol, not an exception.</p>
+  <p>Scale the penalty clock with period length, or stop treating 20-second volume as National Hockey League process.</p>
+  <p>The clock that matters is the eight-second coach window and the next locked-book series. Capability of the test—lock, three paths, five seeds—beats a larger log of co-adapting games.</p>
+
+  <h2>References</h2>
+  <div class="refs">
+    <p>Berner, C., et al. 2019. “Dota 2 with Large Scale Deep Reinforcement Learning.” arXiv:1912.06680. <a href="https://arxiv.org/abs/1912.06680">https://arxiv.org/abs/1912.06680</a></p>
+    <p>Brienza, M., et al. 2024. “LLCoach: Generating Robot Soccer Plans Using Multi-Role Large Language Models.” arXiv:2406.18285. <a href="https://arxiv.org/abs/2406.18285">https://arxiv.org/abs/2406.18285</a></p>
+    <p>DataDrivenHockey. 2024. “Hockey Analytics Primer: Rate Stats and Strength States.” <a href="https://www.data-driven-hockey.com/2024/02/21/hockey-analytics-primer-rate-stats-and-strength-states/">https://www.data-driven-hockey.com/2024/02/21/hockey-analytics-primer-rate-stats-and-strength-states/</a></p>
+    <p>Feng et al. 2026. Skill transfer. arXiv:2608.20274. <a href="https://arxiv.org/abs/2608.20274">https://arxiv.org/abs/2608.20274</a></p>
+    <p>Hu, S., Long, Y., and Wang, Y. 2026. “When Continual Learning Moves to Memory.” arXiv:2604.27003. <a href="https://arxiv.org/abs/2604.27003">https://arxiv.org/abs/2604.27003</a></p>
+    <p>Jiang, N. 2019. “On Value Functions and the Agent-Environment Boundary.” arXiv:1905.13341. <a href="https://arxiv.org/abs/1905.13341">https://arxiv.org/abs/1905.13341</a></p>
+    <p>Kuhlmann, G., Knox, W. B., and Stone, P. 2006. “Know Thine Enemy: A Champion RoboCup Coach Agent.” <em>Proceedings of the AAAI Conference on Artificial Intelligence</em>. <a href="https://aaai.org/papers/01463-aaai06-230-know-thine-enemy-a-champion-robocup-coach-agent/">https://aaai.org/papers/01463-aaai06-230-know-thine-enemy-a-champion-robocup-coach-agent/</a></p>
+    <p>LangChain. 2024. “Launching Long-Term Memory Support in LangGraph.” <a href="https://www.langchain.com/blog/launching-long-term-memory-support-in-langgraph">https://www.langchain.com/blog/launching-long-term-memory-support-in-langgraph</a></p>
+    <p>LangChain. 2026. “How to Give Your Agent Memory.” <a href="https://www.langchain.com/blog/how-to-give-your-agent-memory">https://www.langchain.com/blog/how-to-give-your-agent-memory</a></p>
+    <p>LangChain. n.d. “Persistence (JavaScript).” <a href="https://docs.langchain.com/oss/javascript/langgraph/persistence">https://docs.langchain.com/oss/javascript/langgraph/persistence</a></p>
+    <p>LangChain. n.d. “Stores (JavaScript).” <a href="https://docs.langchain.com/oss/javascript/langgraph/stores">https://docs.langchain.com/oss/javascript/langgraph/stores</a></p>
+    <p>Lopez-Paz, D., and Ranzato, M. 2017. “Gradient Episodic Memory for Continual Learning.” arXiv:1706.08840. <a href="https://arxiv.org/abs/1706.08840">https://arxiv.org/abs/1706.08840</a></p>
+    <p>Lu et al. 2025. “Search Self-play.” arXiv:2510.18821. <a href="https://arxiv.org/abs/2510.18821">https://arxiv.org/abs/2510.18821</a></p>
+    <p>MoneyPuck. n.d. “About.” <a href="https://moneypuck.com/about.htm">https://moneypuck.com/about.htm</a></p>
+    <p>Ng, A. Y., Harada, D., and Russell, S. 1999. “Policy Invariance under Reward Transformations: Theory and Application to Reward Shaping.” <em>Proceedings of the Sixteenth International Conference on Machine Learning</em>.</p>
+    <p>Shinn, N., et al. 2023. “Reflexion: Language Agents with Verbal Reinforcement Learning.” arXiv:2303.11366. <a href="https://arxiv.org/abs/2303.11366">https://arxiv.org/abs/2303.11366</a></p>
+    <p>Sumers, T., Yao, S., Narasimhan, K., and Griffiths, T. 2024. “Cognitive Architectures for Language Agents.” <em>Transactions on Machine Learning Research</em>. arXiv:2309.02427. <a href="https://arxiv.org/abs/2309.02427">https://arxiv.org/abs/2309.02427</a></p>
+    <p>Sutton, R. S., and Barto, A. G. <em>Reinforcement Learning: An Introduction</em>. 2nd ed. Ch. 3.1. <a href="http://incompleteideas.net/book/the-book-2nd.html">http://incompleteideas.net/book/the-book-2nd.html</a></p>
+    <p>Tao, G. 2026. AgentPitch. <a href="https://github.com/gangtao/AgentPitch/">https://github.com/gangtao/AgentPitch/</a></p>
+    <p>Vinyals, O., et al. 2019. “Grandmaster Level in StarCraft II Using Multi-Agent Reinforcement Learning.” <em>Nature</em> 575: 350–354. <a href="https://www.nature.com/articles/s41586-019-1724-z">https://www.nature.com/articles/s41586-019-1724-z</a></p>
+    <p>Wang, G., et al. 2023. “Voyager: An Open-Ended Embodied Agent with Large Language Models.” arXiv:2305.16291. <a href="https://arxiv.org/abs/2305.16291">https://arxiv.org/abs/2305.16291</a></p>
+    <p>Wang et al. 2026. “FM-Bench: A Benchmark for Long-Horizon Management with Competing Agents.” arXiv:2608.18423. <a href="https://arxiv.org/abs/2608.18423">https://arxiv.org/abs/2608.18423</a></p>
+    <p>Zhang et al. 2024. “A Survey on Self-play Methods in Reinforcement Learning.” arXiv:2408.01072. <a href="https://arxiv.org/abs/2408.01072">https://arxiv.org/abs/2408.01072</a></p>
+    <p>Zhao, A., et al. 2024. “ExpeL: LLM Agents Are Experiential Learners.” arXiv:2308.10144. <a href="https://arxiv.org/abs/2308.10144">https://arxiv.org/abs/2308.10144</a></p>
+  </div>
+
+  <footer>
+    Graph_Hockey laboratory. Print from the browser for PDF.
+  </footer>
+</article>
+</body>
+</html>
