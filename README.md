@@ -4,7 +4,17 @@ Two **LangGraph.js** teams compete in a realistic hockey game. After every win, 
 
 This is a **localhost Node.js browser game**. The server owns physics, rules, both team graphs, and LLM calls. The browser is a Canvas 2D spectator — it never scores a goal, never sees the opponent's playbook, and **never receives `*_API_KEY`**.
 
-**Status:** private repo, **`main` is playable**. Ice F1 actually shoots (one shot per possession). NZ dump-policy now dumps as a live `clear`, not a stick-carry. F2 chases a live-OZ dump. Live Head Coach finishes the epoch (HC → assemble). AAR rolls match xG into play stats and applies even if the LLM times out. Retrieve excludes lead-protect unless actually leading; leftover timeout/micro skates retrieve #1. `gh series --json` scores distinct chances, offsides, and retrieveTop. Film Room is resimulation; `gh footage --mp4` is a derivative. Handbook: [`docs/FORgasan.md`](docs/FORgasan.md). Experiment log (quality bank **2/5**, cycle 4 aborted): [`docs/better-hockey.md`](docs/better-hockey.md). Write path proven; retention survive proven; transfer started (one-look cycle/trap): [`docs/knowledge-and-learning.md`](docs/knowledge-and-learning.md).
+**Clone and run (no API key):**
+
+```bash
+npm install
+npm test          # LLM-free
+npm run web       # http://127.0.0.1:8787/  — stub coaches unless you check Use LLM
+```
+
+CI on `main` is typecheck + `npm test` + CLI help, with **no vendor keys**. Live LLM matches need a key in a gitignored `.env` (see `.env.example`).
+
+**Status:** public, **`main` is playable**. Ice F1 actually shoots (one shot per possession). NZ dump-policy now dumps as a live `clear`, not a stick-carry. F2 chases a live-OZ dump. Live Head Coach finishes the epoch (HC → assemble). AAR rolls match xG into play stats and applies even if the LLM times out. Retrieve excludes lead-protect unless actually leading; leftover timeout/micro skates retrieve #1. `gh series --json` scores distinct chances, offsides, and retrieveTop. Film Room is resimulation; `gh footage --mp4` is a derivative. Handbook: [`docs/FORgasan.md`](docs/FORgasan.md). Experiment log (quality bank **2/5**, cycle 4 aborted): [`docs/better-hockey.md`](docs/better-hockey.md). Write path proven; retention survive proven; transfer started (one-look cycle/trap): [`docs/knowledge-and-learning.md`](docs/knowledge-and-learning.md).
 
 ## What you are looking at
 
